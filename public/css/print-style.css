@@ -1,0 +1,62 @@
+/* public/css/print-style.css - النسخة النهائية المحسّنة */
+
+@page {
+    size: A4 landscape; /* حجم الورق A4 وبالعرض */
+    margin: 1cm; /* هوامش الصفحة (تم تصغيرها) */
+}
+
+body {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    font-family: 'Cairo', sans-serif;
+    background-color: #fff; /* خلفية بيضاء للطباعة */
+}
+
+/* أهم جزء: تكرار رأس وتذييل الجدول في كل صفحة */
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+
+/* إخفاء العناصر غير المرغوب فيها */
+@media print {
+    body > *:not(.printable-area) { display: none !important; }
+    .printable-area { display: block !important; }
+}
+
+/* تحسينات على شكل الجدول للطباعة */
+.printable-area table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt; /* تكبير الخط قليلاً */
+}
+
+.printable-area th, .printable-area td {
+    border: 1px solid #999 !important; /* تخفيف لون الحدود */
+    padding: 6px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* تنسيق الترويسة الرئيسية للتقرير */
+.report-main-header h1 {
+    font-size: 16pt;
+    margin: 0;
+    font-weight: bold;
+}
+.report-main-header p {
+    font-size: 11pt;
+    margin: 5px 0 0;
+}
+
+/* تنسيق تذييل التقرير (رقم الصفحة والتاريخ) */
+.report-footer {
+    border-top: 1px solid #ccc !important;
+}
+
+/* ضمان طباعة الألوان بشكل صحيح */
+.printable-area .table-dark {
+    background-color: #212529 !important;
+    color: #fff !important;
+}
+.printable-area .table-primary {
+    background-color: #cfe2ff !important;
+}

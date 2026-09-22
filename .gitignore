@@ -1,0 +1,29 @@
+# --- CD-006 قرار Git: استثناءات المستشار + الإضافات المعتمدة ---
+/vendor/
+/storage/backups/
+/storage/logs/
+/_emergency/
+/_backup/
+/_tmp/
+/temp/
+/.opencode/
+/.vscode/
+/config/database.php
+
+# SQL: الجذر فقط يُهمَل — الترحيلات تبقى متعقَّبة
+/*.sql
+/*.sql.gz
+!database/migrations/*.sql
+
+# ملفات مؤقتة/تطوير متناثرة في الجذر
+/*.zip
+/*.txt
+!/README.txt
+/*.ps1
+/*.php
+*.pdf
+
+# IDE / نظام التشغيل
+Thumbs.db
+Desktop.ini/CD-001_delivery/
+/CD-001_delivery/

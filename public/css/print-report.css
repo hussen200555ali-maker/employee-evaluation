@@ -1,0 +1,311 @@
+/* ==================================================
+   ملف أنماط الطباعة الرسمي للتقارير (النسخة النهائية المبسطة)
+   ================================================== */
+
+body {
+    background-color: #fff !important;
+    font-family: 'Cairo', sans-serif !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* إخفاء العناصر غير المرغوب فيها في النسخة المطبوعة */
+@media print {
+    .no-print, 
+    .btn, 
+    .main-header, 
+    .main-footer {
+        display: none !important;
+    }
+}
+
+/* تصميم الترويسة */
+.report-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 3px solid #0d6efd !important;
+    padding-bottom: 15px !important;
+    margin-bottom: 25px !important;
+}
+.report-header .logo { display: flex; align-items: center; gap: 10px; }
+.report-header .title { text-align: center; }
+.report-header h1 { margin: 0; font-size: 1.7rem; color: #333; }
+.report-header p { margin: 5px 0 0; font-size: 0.9rem; }
+
+/* تصميم جسم التقرير */
+.report-body { padding: 5px !important; }
+.page-break { page-break-after: always !important; }
+
+/* عناوين الفروع والأقسام */
+.branch-title, .department-title {
+    background-color: #e9ecef !important;
+    padding: 0.75rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
+    border-radius: 0.25rem !important;
+    font-weight: bold !important;
+    font-size: 1.3rem !important;
+    border-right: 5px solid #0d6efd !important;
+}
+.department-title {
+    background-color: #f8f9fa !important;
+    font-size: 1.1rem !important;
+    border-right-color: #6c757d !important;
+}
+
+/* تصميم الجداول */
+.report-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 1.5rem !important;
+    font-size: 9pt !important;
+    break-inside: avoid !important;
+}
+.report-table th, .report-table td {
+    border: 1px solid #dee2e6 !important;
+    padding: 8px !important;
+    text-align: center !important;
+}
+.report-table thead th {
+    background-color: #343a40 !important;
+    color: #fff !important;
+    font-weight: bold !important;
+}
+.report-table tbody tr:nth-child(even) {
+    background-color: #f2f2f2 !important;
+}
+.report-table td.course-title { text-align: right !important; }
+
+/* تصميم صفوف الإجماليات */
+.report-table tfoot td {
+    background-color: #dee2e6 !important;
+    font-weight: bold !important;
+    color: #000 !important;
+}
+.report-table tfoot td.total-label {
+    text-align: right !important;
+}
+
+/* تصميم التذييل */
+.report-footer {
+    text-align: center !important;
+    margin-top: 20px !important;
+    padding-top: 10px !important;
+    border-top: 1px solid #ccc !important;
+    font-size: 0.8rem !important;
+    color: #777 !important;
+}
+
+/* ==================================================
+   ===>  أنماط الترويسة الجديدة  <===
+   ================================================== */
+
+/* إعادة تصميم الحاوية الرئيسية للترويسة باستخدام Flexbox */
+.report-header {
+    display: flex !important;
+    justify-content: space-between !important; /* توزيع العناصر على الأطراف والوسط */
+    align-items: flex-start !important;      /* محاذاة العناصر من الأعلى */
+    border-bottom: 2px solid #444 !important;
+    padding-bottom: 15px !important;
+    margin-bottom: 30px !important;
+}
+
+/* تنسيق القسم الأوسط (الشعار والعنوان) */
+.report-header .header-center {
+    text-align: center !important;
+    flex-grow: 1; /* السماح للعنصر الأوسط بأخذ المساحة المتبقية */
+}
+
+/* تنسيق نص "بسم الله الرحمن الرحيم" */
+.report-header .basmala {
+    font-size: 1.2rem !important;
+    font-weight: bold;
+    margin: 0 !important;
+}
+
+/* تنسيق شعار الشركة */
+.report-header .company-logo {
+    max-width: 82px;   /* تحديد عرض أقصى للشعار */
+    max-height: 67px;   /* تحديد ارتفاع أقصى للشعار */
+    margin: 10px auto !important; /* توسيط الشعار مع هوامش */
+    display: block !important;
+    border-radius: 10px;
+}
+
+/* تنسيق عنوان التقرير */
+.report-header h1 {
+    margin: 0 !important;
+    font-size: 1rem !important;
+    color: #000 !important;
+    font-weight: 600;
+}
+
+/* تنسيق الأقسام الجانبية (اليمين واليسار) */
+.report-header .header-side {
+    display: flex !important;
+    flex-direction: column !important; /* ترتيب العناصر بشكل عمودي */
+    align-items: center !important;    /* توسيط العناصر أفقياً */
+    font-size: 0.9rem !important;
+    color: #555 !important;
+    min-width: 150px; /* تحديد عرض أدنى لضمان التناسق */
+/* من اجل تنزيل الجانب الايمن والايسر الى الوسط وجعل الخط اغمق */
+    margin-top: 41px;
+    font-weight: 600;
+}
+
+/* إزالة التاريخ من الترويسة القديمة (إذا كان موجوداً) */
+.report-header .title p.text-muted {
+    display: none !important;
+}
+
+
+
+/* ==================================================
+   ===>  أنماط جدول المعلومات في الترويسة  <===
+   ================================================== */
+
+.report-header .info-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    direction: rtl !important; /* ضمان اتجاه الجدول من اليمين لليسار */
+}
+
+.report-header .info-table td {
+    padding: 2px 0 !important; /* هوامش بسيطة بين الصفوف */
+    font-size: 0.9rem !important;
+    color: #555 !important;
+    border: none !important; /* إزالة أي حدود للجدول */
+    vertical-align: top !important;
+}
+
+/* تنسيق العمود الأول (العناوين) */
+.report-header .info-table td:nth-child(1) {
+    font-weight: bold !important;
+    width: 0px; /* تحديد عرض ثابت لعمود العناوين */
+}
+
+/* تنسيق العمود الثاني (النقطتين) */
+.report-header .info-table td:nth-child(2) {
+    width: 10px !important; /* عرض بسيط لعمود النقطتين */
+    text-align: center !important;
+}
+
+/* تنسيق العمود الثالث (القيم) */
+.report-header .info-table td:nth-child(3) {
+    text-align: right !important; /* محاذاة القيم لليمين */
+}
+
+/* تنسيق القسم الأيسر ليكون متناسقاً */
+.report-header .header-side:last-child .info-table td {
+    text-align: center !important;
+}
+
+/* ==================================================
+   ===>  قواعد منع التداخل وتحسين تقطيع الصفحات  <===
+   ================================================== */
+
+/* 
+ * القاعدة الأولى (الأهم): 
+ * امنع حدوث فاصل صفحة مباشرة بعد عنوان الفرع أو القسم.
+ * هذا يضمن أن الجدول التابع للعنوان سيبدأ معه في نفس الصفحة.
+*/
+.branch-title,
+.department-title {
+    page-break-after: avoid !important;
+}
+
+/*
+ * القاعدة الثانية:
+ * حاول دائمًا أن تبقي الجداول كوحدة واحدة ولا تقطعها بين الصفحات.
+ * إذا كان الجدول كبيرًا جدًا، سيقوم المتصفح بقطعه على أي حال،
+ * ولكن هذه القاعدة تمنع قطعه إذا كان هناك مساحة كافية في الصفحة التالية.
+*/
+.report-table {
+    page-break-inside: avoid !important;
+}
+
+/*
+ * القاعدة الثالثة (شبكة أمان إضافية):
+ * أضف هامشًا سفليًا إضافيًا لجسم التقرير لترك مساحة كافية للتذييل.
+ * هذا يضمن وجود مساحة فارغة في نهاية كل صفحة.
+*/
+@media print {
+    .report-body {
+        margin-bottom: 50px !important; /* زدنا الهامش قليلاً */
+    }
+}
+
+/* ==================================================
+   ===>  تنسيق التذييل والترقيم (النسخة النهائية)  <===
+   ================================================== */
+
+@media print {
+    /* تهيئة عداد الصفحة */
+    body {
+        counter-reset: page;
+    }
+
+    /* زيادة العداد في كل صفحة */
+    @page {
+        counter-increment: page;
+    }
+
+    /* تصميم حاوية التذييل الرئيسية */
+    .print-footer {
+        /* استخدام Flexbox لضمان ظهور كل شيء في سطر واحد */
+        display: flex;
+        justify-content: center; /* توسيط المحتوى أفقيًا */
+        align-items: center;     /* محاذاة عمودية */
+        width: 100%;
+    }
+
+    /* إضافة الترقيم كعنصر أخير في التذييل */
+    .print-footer::after {
+        content: "|  صفحة " counter(page);
+        margin-right: 8px; /* إضافة مسافة قبل الترقيم */
+        font-weight: bold;
+    }
+    
+    /* إضافة فاصل بين عناصر التذييل */
+    .footer-separator {
+        margin: 0 8px;
+    }
+}
+/* ==================================================
+   ===>     تنسيق التذييل ليظهر في سطر واحد     <===
+   ================================================== */
+
+@media print {
+    .print-footer {
+        /* استخدام Flexbox هو الحل الأمثل لترتيب العناصر أفقيًا */
+        display: flex;
+        justify-content: center; /* توسيط كل المحتوى */
+        align-items: center;     /* محاذاة عمودية في المنتصف */
+        white-space: nowrap;     /* منع التفاف النص إلى سطر جديد */
+    }
+
+    .footer-separator {
+        /* إضافة هوامش بسيطة حول الفاصل | لجعله أجمل */
+        margin: 0 8px;
+    }
+    
+    /* تعديل بسيط على كود الترقيم ليتناسب مع Flexbox */
+    .print-footer::after {
+        content: ""; /* نجعله فارغًا في البداية */
+        /* سيتم إضافة المحتوى الفعلي في القاعدة التالية */
+    }
+
+    /* قاعدة جديدة لترقيم الصفحات تتناسب مع التصميم الجديد */
+    .print-footer::before {
+        content: "| صفحة " counter(page);
+        font-weight: bold;
+        color: #333;
+        margin: 0 8px; /* إضافة هامش قبل الترقيم */
+        order: 3; /* تغيير ترتيب العنصر ليكون في النهاية */
+    }
+    
+    .footer-item:nth-child(1) { order: 1; } /* "تمت الطباعة بواسطة" أولاً */
+    .footer-item:nth-child(2) { order: 2; } /* "تاريخ الطباعة" ثانيًا */
+}

@@ -1,0 +1,8 @@
+# بند 6: منع الوصول المباشر عبر الويب إلى storage/ (سجلات PHP + النسخ الاحتياطية)
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

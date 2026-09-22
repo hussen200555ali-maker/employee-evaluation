@@ -1,0 +1,81 @@
+/* ملف: public/css/pdf-styles.css */
+
+/* 1. تعريف الخط الأساسي المتوافق مع العربية المعالجة */
+@font-face {
+    font-family: 'DejaVu Sans';
+    font-style: normal;
+    font-weight: normal;
+    src: url('../fonts/DejaVuSans.ttf') format('truetype'); /* تأكد من وجود الخط في public/fonts */
+}
+
+/* 2. تطبيق الخط على كل شيء وتحديد الاتجاه */
+body {
+    font-family: 'DejaVu Sans', sans-serif !important;
+    direction: rtl;
+    text-align: right;
+    background-color: #fff;
+}
+* {
+    font-family: 'DejaVu Sans', sans-serif !important;
+}
+
+/* 3. أنماط أساسية مأخوذة من Bootstrap لتبدو الجداول متشابهة */
+.card {
+    border: 1px solid #dee2e6 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid; /* منع كسر البطاقة بين الصفحات */
+    margin-bottom: 1rem;
+}
+.card-header {
+    padding: 0.5rem 1rem;
+    margin-bottom: 0;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+.card-body {
+    flex: 1 1 auto;
+    padding: 1rem 1rem;
+}
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+}
+.table th, .table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+    text-align: right;
+}
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+.table-bordered, .table-bordered th, .table-bordered td {
+    border: 1px solid #dee2e6;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    color: #fff;
+}
+.bg-success { background-color: #198754 !important; }
+.bg-danger { background-color: #dc3545 !important; }
+.bg-primary { background-color: #0d6efd !important; }
+
+/* إخفاء العناصر غير المرغوب فيها */
+.no-print {
+    display: none !important;
+}

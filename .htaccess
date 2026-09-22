@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    # ÊÝÚםב דÍÑ‗ ÅÚÇÏÉ Çב‗ÊÇÈÉ
+    RewriteEngine On
+
+    # דבÇÍÙÉ: Êד ÅÒÇבÉ RewriteBase ÇבËÇÈÊ בÌÚב .htaccess דÍדזבÇנ (portable).
+    # םד‗ה בÜ Apache ÇבÊÚÇדב דÚ ÇבדÓÇÑÇÊ ÇבהÓÈםÉ Ïזה ÇבÍÇÌÉ Åבל RewriteBase.
+    # ÅÐÇ זÇÌוÊ דÔ‗בÉ¡ ÃÖÝ ÇבÓØÑ ÇבÊÇבם (ÚÏרב ÇבדÓÇÑ ÍÓÈ ÈםÆÊ‗):
+    # RewriteBase /
+
+    # --- ÇבÔÑזØ ---
+    # ÇבÔÑØ ÇבÃזב: בÇ ÊØÈÞ ÇבÞÇÚÏÉ ÅÐÇ ‗Çה ÇבØבÈ בדבÝ דזÌזÏ
+    RewriteCond %{REQUEST_FILENAME} !-f
+    # ÇבÔÑØ ÇבËÇהם: בÇ ÊØÈÞ ÇבÞÇÚÏÉ ÅÐÇ ‗Çה ÇבØבÈ בדÌבÏ דזÌזÏ
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # --- ÞÇÚÏÉ ÇבÊזÌםו ---
+    # ÇבÊÞØ Ãם ÔםÁ Ýם ÇבÑÇÈØ זÞד ÈÊדÑםÑו ‗דÊÛםÑ 'url' Åבל public/index.php
+    RewriteRule ^(.*)$ public/index.php?url=$1 [QSA,L]
+</IfModule>

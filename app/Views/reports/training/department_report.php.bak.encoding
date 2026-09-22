@@ -1,0 +1,94 @@
+<?php 
+require_once APP_ROOT . '/app/Views/layouts/header.php'; 
+?>
+
+<div class="page-header">
+    <h2><i class="fas fa-file-alt"></i> طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„طھط¯ط±ظٹط¨ - ط§ظ„ط£ظ‚ط³ط§ظ…</h2>
+</div>
+
+<!-- ظ†ظ…ظˆط°ط¬ ط§ط®طھظٹط§ط± ط§ظ„ظ…ط¹ط§ظٹظٹط± -->
+<div class="form-container mb-4">
+    <form action="<?php echo APP_URL; ?>/reports/training/department" method="POST">
+                <?= csrf_field() ?>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="department_id">ط§ط®طھط± ط§ظ„ظ‚ط³ظ…</label>
+                <select name="department_id" id="department_id" class="form-control" required>
+                    <option value="">-- ط§ط®طھط± --</option>
+                    <?php foreach ($data['departments'] as $department): ?>
+                        <option value="<?php echo $department->id; ?>" <?php echo (isset($data['selected_department']) && $data['selected_department'] == $department->id) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($department->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start_date">ظ…ظ† طھط§ط±ظٹط®</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" value="<?php echo $data['selected_start_date'] ?? ''; ?>" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">ط¥ظ„ظ‰ طھط§ط±ظٹط®</label>
+                <input type="date" name="end_date" id="end_date" class="form-control" value="<?php echo $data['selected_end_date'] ?? ''; ?>" required>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-submit-form"><i class="fas fa-cogs"></i> ط¥ظ†ط´ط§ط، ط§ظ„طھظ‚ط±ظٹط±</button>
+        </div>
+    </form>
+</div>
+
+<!-- ط¹ط±ط¶ ظ†طھط§ط¦ط¬ ط§ظ„طھظ‚ط±ظٹط± (ظٹط¸ظ‡ط± ظپظ‚ط· ط¥ط°ط§ ظƒط§ظ†طھ ظ‡ظ†ط§ظƒ ط¨ظٹط§ظ†ط§طھ) -->
+<?php if (!empty($data['reportData']) && !empty($data['reportData']['details'])): ?>
+    <div class="content-card">
+        <div class="card-header">
+            <h3>ظ†طھط§ط¦ط¬ ط§ظ„طھظ‚ط±ظٹط±</h3>
+            <!-- ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ط²ط± ط·ط¨ط§ط¹ط© ظ‡ظ†ط§ ظ„ط§ط­ظ‚ط§ظ‹ -->
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ط§ط³ظ… ط§ظ„ط¯ظˆط±ط©</th>
+                            <th>ط§ظ„ط­ط¶ظˆط± (ط§ظ„ظ…ظپطھط±ط¶/ط§ظ„ظپط¹ظ„ظٹ)</th>
+                            <th>ظ…ظƒظˆظ† ط§ظ„ط­ط¶ظˆط± (ظ…ظ† 50)</th>
+                            <th>ظ…ظƒظˆظ† ط§ظ„ط§ظ†طھط¸ط§ظ… (ظ…ظ† 30)</th>
+                            <th>ظ…ظƒظˆظ† ط§ظ„ط§ط³طھظٹط¹ط§ط¨ (ظ…ظ† 20)</th>
+                            <th>ط§ظ„ظ†طھظٹط¬ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط© (ظ…ظ† 100)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($data['reportData']['details'] as $row): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($row->course_title); ?></td>
+                                <td><?php echo $row->expected_attendees . ' / ' . $row->actual_attendees; ?></td>
+                                <td><?php echo number_format($row->attendance_component, 2); ?></td>
+                                <td><?php echo number_format($row->regularity_component, 2); ?></td>
+                                <td><?php echo number_format($row->comprehension_component, 2); ?></td>
+                                <td><strong><?php echo number_format($row->final_score, 2); ?></strong></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <!-- طµظپ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹط§طھ ظˆط§ظ„ظ…طھظˆط³ط·ط§طھ -->
+                    <tfoot class="table-summary">
+                        <tr>
+                            <td><strong>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ / ط§ظ„ظ…طھظˆط³ط·</strong></td>
+                            <td><strong><?php echo $data['reportData']['summary']['total_expected'] . ' / ' . $data['reportData']['summary']['total_actual']; ?></strong></td>
+                            <td><?php echo number_format($data['reportData']['summary']['avg_attendance'], 2); ?></td>
+                            <td><?php echo number_format($data['reportData']['summary']['avg_regularity'], 2); ?></td>
+                            <td><?php echo number_format($data['reportData']['summary']['avg_comprehension'], 2); ?></td>
+                            <td><strong><?php echo number_format($data['reportData']['summary']['avg_final_score'], 2); ?></strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+<?php elseif (isset($data['reportData'])): ?>
+    <div class="alert alert-info">ظ„ط§ طھظˆط¬ط¯ ط¯ظˆط±ط§طھ ظ…ظ‚ظٹظ…ط© ظ„ظ‡ط°ط§ ط§ظ„ظ‚ط³ظ… ظپظٹ ط§ظ„ظپطھط±ط© ط§ظ„ط²ظ…ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط©.</div>
+<?php endif; ?>
+
+<?php 
+require_once APP_ROOT . '/app/Views/layouts/footer.php'; 
+?>
+

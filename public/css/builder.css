@@ -1,0 +1,602 @@
+/* ================================================== */
+/*          builder.css - Advanced Form Builder Styles          */
+/* ================================================== */
+
+/* 1. إعدادات الجسم الرئيسية للباني (ملء الشاشة) */
+.builder-body {
+    background-color: #f4f7f9;
+    overflow: hidden; /* منع ظهور شرائط تمرير غير مرغوب فيها على الجسم */
+}
+
+/* 2. الحاوية الرئيسية للباني (تستخدم Flexbox لتقسيم الشاشة) */
+.form-builder-container {
+    display: flex;
+    height: 100vh; /* جعل الحاوية تملأ ارتفاع الشاشة بالكامل */
+}
+
+/* 3. تنسيق اللوحات الجانبية (مكتبة العناصر والخصائص) */
+.sidebar-panel, .properties-panel {
+    width: 280px; /* عرض ثابت للوحات الجانبية */
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+.sidebar-panel {
+    border-left: 1px solid #e9ecef;
+}
+.properties-panel {
+    border-right: 1px solid #e9ecef;
+}
+
+/* 4. تنسيق رأس اللوحات الجانبية */
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0; /* منع الرأس من الانكماش */
+}
+.sidebar-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #343a40;
+}
+
+/* 5. تنسيق مكتبة العناصر القابلة للسحب */
+.element-library {
+    padding: 1rem;
+    overflow-y: auto; /* إضافة شريط تمرير إذا زادت العناصر عن ارتفاع الشاشة */
+    flex-grow: 1;
+}
+.element-group {
+    margin-bottom: 1.5rem;
+}
+.element-group h6 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.draggable-element {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.draggable-element:hover {
+    background-color: #eef6fc;
+    border-color: #72b4df;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+}
+.draggable-element i {
+    font-size: 1.2rem;
+}
+.draggable-element strong {
+    font-size: 0.95rem;
+    color: #343a40;
+}
+.draggable-element small {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: block;
+    line-height: 1.2;
+}
+
+/* 6. تنسيق مساحة العمل الرئيسية (الوسط) */
+.main-workspace {
+    flex: 1; /* جعلها تأخذ المساحة المتبقية */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* مهم لمنع التداخل */
+}
+
+/* 7. تنسيق شريط الأدوات العلوي */
+.toolbar {
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+    flex-shrink: 0; /* منع شريط الأدوات من الانكماش */
+}
+
+/* 8. تنسيق منطقة بناء الاستمارة (القماش) */
+.workspace-canvas {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto; /* أهم جزء: إضافة شريط تمرير لمنطقة العمل فقط */
+}
+
+/* 9. تنسيق منطقة الإسقاط الرئيسية (عندما تكون فارغة) */
+.main-drop-zone {
+    border: 2px dashed #d0dbe4;
+    border-radius: 12px;
+    padding: 4rem;
+    text-align: center;
+    color: #8fa4b8;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+.main-drop-zone i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+.main-drop-zone.drag-over {
+    background-color: #eef6fc;
+    border-color: #72b4df;
+    color: #0d6efd;
+}
+
+/* 10. تنسيق حاوية المعايير (عند إضافتها) */
+#form-structure-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* 11. تنسيق المعيار الواحد (البطاقة الزرقاء) */
+.criterion-wrapper {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.06);
+    transition: box-shadow 0.3s ease;
+}
+.criterion-wrapper.selected {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+.criterion-header {
+    background-color: #0d6efd; /* اللون الأزرق المميز */
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 11px 11px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.criterion-header h6 {
+    margin: 0;
+    font-weight: 600;
+}
+.criterion-body {
+    padding: 1.5rem;
+}
+.sections-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 12. تنسيق القسم الواحد (داخل المعيار) */
+.section-wrapper {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #0d6efd;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.section-wrapper:hover {
+    background-color: #ffffff;
+    border-color: #72b4df;
+}
+.section-wrapper.selected {
+    background-color: #eef6fc;
+    border-color: #0d6efd;
+}
+
+/* 13. تنسيق منطقة إسقاط الأقسام (داخل المعيار) */
+.section-drop-zone {
+    border: 2px dashed #d0dbe4;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    color: #8fa4b8;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+.section-drop-zone.drag-over {
+    background-color: #eef6fc;
+    border-color: #72b4df;
+}
+
+/* 14. تنسيق لوحة الخصائص */
+.properties-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+.no-selection-message {
+    text-align: center;
+    color: #6c757d;
+    padding-top: 4rem;
+}
+.no-selection-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+/* /public/css/builder.css */
+
+/* ... (تأكد من وجود هذه القواعد في نهاية الملف) ... */
+
+.criterion-wrapper.selected > .criterion-header {
+    background-color: #0d6efd; /* لون أزرق مميز للرأس عند التحديد */
+}
+
+.section-wrapper.selected {
+    background-color: #e7f1ff; /* خلفية زرقاء فاتحة للقسم المحدد */
+    border-right: 4px solid #0d6efd;
+    padding-right: 12px;
+}
+
+/* في نهاية ملف public/css/builder.css */
+
+.meta-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.weight-badge {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+.weight-badge.invalid {
+    background-color: #dc3545;
+    color: #fff;
+}
+.weight-badge.total {
+    background-color: #0d6efd;
+    color: #fff;
+}
+.weight-badge.total.invalid {
+    background-color: #dc3545;
+}
+/* في نهاية ملف public/css/builder.css */
+
+/* واجهة بناء التقرير التفاعلي */
+#report-controls {
+    border: 1px solid var(--product-border, #dce7e2);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+}
+
+#report-controls .card-header {
+    padding: 1.15rem 1.35rem;
+    background: linear-gradient(135deg, #0d5e52, #147568) !important;
+    border: 0;
+}
+
+#report-controls .card-header h5,
+#report-controls .card-header i {
+    color: #fff;
+}
+
+#report-controls .card-body {
+    padding: 1.35rem;
+    background: #fff;
+}
+
+#report-controls .form-label {
+    color: var(--product-ink, #16302b);
+    font-size: .82rem;
+}
+
+#report-controls .form-control {
+    min-height: 44px;
+    border-color: #d9e6e1;
+    border-radius: 9px;
+    background: #fbfdfc;
+}
+
+#report-controls .form-control:focus {
+    border-color: var(--product-brand, #0d5e52);
+    box-shadow: 0 0 0 .2rem rgba(13, 94, 82, .12);
+    background: #fff;
+}
+
+#report-controls .card-footer {
+    gap: 1rem;
+    padding: 1rem 1.35rem;
+}
+
+#report-controls .card-footer > div:last-child {
+    display: flex;
+    gap: .55rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+#total-weight-badge {
+    min-width: 3.8rem;
+    padding: .45rem .7rem;
+    border-radius: 7px;
+    background: #dcebe5;
+    color: #176446;
+}
+
+#report-container {
+    min-height: 12rem;
+    padding: 1.25rem;
+    border: 1px solid var(--product-border, #dce7e2);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 5px 17px rgba(22, 48, 43, .055);
+}
+
+#report-container .table-responsive {
+    border: 1px solid #dce7e2;
+    border-radius: 11px;
+}
+
+#report-container table {
+    margin-bottom: 0;
+    min-width: 760px;
+}
+
+#report-container thead th {
+    padding: .85rem .65rem;
+    background: #16302b;
+    border-color: #35564e;
+    color: #fff;
+    font-size: .82rem;
+    vertical-align: middle;
+}
+
+#report-container tbody td {
+    padding: .8rem .65rem;
+    color: #38544c;
+    font-size: .84rem;
+}
+
+#report-container tbody tr:hover {
+    background: #f2f8f5;
+}
+
+#report-container tfoot th {
+    padding: .9rem .65rem;
+    background: #eaf4ef;
+    color: #176446;
+}
+
+#report-title-display {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin-bottom: .35rem;
+    color: var(--product-ink, #16302b);
+}
+
+#report-title-display i {
+    display: grid;
+    width: 2.65rem;
+    height: 2.65rem;
+    place-items: center;
+    border-radius: 11px;
+    background: #e3f1eb;
+    color: var(--product-brand, #0d5e52) !important;
+    font-size: 1.15rem;
+}
+
+#report-period-display {
+    margin-right: 3.3rem;
+    color: #71857d;
+    font-size: .9rem;
+}
+
+@media (max-width: 767.98px) {
+    #report-controls .card-footer {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+
+    #report-controls .card-footer > div:last-child {
+        justify-content: stretch;
+    }
+
+    #report-controls .card-footer .btn {
+        flex: 1 1 100%;
+    }
+
+    #report-container {
+        padding: .65rem;
+    }
+
+    #report-title-display {
+        align-items: flex-start;
+        font-size: 1.35rem;
+    }
+
+    #report-period-display {
+        margin-right: 3.3rem;
+    }
+}
+
+/* ================================================== */
+/*           ===>  تحسينات الواجهة (V2)  <===         */
+/* ================================================== */
+
+/* 1. تصميم إطار الأقسام (Section Item) */
+.section-item {
+    background-color: #fff;
+    border: 1px solid #e9ecef; /* إطار رمادي فاتح */
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem; /* مسافة بين الأقسام */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); /* ظل خفيف جداً */
+    transition: all 0.2s ease-in-out;
+    position: relative; /* ضروري لتحديد موضع زر الحذف */
+}
+
+/* تأثير عند مرور الماوس فوق القسم */
+.section-item:hover {
+    border-color: #cde4f7;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+    transform: translateY(-2px);
+}
+
+/* 2. تصميم زر الحذف وتأثيراته */
+.section-item .delete-section {
+    position: absolute;
+    top: 5px;
+    left: 5px; /* وضعه في الزاوية العلوية اليسرى */
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    opacity: 0; /* إخفاء الزر بشكل افتراضي */
+    transition: all 0.2s ease-in-out;
+}
+
+/* إظهار الزر عند مرور الماوس فوق القسم */
+.section-item:hover .delete-section {
+    opacity: 1;
+}
+
+/* 
+   ▼▼▼ هذا هو التأثير الذي طلبته بالضبط ▼▼▼
+   تغيير لون الزر إلى الأحمر عند مرور الماوس فوقه 
+*/
+.section-item .delete-section:hover {
+    background-color: #dc3545; /* لون أحمر */
+    border-color: #c82333;
+    color: #fff; /* تغيير لون الأيقونة إلى الأبيض */
+}
+
+/* تعديل بسيط على حاوية الأقسام لإضافة مسافة داخلية */
+.sections-container {
+    padding-top: 1rem;
+}
+
+/* تعديل بسيط على مؤشر التحديد (selected) */
+.criterion-wrapper.selected, .section-item.selected {
+    border: 2px solid #0d6efd !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+/* في ملف public/css/builder.css */
+
+/* تعديل: جعل القاعدة عامة لأي زر حذف داخل عنصر */
+.criterion-header .delete-criterion,
+.section-item .delete-section {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    opacity: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+/* تعديل: إظهار زر الحذف عند مرور الماوس فوق الحاوية الأب */
+.criterion-wrapper:hover .delete-criterion,
+.section-item:hover .delete-section {
+    opacity: 1;
+}
+
+/* 
+   تعديل: تطبيق تأثير اللون الأحمر على كلا الزرين 
+   هذه هي القاعدة الأهم التي طلبتها
+*/
+.criterion-header .delete-criterion:hover,
+.section-item .delete-section:hover {
+    background-color: #dc3545 !important; /* استخدام !important لضمان الأولوية */
+    border-color: #c82333 !important;
+    color: #fff !important;
+}
+
+/* لا تنسى إضافة position: relative; إلى رأس المعيار أيضاً */
+.criterion-header {
+    position: relative;
+    /* ... بقية الأنماط ... */
+}
+/* في ملف public/css/builder.css */
+
+/* ... (الأنماط الموجودة لديك) ... */
+
+/* =================================== */
+/*   تحسينات تجربة المستخدم (UX)      */
+/* =================================== */
+
+/* 
+ * إضافة شريط تمرير عمودي لمساحة العمل الرئيسية.
+ * - `overflow-y: auto;` : يظهر شريط التمرير فقط عند الحاجة (عندما يتجاوز المحتوى ارتفاع الشاشة).
+ * - `padding-bottom: 50px;`: إضافة مساحة فارغة في الأسفل لتسهيل الوصول إلى آخر عنصر.
+*/
+.main-workspace {
+    overflow-y: auto;
+    padding-bottom: 50px; 
+}
+
+/* 
+ * تحسين مظهر شريط التمرير (اختياري، لكنه يعطي لمسة احترافية)
+ * يعمل على متصفحات Webkit (Chrome, Safari, Edge)
+*/
+.main-workspace::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main-workspace::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+}
+
+.main-workspace::-webkit-scrollbar-thumb {
+    background: #ccc; 
+    border-radius: 4px;
+}
+
+.main-workspace::-webkit-scrollbar-thumb:hover {
+    background: #aaa; 
+}
+.main-workspace {
+    overflow-y: auto !important;
+    padding-bottom: 50px; 
+}
+
+/* طبقة التصميم المؤسسي للمنشئ: تنسجم مع القالب العام من دون تغيير تفاعلات السحب والإفلات. */
+.builder-body { background: #eef4f1; }
+.sidebar-panel, .properties-panel { background: rgba(255,255,255,.96); box-shadow: none; border-color: #dce7e2; }
+.sidebar-header { padding: 1.05rem 1.15rem; background: #fbfdfc; border-color: #dce7e2; }
+.sidebar-header h5 { color: #16302b; font-weight: 800; }
+.element-library, .properties-body { padding: 1rem; }
+.element-group h6 { color: #648078; letter-spacing: .03em; }
+.draggable-element { background: #fff; border-color: #dce7e2; border-radius: 10px; box-shadow: 0 2px 7px rgba(22,48,43,.035); }
+.draggable-element:hover { background: #eaf5f0; border-color: #90c7b7; box-shadow: 0 8px 18px rgba(22,48,43,.1); }
+.draggable-element strong { color: #16302b; }
+.toolbar { padding: 1rem 1.5rem; background: rgba(255,255,255,.96); border-color: #dce7e2; }
+.workspace-canvas { padding: 1.5rem; background-image: radial-gradient(rgba(13,94,82,.09) 1px, transparent 1px); background-size: 18px 18px; }
+.main-drop-zone, .section-drop-zone { border-color: #a9d1c4; color: #5d867b; background: rgba(255,255,255,.56); }
+.main-drop-zone.drag-over, .section-drop-zone.drag-over { background: #e2f2ec; border-color: #0d5e52; color: #0d5e52; }
+.criterion-wrapper { border-color: #dce7e2; border-radius: 14px; box-shadow: 0 8px 20px rgba(22,48,43,.06); }
+.criterion-wrapper.selected { border-color: #0d5e52; box-shadow: 0 0 0 3px rgba(13,94,82,.14); }
+.criterion-header, .criterion-wrapper.selected > .criterion-header { background: linear-gradient(120deg,#093f37,#0d6658); border-radius: 13px 13px 0 0; }
+.criterion-body { padding: 1.2rem; }
+.section-wrapper { background: #f8fbf9; border-color: #dce7e2; border-left-color: #0d5e52; border-radius: 10px; }
+.section-wrapper:hover { background: #fff; border-color: #91c7b7; }
+.section-wrapper.selected { background: #e8f4ef; border-color: #0d5e52; border-right-color: #0d5e52; }
+@media (max-width: 900px) { .form-builder-container { min-width: 100%; }.sidebar-panel, .properties-panel { width: 14rem; }.workspace-canvas { padding: 1rem; } }

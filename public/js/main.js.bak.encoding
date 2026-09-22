@@ -1,0 +1,1324 @@
+/**
+ * ط§ظ„ظ…ظ„ظپ ط§ظ„ط±ط¦ظٹط³ظٹ ظ„ظ€ JavaScript ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚
+ */
+/**
+ * ط§ظ„ظ…ظ„ظپ ط§ظ„ط±ط¦ظٹط³ظٹ ظ„ظ€ JavaScript ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚
+ */
+
+// ==================================================
+//           ===>  ط£ط¶ظپ ط§ظ„ط¯ط§ظ„ط© ط§ظ„طھط§ظ„ظٹط© ظ‡ظ†ط§  <===
+// ==================================================
+/**
+ * ط¯ط§ظ„ط© ظ…ط³ط§ط¹ط¯ط© ظ„ط¹ط±ط¶ ط±ط³ط§ط¦ظ„ Toast ط¨ط§ط³طھط®ط¯ط§ظ… SweetAlert2.
+ * @param {string} type - ظ†ظˆط¹ ط§ظ„ط±ط³ط§ظ„ط© ('success', 'error', 'warning', 'info').
+ * @param {string} message - ظ†طµ ط§ظ„ط±ط³ط§ظ„ط© ط§ظ„ط°ظٹ ط³ظٹط¸ظ‡ط±.
+ */
+function getCsrfToken(){return document.querySelector('meta[name="csrf-token"]')?.content || '';}
+function showToast(type, message) {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-start', // ط³طھط¸ظ‡ط± ظپظٹ ط£ط¹ظ„ظ‰ ط§ظ„ظٹط³ط§ط± (ظ„ط£ظ† ط§ظ„طµظپط­ط© ط¹ط±ط¨ظٹط©)
+        showConfirmButton: false,
+        timer: 3000, // ظ…ط¯ط© ط¸ظ‡ظˆط± ط§ظ„ط±ط³ط§ظ„ط© ط¨ط§ظ„ظ…ظ„ظ„ظٹ ط«ط§ظ†ظٹط© (3 ط«ظˆط§ظ†ظٹ)
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    Toast.fire({
+        icon: type,
+        title: message
+    });
+}
+
+
+
+// ظ†ظ†طھط¸ط± ط­طھظ‰ ظٹطھظ… طھط­ظ…ظٹظ„ ظƒط§ظ…ظ„ ظ…ط­طھظˆظ‰ ط§ظ„طµظپط­ط© (DOM) ظ‚ط¨ظ„ طھظ†ظپظٹط° ط§ظ„ظƒظˆط¯.
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ==================================================
+    //           ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط§ظ„ظ…ظˆط¸ظپظٹظ†
+    // ==================================================
+    const deleteEmployeeButtons = document.querySelectorAll('.js-delete-employee');
+    deleteEmployeeButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const employeeId = this.dataset.id;
+            const employeeName = this.dataset.name;
+            if (confirm("هل أنت متأكد من أنك تريد حذف الموظف \"" + employeeName + "\"؟")) {
+                submitDeleteForm('/employees/delete', employeeId);
+            }
+        });
+    });
+
+// ظپظٹ ظ…ظ„ظپ public/js/main.js ط¯ط§ط®ظ„ document.addEventListener('DOMContentLoaded', function() { ... });
+
+// ==================================================
+//        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†ط§طµط¨
+// ==================================================
+const editPositionModalElement = document.getElementById('editPositionModal');
+if (editPositionModalElement) {
+    const editPositionModal = new bootstrap.Modal(editPositionModalElement);
+    const editPositionForm = document.getElementById('editPositionForm');
+
+    // ظ…ط¹ط§ظ„ط¬ ظپطھط­ ظ†ط§ظپط°ط© ط§ظ„طھط¹ط¯ظٹظ„
+    document.querySelectorAll('.js-edit-position').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const title = this.dataset.title;
+            const category = this.dataset.category;
+
+            // ظ…ظ„ط، ط­ظ‚ظˆظ„ ط§ظ„ظ†ظ…ظˆط°ط¬ ظپظٹ ط§ظ„ظ†ط§ظپط°ط© ط§ظ„ظ…ظ†ط¨ط«ظ‚ط©
+            editPositionForm.querySelector('#edit-id').value = id;
+            editPositionForm.querySelector('#edit-title').value = title;
+            editPositionForm.querySelector('#edit-category').value = category;
+
+            // ظپطھط­ ط§ظ„ظ†ط§ظپط°ط©
+            editPositionModal.show();
+        });
+    });
+}
+
+// ظ…ط¹ط§ظ„ط¬ ط²ط± ط§ظ„ط­ط°ظپ
+document.querySelectorAll('.js-delete-position').forEach(button => {
+    button.addEventListener('click', function() {
+        const positionId = this.dataset.id;
+        const positionTitle = this.dataset.title;
+
+        // ط§ط³طھط®ط¯ط§ظ… SweetAlert2 ظ„ط±ط³ط§ظ„ط© طھط£ظƒظٹط¯ ط§ط­طھط±ط§ظپظٹط©
+        Swal.fire({
+            title: "هل أنت متأكد؟",
+            text: "سيتم حذف المنصب \"" + positionTitle + "\"! لا يمكن التراجع عن هذا الإجراء.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'نعم، احذفه!',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // ط¥ط°ط§ ط£ظƒط¯ ط§ظ„ظ…ط³طھط®ط¯ظ…طŒ ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ظپظˆط±ظ… ظˆط¥ط±ط³ط§ظ„ظ‡
+              submitDeleteForm('/employees/positions/delete', positionId);
+            }
+        });
+    });
+});
+
+// ظ…ظ„ط§ط­ط¸ط©: طھط£ظƒط¯ ظ…ظ† ط£ظ† ط¯ط§ظ„ط© submitDeleteForm ظ…ظˆط¬ظˆط¯ط© ظپظٹ ظ…ظ„ظپ main.js
+// ط¥ط°ط§ ظ„ظ… طھظƒظ† ظ…ظˆط¬ظˆط¯ط©طŒ ط£ط¶ظپظ‡ط§:
+function submitDeleteForm(actionUrl, id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = actionUrl;
+
+    const hiddenField = document.createElement('input');
+    hiddenField.type = 'hidden';
+    hiddenField.name = 'id';
+    hiddenField.value = id;
+    form.appendChild(hiddenField);
+    const csrfTokenField = document.createElement('input'); csrfTokenField.type = 'hidden'; csrfTokenField.name = '_token'; csrfTokenField.value = getCsrfToken(); form.appendChild(csrfTokenField);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+    // ==================================================
+    //           ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط§ظ„ظپط±ظˆط¹
+    // ==================================================
+    const editBranchModalElement = document.getElementById('editBranchModal');
+    // ===> ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط§ظ„ط¹ظ†طµط± ط£ظˆظ„ط§ظ‹ <===
+    if (editBranchModalElement) {
+        const editBranchModal = new bootstrap.Modal(editBranchModalElement);
+        const editBranchButtons = document.querySelectorAll('.js-edit-branch');
+        const editBranchForm = document.getElementById('editBranchForm');
+
+        editBranchButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const location = this.dataset.location;
+                const managerId = this.dataset.managerId;
+
+                editBranchForm.querySelector('#edit-id').value = id;
+                editBranchForm.querySelector('#edit-name').value = name;
+                editBranchForm.querySelector('#edit-location').value = location;
+                editBranchForm.querySelector('#edit-manager_id').value = managerId;
+
+                editBranchModal.show();
+            });
+        });
+    }
+
+    const deleteBranchButtons = document.querySelectorAll('.js-delete-branch');
+    deleteBranchButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const branchId = this.dataset.id;
+            const branchName = this.dataset.name;
+            if (confirm("هل أنت متأكد من أنك تريد حذف الفرع \"" + branchName + "\"؟")) {
+                submitDeleteForm('/branches/delete', branchId);
+            }
+        });
+    });
+
+
+    // ==================================================
+    //           ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط§ظ„ط£ظ‚ط³ط§ظ…
+    // ==================================================
+    const editDepartmentModalElement = document.getElementById('editDepartmentModal');
+    // ===> ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط§ظ„ط¹ظ†طµط± ط£ظˆظ„ط§ظ‹ <===
+    if (editDepartmentModalElement) {
+        const editDepartmentModal = new bootstrap.Modal(editDepartmentModalElement);
+        const editDepartmentButtons = document.querySelectorAll('.js-edit-department');
+        const editDepartmentForm = document.getElementById('editDepartmentForm');
+        
+        editDepartmentButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const branchId = this.dataset.branchId;
+
+                editDepartmentForm.querySelector('#edit-id').value = id;
+                editDepartmentForm.querySelector('#edit-name').value = name;
+                editDepartmentForm.querySelector('#edit-branch_id').value = branchId;
+
+                editDepartmentModal.show();
+            });
+        });
+    }
+
+    const deleteDepartmentButtons = document.querySelectorAll('.js-delete-department');
+    deleteDepartmentButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const departmentId = this.dataset.id;
+            const departmentName = this.dataset.name;
+            if (confirm("هل أنت متأكد من أنك تريد حذف القسم \"" + departmentName + "\"؟")) {
+                submitDeleteForm('/departments/delete', departmentId);
+            }
+        });
+    });
+
+
+    /**
+     * ط¯ط§ظ„ط© ظ…ط³ط§ط¹ط¯ط© ظ„ط¥ظ†ط´ط§ط، ظˆط¥ط±ط³ط§ظ„ ظ†ظ…ظˆط°ط¬ ط§ظ„ط­ط°ظپ.
+     * ظ‡ط°ط§ ظٹظ…ظ†ط¹ طھظƒط±ط§ط± ط§ظ„ظƒظˆط¯.
+     * @param {string} actionUrl - ط§ظ„ط±ط§ط¨ط· ط§ظ„ط°ظٹ ط³ظٹطھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨ ط¥ظ„ظٹظ‡.
+     * @param {number} id - ظ…ط¹ط±ظپ ط§ظ„ط¹ظ†طµط± ط§ظ„ظ…ط±ط§ط¯ ط­ط°ظپظ‡.
+     */
+  // ظپظٹ ظ…ظ„ظپ: public/js/main.js
+
+/**
+ * =================================================================
+ * ط¯ط§ظ„ط© ظ…ط³ط§ط¹ط¯ط© ظ„ط¥ظ†ط´ط§ط، ظˆط¥ط±ط³ط§ظ„ ظ†ظ…ظˆط°ط¬ ط§ظ„ط­ط°ظپ (ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط© ظˆط§ظ„ظ…ط¤ظƒط¯ط©)
+ * =================================================================
+ * @param {string} relativePath - ط§ظ„ظ…ط³ط§ط± ط§ظ„ظ†ط³ط¨ظٹ ظپظ‚ط· (ظ…ط«ط§ظ„: '/employees/delete').
+ * @param {number} id - ظ…ط¹ط±ظپ ط§ظ„ط¹ظ†طµط± ط§ظ„ظ…ط±ط§ط¯ ط­ط°ظپظ‡.
+ */
+function submitDeleteForm(relativePath, id) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    
+    // ===> ط§ظ„ط¥طµظ„ط§ط­ ط§ظ„ط­ط§ط³ظ… ظ‡ظ†ط§ <===
+    // ظ†ط³طھط®ط¯ظ… ظ…طھط؛ظٹط± APP_URL ط§ظ„ط¹ط§ظ… ظ„ط¶ظ…ط§ظ† ط¨ظ†ط§ط، ط§ظ„ط±ط§ط¨ط· ط§ظ„طµط­ظٹط­ ط¯ط§ط¦ظ…ظ‹ط§.
+    form.action = APP_URL + relativePath;
+
+    const hiddenField = document.createElement('input');
+    hiddenField.type = 'hidden';
+    hiddenField.name = 'id';
+    hiddenField.value = id;
+    form.appendChild(hiddenField);
+    const csrfTokenField = document.createElement('input'); csrfTokenField.type = 'hidden'; csrfTokenField.name = '_token'; csrfTokenField.value = getCsrfToken(); form.appendChild(csrfTokenField);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ظ‚ظˆط§ظ„ط¨ ط§ظ„طھظ‚ظٹظٹظ…
+    // ==================================================
+    const editTemplateModalElement = document.getElementById('editTemplateModal');
+    if (editTemplateModalElement) {
+        const editTemplateModal = new bootstrap.Modal(editTemplateModalElement);
+        const editTemplateButtons = document.querySelectorAll('.js-edit-template');
+        const editTemplateForm = document.getElementById('editTemplateForm');
+
+        editTemplateButtons.forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const description = this.dataset.description;
+                const status = this.dataset.status;
+
+                editTemplateForm.querySelector('#edit-id').value = id;
+                editTemplateForm.querySelector('#edit-name').value = name;
+                editTemplateForm.querySelector('#edit-description').value = description;
+                editTemplateForm.querySelector('#edit-status').value = status;
+
+                editTemplateModal.show();
+            });
+        });
+    }
+
+  const deleteTemplateButtons = document.querySelectorAll('.js-delete-template');
+
+deleteTemplateButtons.forEach(button => {
+    button.addEventListener('click', function(event) {
+        event.preventDefault(); // ظ…ظ†ط¹ ط§ظ„ط³ظ„ظˆظƒ ط§ظ„ط§ظپطھط±ط§ط¶ظٹ
+
+        const templateId = this.dataset.id;
+        const templateName = this.dataset.name;
+        const rootUrl = typeof APP_URL !== 'undefined' ? APP_URL : (typeof BASE_URL !== 'undefined' ? BASE_URL : '');
+
+        if (confirm("هل أنت متأكد من أنك تريد حذف القالب \"" + templateName + "\"؟")) {
+            
+            // 1. ط¥ظ†ط´ط§ط، ظ†ظ…ظˆط°ط¬ ط¬ط¯ظٹط¯ ظ…ط®طµطµ ظ„ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© ظپظ‚ط·
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `${rootUrl}/templates/delete`; // ط§ط³طھط®ط¯ط§ظ… ط§ظ„ط±ط§ط¨ط· ط§ظ„طµط­ظٹط­
+            form.style.display = 'none';
+
+            // 2. ط¥ظ†ط´ط§ط، ط­ظ‚ظ„ ظ…ط®ظپظٹ ط¨ط§ظ„ط§ط³ظ… ط§ظ„طµط­ظٹط­
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'template_id'; // <-- ظ‡ط°ط§ ظ‡ظˆ ط§ظ„ط¥طµظ„ط§ط­ ط§ظ„ط­ط§ط³ظ…
+            hiddenInput.value = templateId;
+            form.appendChild(hiddenInput);
+            const csrf2 = document.createElement('input'); csrf2.type='hidden'; csrf2.name='_token'; csrf2.value=getCsrfToken(); form.appendChild(csrf2);
+
+            // 3. إضافة الحقل للنموذج
+
+            // 4. إضافة النموذج للصفحة وإرساله
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+});
+    
+    // ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط¹ط§ظٹظٹط±
+    // ==================================================
+    const criterionFormElement = document.getElementById('criterion-form');
+    // ===> ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ†ظ…ظˆط°ط¬ ط§ظ„ظ…ط¹ط§ظٹظٹط± ظپظٹ ط§ظ„طµظپط­ط© ط§ظ„ط­ط§ظ„ظٹط© <===
+    if (criterionFormElement) {
+        const formTitle = document.getElementById('criterion-form-title');
+        const submitBtnText = document.getElementById('criterion-submit-btn-text');
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        const criterionIdField = document.getElementById('criterion-id');
+        const criterionNameField = document.getElementById('criterion-name');
+        const criterionWeightField = document.getElementById('criterion-weight');
+
+        /**
+         * ظ…ط¹ط§ظ„ط¬ط© طھط¹ط¯ظٹظ„ ط§ظ„ظ…ط¹ظٹط§ط± (Criterion Edit Handler)
+         */
+        const editCriterionButtons = document.querySelectorAll('.btn-edit-criterion');
+        editCriterionButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 1. ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ…ظ† ط§ظ„ط²ط± ط§ظ„ط°ظٹ طھظ… ط§ظ„ط¶ط؛ط· ط¹ظ„ظٹظ‡.
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const weight = this.dataset.weight;
+
+                // 2. طھط؛ظٹظٹط± ط¹ظ†ظˆط§ظ† ظˆط²ط± ط§ظ„ظ†ظ…ظˆط°ط¬ ظ„ظٹط¹ظƒط³ ظˆط¶ط¹ "ط§ظ„طھط¹ط¯ظٹظ„".
+                formTitle.innerHTML = '<i class="fas fa-edit"></i> طھط¹ط¯ظٹظ„ ط§ظ„ظ…ط¹ظٹط§ط±';
+                submitBtnText.textContent = 'ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ';
+                criterionFormElement.action = '/employee-evaluation/criteria/update'; // طھط؛ظٹظٹط± ظ…ط³ط§ط± ط§ظ„ط¥ط±ط³ط§ظ„
+                cancelBtn.style.display = 'inline-block'; // ط¥ط¸ظ‡ط§ط± ط²ط± ط§ظ„ط¥ظ„ط؛ط§ط،
+
+                // 3. ظ…ظ„ط، ط­ظ‚ظˆظ„ ط§ظ„ظ†ظ…ظˆط°ط¬ ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط§ظ„ظٹط© ظ„ظ„ظ…ط¹ظٹط§ط±.
+                criterionIdField.value = id;
+                criterionNameField.value = name;
+                criterionWeightField.value = weight;
+
+                // 4. ظ†ظ‚ظ„ ط§ظ„طھط±ظƒظٹط² (focus) ط¥ظ„ظ‰ ط£ظˆظ„ ط­ظ‚ظ„ ظپظٹ ط§ظ„ظ†ظ…ظˆط°ط¬.
+                criterionNameField.focus();
+            });
+        });
+
+        /**
+         * ظ…ط¹ط§ظ„ط¬ط© ط¥ظ„ط؛ط§ط، ط§ظ„طھط¹ط¯ظٹظ„
+         */
+        cancelBtn.addEventListener('click', function() {
+            // 1. ط¥ط¹ط§ط¯ط© ط§ظ„ظ†ظ…ظˆط°ط¬ ط¥ظ„ظ‰ ظˆط¶ط¹ "ط§ظ„ط¥ط¶ط§ظپط©".
+            formTitle.innerHTML = '<i class="fas fa-plus-circle"></i> ط¥ط¶ط§ظپط© ظ…ط¹ظٹط§ط± ط¬ط¯ظٹط¯';
+            submitBtnText.textContent = 'ط­ظپط¸ ط§ظ„ظ…ط¹ظٹط§ط±';
+            criterionFormElement.action = '/employee-evaluation/criteria'; // ط¥ط¹ط§ط¯ط© ظ…ط³ط§ط± ط§ظ„ط¥ط±ط³ط§ظ„
+            cancelBtn.style.display = 'none'; // ط¥ط®ظپط§ط، ط²ط± ط§ظ„ط¥ظ„ط؛ط§ط،
+
+            // 2. طھظپط±ظٹط؛ ط­ظ‚ظˆظ„ ط§ظ„ظ†ظ…ظˆط°ط¬.
+            criterionFormElement.reset();
+            criterionIdField.value = '';
+        });
+
+        /**
+         * ظ…ط¹ط§ظ„ط¬ط© ط­ط°ظپ ط§ظ„ظ…ط¹ظٹط§ط± (Criterion Deletion Handler)
+         */
+        const deleteCriterionButtons = document.querySelectorAll('.btn-delete-criterion');
+        deleteCriterionButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const templateId = criterionFormElement.querySelector('input[name="template_id"]').value;
+
+                if (confirm("هل أنت متأكد من أنك تريد حذف المعيار \"" + name + "\"؟")) {
+                    // ظ„ط·ظ„ط¨ ط§ظ„ط­ط°ظپطŒ ط³ظ†ظ†ط´ط¦ ظ†ظ…ظˆط°ط¬ط§ظ‹ ظˆظ†ط±ط³ظ„ظ‡.
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/employee-evaluation/criteria/delete';
+
+                    // ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ID ط§ظ„ظ…ط¹ظٹط§ط±.
+                    const idField = document.createElement('input');
+                    idField.type = 'hidden';
+                    idField.name = 'id';
+                    idField.value = id;
+                    form.appendChild(idField);
+
+                    // ط¥ط¶ط§ظپط© ط­ظ‚ظ„ ID ط§ظ„ظ‚ط§ظ„ط¨ (ظ…ظ‡ظ… ظ„ط¥ط¹ط§ط¯ط© ط§ظ„طھظˆط¬ظٹظ‡).
+                    const templateIdField = document.createElement('input');
+                    templateIdField.type = 'hidden';
+                    templateIdField.name = 'template_id';
+                    templateIdField.value = templateId;
+                    form.appendChild(templateIdField);
+                    const csrf3 = document.createElement('input'); csrf3.type='hidden'; csrf3.name='_token'; csrf3.value=getCsrfToken(); form.appendChild(csrf3);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+    }
+    
+    // ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¯ط§ط±ط© ط§ظ„ط£ظ‚ط³ط§ظ…
+    // ==================================================
+    const sectionForm = document.getElementById('section-form');
+    if (sectionForm) {
+        const inputTypeSelect = document.getElementById('input-type');
+        const numericOptions = document.getElementById('numeric-options');
+        const choiceOptions = document.getElementById('choice-options');
+
+        function toggleSectionOptions() {
+            const selectedType = inputTypeSelect.value;
+            
+            // ط¥ط®ظپط§ط، ظƒظ„ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ط¯ظٹظ†ط§ظ…ظٹظƒظٹط© ط£ظˆظ„ط§ظ‹
+            numericOptions.style.display = 'none';
+            choiceOptions.style.display = 'none';
+
+            // ط¥ط¸ظ‡ط§ط± ط§ظ„ط­ظ‚ظ„ ط§ظ„ظ…ظ†ط§ط³ط¨ ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط§ظ„ط§ط®طھظٹط§ط±
+            if (selectedType === 'numeric') {
+                numericOptions.style.display = 'block';
+            } else if (selectedType === 'single_choice' || selectedType === 'multi_choice') {
+                choiceOptions.style.display = 'block';
+            }
+        }
+
+        // ط§ط³طھط¯ط¹ط§ط، ط§ظ„ط¯ط§ظ„ط© ط¹ظ†ط¯ طھط­ظ…ظٹظ„ ط§ظ„طµظپط­ط© ظ„طھط­ط¯ظٹط¯ ط§ظ„ط­ط§ظ„ط© ط§ظ„ط£ظˆظ„ظٹط©
+        toggleSectionOptions();
+        // ط§ط³طھط¯ط¹ط§ط، ط§ظ„ط¯ط§ظ„ط© ط¹ظ†ط¯ ظƒظ„ طھط؛ظٹظٹط± ظپظٹ ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظ†ط³ط¯ظ„ط©
+        inputTypeSelect.addEventListener('change', toggleSectionOptions);
+    }
+
+      // ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¯ط§ط±ط© ط§ظ„ط£ظ‚ط³ط§ظ…
+    // ==================================================
+    const sectionFormElement = document.getElementById('section-form');
+    if (sectionFormElement) {
+        const formTitle = sectionFormElement.parentElement.previousElementSibling.querySelector('h3');
+        const submitBtn = sectionFormElement.querySelector('button[type="submit"]');
+        const cancelBtn = document.createElement('button'); // ط³ظ†ظ†ط´ط¦ ط²ط± ط§ظ„ط¥ظ„ط؛ط§ط، ط¯ظٹظ†ط§ظ…ظٹظƒظٹط§ظ‹
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.textContent = 'ط¥ظ„ط؛ط§ط، ط§ظ„طھط¹ط¯ظٹظ„';
+        cancelBtn.style.display = 'none';
+        submitBtn.parentElement.appendChild(cancelBtn);
+
+        const sectionIdField = document.createElement('input');
+        sectionIdField.type = 'hidden';
+        sectionIdField.name = 'id';
+        sectionFormElement.prepend(sectionIdField);
+
+        const inputTypeSelect = document.getElementById('input-type');
+        const numericOptions = document.getElementById('numeric-options');
+        const choiceOptions = document.getElementById('choice-options');
+
+        function toggleSectionOptions() { /* ... (ط§ظ„ط¯ط§ظ„ط© طھط¨ظ‚ظ‰ ظƒظ…ط§ ظ‡ظٹ) ... */ }
+        toggleSectionOptions();
+        inputTypeSelect.addEventListener('change', toggleSectionOptions);
+
+        // ===> ظ…ظ†ط·ظ‚ ط§ظ„طھط¹ط¯ظٹظ„ ط§ظ„ط¬ط¯ظٹط¯ ظ‡ظ†ط§ <===
+        const editSectionButtons = document.querySelectorAll('.btn-edit-section');
+        editSectionButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const data = this.dataset;
+
+                // 1. طھط؛ظٹظٹط± ط§ظ„ظ†ظ…ظˆط°ط¬ ط¥ظ„ظ‰ ظˆط¶ط¹ "ط§ظ„طھط¹ط¯ظٹظ„"
+                formTitle.innerHTML = '<i class="fas fa-edit"></i> طھط¹ط¯ظٹظ„ ط§ظ„ظ‚ط³ظ…';
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ';
+                sectionFormElement.action = '/employee-evaluation/sections/update';
+                cancelBtn.style.display = 'inline-block';
+
+                // 2. ظ…ظ„ط، ط­ظ‚ظˆظ„ ط§ظ„ظ†ظ…ظˆط°ط¬ ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ
+                sectionIdField.value = data.id;
+                sectionFormElement.querySelector('#section-name').value = data.name;
+                sectionFormElement.querySelector('#input-type').value = data.inputType;
+                sectionFormElement.querySelector('#max-value').value = data.maxValue;
+                sectionFormElement.querySelector('#options-text').value = data.options;
+                sectionFormElement.querySelector('#section-weight').value = data.weight;
+                sectionFormElement.querySelector('#has_notes').checked = (data.hasNotes == '1');
+                sectionFormElement.querySelector('#notes_required').checked = (data.notesRequired == '1');
+
+                // 3. طھط­ط¯ظٹط« ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ط¯ظٹظ†ط§ظ…ظٹظƒظٹط©
+                toggleSectionOptions();
+                
+                // 4. ط§ظ„ط§ظ†طھظ‚ط§ظ„ ط¥ظ„ظ‰ ط§ظ„ظ†ظ…ظˆط°ط¬
+                sectionFormElement.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // ===> ظ…ظ†ط·ظ‚ ط¥ظ„ط؛ط§ط، ط§ظ„طھط¹ط¯ظٹظ„ <===
+        cancelBtn.addEventListener('click', function() {
+            formTitle.innerHTML = '<i class="fas fa-plus-circle"></i> ط¥ط¶ط§ظپط© ظ‚ط³ظ… ط¬ط¯ظٹط¯';
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> ط­ظپط¸ ط§ظ„ظ‚ط³ظ…';
+            sectionFormElement.action = '/employee-evaluation/sections';
+            cancelBtn.style.display = 'none';
+            sectionFormElement.reset();
+            sectionIdField.value = '';
+            toggleSectionOptions();
+        });
+    }
+        // ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†
+    // ==================================================
+    const editUserRoleModalElement = document.getElementById('editUserRoleModal');
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط§ظ„ظ†ط§ظپط°ط© ط§ظ„ظ…ظ†ط¨ط«ظ‚ط© ظپظٹ ط§ظ„طµظپط­ط© ط§ظ„ط­ط§ظ„ظٹط©
+    if (editUserRoleModalElement) {
+        // ط¥ظ†ط´ط§ط، ظƒط§ط¦ظ† Modal ظ…ظ† Bootstrap ظ„ظ„طھط­ظƒظ… ظپظٹ ط§ظ„ظ†ط§ظپط°ط©
+        const editUserRoleModal = new bootstrap.Modal(editUserRoleModalElement);
+        // ط§ط³طھظ‡ط¯ط§ظپ ظƒظ„ ط£ط²ط±ط§ط± "طھط؛ظٹظٹط± ط§ظ„ط¯ظˆط±"
+        const editUserRoleButtons = document.querySelectorAll('.js-edit-user-role');
+        // ط§ط³طھظ‡ط¯ط§ظپ ظ†ظ…ظˆط°ط¬ ط§ظ„طھط¹ط¯ظٹظ„
+        const editUserRoleForm = document.getElementById('editUserRoleForm');
+
+        // ط¥ط¶ط§ظپط© ظ…ط³طھظ…ط¹ ط­ط¯ط« ظ„ظƒظ„ ط²ط±
+        editUserRoleButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 1. ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ…ظ† data attributes ط§ظ„ط®ط§طµط© ط¨ط§ظ„ط²ط± ط§ظ„ط°ظٹ طھظ… ط§ظ„ط¶ط؛ط· ط¹ظ„ظٹظ‡
+                const userId = this.dataset.userId;
+                const username = this.dataset.username;
+                const currentRoleId = this.dataset.currentRoleId;
+
+                // 2. ظ…ظ„ط، ط­ظ‚ظˆظ„ ط§ظ„ظ†ظ…ظˆط°ط¬ ظپظٹ ط§ظ„ظ†ط§ظپط°ط© ط§ظ„ظ…ظ†ط¨ط«ظ‚ط© ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ
+                editUserRoleForm.querySelector('#edit-user-id').value = userId;
+                editUserRoleForm.querySelector('#username-placeholder').textContent = username;
+                editUserRoleForm.querySelector('#edit-role-id').value = currentRoleId;
+
+                // 3. ظپطھط­ ط§ظ„ظ†ط§ظپط°ط© ط§ظ„ظ…ظ†ط¨ط«ظ‚ط©
+                editUserRoleModal.show();
+            });
+        });
+    }
+
+    // ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¯ط§ط±ط© ط§ظ„ط£ط¯ظˆط§ط± ظˆط§ظ„طµظ„ط§ط­ظٹط§طھ
+    // ==================================================
+    
+    // ط§ط³طھظ‡ط¯ط§ظپ ظƒظ„ ظ…ط±ط¨ط¹ط§طھ ط§ظ„ط§ط®طھظٹط§ط± ط§ظ„طھظٹ ظ„ظ‡ط§ ط§ظ„ظƒظ„ط§ط³ 'permission-checkbox'
+    const permissionCheckboxes = document.querySelectorAll('.permission-checkbox');
+
+permissionCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const roleId = this.closest('.permission-form').dataset.roleId;
+        const permissionId = this.value;
+        const isChecked = this.checked;
+
+        const label = this.nextElementSibling;
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm ms-2';
+        label.appendChild(spinner);
+        this.disabled = true;
+
+        fetch('/employee-evaluation/admin/roles/update-permission', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({
+                role_id: roleId,
+                permission_id: permissionId,
+                is_checked: isChecked
+            })
+        })
+        .then(response => {
+            // ط¯ط§ط¦ظ…ط§ظ‹ ظ‚ظ… ط¨ط¥ط²ط§ظ„ط© ظ…ط¤ط´ط± ط§ظ„طھط­ظ…ظٹظ„ ظˆط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ ط§ظ„ظ…ط±ط¨ط¹
+            label.removeChild(spinner);
+            this.disabled = false;
+            
+            // ط¥ط°ط§ ظ„ظ… طھظƒظ† ط§ظ„ط§ط³طھط¬ط§ط¨ط© ظ†ط§ط¬ط­ط©طŒ ط§ط¹ط±ط¶ ط±ط³ط§ظ„ط© ط®ط·ط£ ظˆط£ط±ط¬ط¹ ط§ظ„ظ…ط±ط¨ط¹ ظ„ط­ط§ظ„طھظ‡ ط§ظ„ط³ط§ط¨ظ‚ط©
+            if (!response.ok) {
+                this.checked = !isChecked; // ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط±ط¨ط¹ ظ„ط­ط§ظ„طھظ‡ ط§ظ„ط£طµظ„ظٹط©
+                // ط§ط³طھط¯ط¹ط§ط، ط¯ط§ظ„ط© ط§ظ„ظ€ Toast ظ„ط¹ط±ط¶ ط§ظ„ط®ط·ط£
+                showToast('error', 'ظپط´ظ„ ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±!');
+                // ط¥ظٹظ‚ط§ظپ ط³ظ„ط³ظ„ط© ط§ظ„ظ€ .then() ظ„ط£ظ†ظ†ط§ ظ„ط§ ظ†ط±ظٹط¯ ظ…ط¹ط§ظ„ط¬ط© JSON ط؛ظٹط± ظ…ظˆط¬ظˆط¯
+                throw new Error('Server responded with an error.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // ط¥ط°ط§ ظ†ط¬ط­ ط§ظ„ط·ظ„ط¨طŒ ط§ط³طھط¯ط¹ط§ط، ط¯ط§ظ„ط© ط§ظ„ظ€ Toast ظ„ط¹ط±ط¶ ط±ط³ط§ظ„ط© ط§ظ„ظ†ط¬ط§ط­
+            if (data.success) {
+                showToast('success', 'طھظ… ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±');
+            }
+        })
+        .catch(error => {
+            // ظ‡ط°ط§ ط§ظ„ط¬ط²ط، ط³ظٹط¹ظ…ظ„ ظپظ‚ط· ظپظٹ ط­ط§ظ„ط© ظپط´ظ„ ط§ظ„ط´ط¨ظƒط© ط£ظˆ ط¥ط°ط§ ط£ظˆظ‚ظپظ†ط§ ط§ظ„ط³ظ„ط³ظ„ط© ظٹط¯ظˆظٹط§ظ‹
+            console.error('Fetch Error:', error);
+            // ظ†طھط£ظƒط¯ ظ…ظ† ط£ظ†ظ†ط§ ظ„ط§ ظ†ط¹ط±ط¶ ط±ط³ط§ظ„ط© ط®ط·ط£ ظ…ط±طھظٹظ†
+            if (error.message !== 'Server responded with an error.') {
+                showToast('error', 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ….');
+            }
+        });
+    });
+    });
+
+    // ظپظٹ ظ…ظ„ظپ /public/js/main.js ط¯ط§ط®ظ„ DOMContentLoaded
+
+    // ... (ط¨ط¹ط¯ ظƒظˆط¯ ظ…ط¹ط§ظ„ط¬ط© طµظ„ط§ط­ظٹط§طھ ط§ظ„ط£ط¯ظˆط§ط±)
+
+    // ==================================================
+    //        ظ…ط¹ط§ظ„ط¬ط§طھ طھط¹ط¯ظٹظ„ ظˆط­ط°ظپ ط§ظ„ط£ط¯ظˆط§ط±
+    // ==================================================
+    const editRoleModalElement = document.getElementById('editRoleModal');
+    if (editRoleModalElement) {
+        const editRoleModal = new bootstrap.Modal(editRoleModalElement);
+        const editRoleForm = document.getElementById('editRoleForm');
+
+        // ظ…ط¹ط§ظ„ط¬ ظپطھط­ ظ†ط§ظپط°ط© ط§ظ„طھط¹ط¯ظٹظ„
+        document.querySelectorAll('.js-edit-role').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const description = this.dataset.description;
+
+                editRoleForm.querySelector('#edit-id').value = id;
+                editRoleForm.querySelector('#edit-name').value = name;
+                editRoleForm.querySelector('#edit-description').value = description;
+
+                editRoleModal.show();
+            });
+        });
+    }
+
+    // ظ…ط¹ط§ظ„ط¬ ط²ط± ط§ظ„ط­ط°ظپ
+    document.querySelectorAll('.js-delete-role').forEach(button => {
+        button.addEventListener('click', function() {
+            const roleId = this.dataset.id;
+            const roleName = this.dataset.name;
+
+            Swal.fire({
+                title: "هل أنت متأكد؟",
+                text: "سيتم حذف الدور \"" + roleName + "\" بشكل نهائي!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'نعم، احذفه!',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // ط¥ط°ط§ ط£ظƒط¯ ط§ظ„ظ…ط³طھط®ط¯ظ…طŒ ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ظپظˆط±ظ… ظˆط¥ط±ط³ط§ظ„ظ‡
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                  form.action = '/employee-evaluation/admin/roles/delete';
+                    
+                    const hiddenField = document.createElement('input');
+                    hiddenField.type = 'hidden';
+                    hiddenField.name = 'id';
+                    hiddenField.value = roleId;
+                    form.appendChild(hiddenField);
+                    const csrf4 = document.createElement('input'); csrf4.type='hidden'; csrf4.name='_token'; csrf4.value=getCsrfToken(); form.appendChild(csrf4);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+    });
+// ==================================================
+//        ظ…ط¹ط§ظ„ط¬ طھط؛ظٹظٹط± ط­ط§ظ„ط© ط§ظ„ظ…ط³طھط®ط¯ظ… (طھظپط¹ظٹظ„/طھط¹ظ„ظٹظ‚)
+// ==================================================
+document.querySelectorAll('.js-toggle-status').forEach(button => {
+    button.addEventListener('click', function() {
+        const userId = this.dataset.userId;
+        const username = this.dataset.username;
+        const isActivating = this.classList.contains('btn-view');
+
+        const actionText = isActivating ? 'تفعيل' : 'تعطيل';
+        const confirmButtonText = isActivating ? 'نعم، قم بالتفعيل' : 'نعم، قم بالتعطيل';
+
+        Swal.fire({
+            title: "هل أنت متأكد؟",
+            text: "سيتم " + actionText + " حساب المستخدم \"" + username + "\".",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: isActivating ? '#28a745' : '#d33',
+            confirmButtonText: confirmButtonText,
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨ ط¹ط¨ط± AJAX
+                fetch('/employee-evaluation/admin/users/toggle-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', data.message);
+                        // ط¥ط¹ط§ط¯ط© طھط­ظ…ظٹظ„ ط§ظ„طµظپط­ط© ظ„ط¹ط±ط¶ ط§ظ„طھط؛ظٹظٹط±ط§طھ (ط£ط¨ط³ط· ط·ط±ظٹظ‚ط©)
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showToast('error', data.message || 'ط­ط¯ط« ط®ط·ط£ ظ…ط§.');
+                    }
+                })
+                .catch(err => {
+                    showToast('error', 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ….');
+                    console.error(err);
+                });
+            }
+        });
+    });
+});
+
+
+// ظپظٹ ظ…ظ„ظپ /public/js/main.js
+
+// ظ…ط¹ط§ظ„ط¬ ط²ط± ط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ…
+document.querySelectorAll('.js-delete-user').forEach(button => {
+    button.addEventListener('click', function() {
+        const userId = this.dataset.userId;
+        const username = this.dataset.username;
+
+        Swal.fire({
+            title: 'ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں',
+            text: `ط³ظٹطھظ… ط­ط°ظپ ط­ط³ط§ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ… "${username}" ظ†ظ‡ط§ط¦ظٹط§ظ‹! ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،.`,
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'ظ†ط¹ظ…طŒ ط§ط­ط°ظپظ‡!',
+            cancelButtonText: 'ط¥ظ„ط؛ط§ط،'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/employee-evaluation/admin/users/delete';
+                
+                const hiddenField = document.createElement('input');
+                hiddenField.type = 'hidden';
+                hiddenField.name = 'id';
+                hiddenField.value = userId;
+                form.appendChild(hiddenField);
+                const csrf5 = document.createElement('input'); csrf5.type='hidden'; csrf5.name='_token'; csrf5.value=getCsrfToken(); form.appendChild(csrf5);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    });
+});
+// ==================================================
+//        ظ…ط¹ط§ظ„ط¬ ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±
+// ==================================================
+document.querySelectorAll('.js-reset-password').forEach(button => {
+    button.addEventListener('click', function() {
+        const userId = this.dataset.userId;
+        const username = this.dataset.username;
+
+        Swal.fire({
+            title: 'ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
+            text: `ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط£ظ†ظƒ طھط±ظٹط¯ ط¥ظ†ط´ط§ط، ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط© ظ„ظ„ظ…ط³طھط®ط¯ظ… "${username}"طں`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ظ†ط¹ظ…طŒ ظ‚ظ… ط¨ط§ظ„ط¥ظ†ط´ط§ط،',
+            cancelButtonText: 'ط¥ظ„ط؛ط§ط،'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // ط¥ط¸ظ‡ط§ط± ظ…ط¤ط´ط± طھط­ظ…ظٹظ„
+                Swal.showLoading();
+
+                fetch('/employee-evaluation/admin/users/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // ط¹ط±ط¶ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط© ظپظٹ ظ†ط§ظپط°ط© ظ…ظ†ط¨ط«ظ‚ط©
+                        Swal.fire({
+                            title: 'طھظ… ط¨ظ†ط¬ط§ط­!',
+                            html: `
+                                <p>طھظ… ط¥ظ†ط´ط§ط، ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط© ظ„ظ„ظ…ط³طھط®ط¯ظ… <strong>${username}</strong>.</p>
+                                <p>ط§ظ„ط±ط¬ط§ط، ظ†ط³ط®ظ‡ط§ ظˆط¥ط¹ط·ط§ط¦ظ‡ط§ ظ„ظ„ظ…ط³طھط®ط¯ظ…. ظ„ظ† ظٹطھظ… ط¹ط±ط¶ظ‡ط§ ظ…ط±ط© ط£ط®ط±ظ‰.</p>
+                                <div style="background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; padding: 10px; margin-top: 15px; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;">
+                                    ${data.newPassword}
+                                </div>
+                            `,
+                            icon: 'success',
+                            confirmButtonText: 'ط­ط³ظ†ط§ظ‹طŒ ظپظ‡ظ…طھ'
+                        });
+                    } else {
+                        showToast('error', data.message || 'ط­ط¯ط« ط®ط·ط£ ظ…ط§.');
+                    }
+                })
+                .catch(err => {
+                    Swal.close(); // ط¥ط؛ظ„ط§ظ‚ ظ…ط¤ط´ط± ط§ظ„طھط­ظ…ظٹظ„
+                    showToast('error', 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ….');
+                    console.error(err);
+                });
+            }
+        });
+    });
+});
+
+// ظپظٹ ظ…ظ„ظپ /public/js/main.js
+
+function submitStatusForm(courseId, newStatus) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/employee-evaluation/training/courses/update-status';
+
+    const idField = document.createElement('input');
+    idField.type = 'hidden';
+    idField.name = 'id';
+    idField.value = courseId;
+    form.appendChild(idField);
+
+    const statusField = document.createElement('input');
+    statusField.type = 'hidden';
+    statusField.name = 'status';
+    statusField.value = newStatus;
+    form.appendChild(statusField);
+    const csrf6 = document.createElement('input'); csrf6.type='hidden'; csrf6.name='_token'; csrf6.value=getCsrfToken(); form.appendChild(csrf6);
+    document.body.appendChild(form);
+    form.submit();
+}
+  /**
+     * ظ…ط¹ط§ظ„ط¬ ط§ظ„ظ‚ظˆط§ط¦ظ… ط§ظ„ظ…ظ†ط³ط¯ظ„ط© ط§ظ„ظ…طھط±ط§ط¨ط·ط© (ط§ظ„ظپط±ظˆط¹ ظˆط§ظ„ط£ظ‚ط³ط§ظ…)
+     * ظٹط¹ظ…ظ„ ظپظٹ طµظپط­ط§طھ ط¥ط¶ط§ظپط©/طھط¹ط¯ظٹظ„ ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„طھط¯ط±ظٹط¨ظٹط©.
+     */
+    const branchSelect = document.getElementById('branch_id');
+    const departmentSelect = document.getElementById('department_id');
+
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ‚ط§ط¦ظ…ط© ط§ظ„ظپط±ظˆط¹ ظپظٹ ط§ظ„طµظپط­ط© ط§ظ„ط­ط§ظ„ظٹط©
+    if (branchSelect && departmentSelect) {
+        
+        // ط¥ط¶ط§ظپط© ظ…ط³طھظ…ط¹ ط­ط¯ط« 'change' ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ظپط±ظˆط¹
+        branchSelect.addEventListener('change', function() {
+            const branchId = this.value;
+
+            // طھط¹ط·ظٹظ„ ظ‚ط§ط¦ظ…ط© ط§ظ„ط£ظ‚ط³ط§ظ… ظˆط¥ط¸ظ‡ط§ط± ط±ط³ط§ظ„ط© "ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„..."
+            departmentSelect.disabled = true;
+            departmentSelect.innerHTML = '<option>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط£ظ‚ط³ط§ظ…...</option>';
+
+            // ط¥ط°ط§ ظ„ظ… ظٹطھظ… ط§ط®طھظٹط§ط± ظپط±ط¹طŒ ط£ط¹ط¯ ط§ظ„ظ‚ط§ط¦ظ…ط© ظ„ظˆط¶ط¹ظ‡ط§ ط§ظ„ط§ظپطھط±ط§ط¶ظٹ
+            if (!branchId) {
+                departmentSelect.innerHTML = '<option value="">-- ط§ط®طھط± ظ‚ط³ظ…ط§ظ‹ (ط§ط®طھظٹط§ط±ظٹ) --</option>';
+                departmentSelect.disabled = false;
+                return;
+            }
+
+            // ط¥ط±ط³ط§ظ„ ط·ظ„ط¨ fetch ط¥ظ„ظ‰ ط§ظ„ظ€ API
+            fetch(`/employee-evaluation/api/departments/by-branch/${branchId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…');
+                    }
+                    return response.json();
+                })
+                .then(departments => {
+                    // طھظپط±ظٹط؛ ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط­ط§ظ„ظٹط©
+                    departmentSelect.innerHTML = '<option value="">-- ط§ط®طھط± ظ‚ط³ظ…ط§ظ‹ (ط§ط®طھظٹط§ط±ظٹ) --</option>';
+
+                    // ظ…ظ„ط، ط§ظ„ظ‚ط§ط¦ظ…ط© ط¨ط§ظ„ط®ظٹط§ط±ط§طھ ط§ظ„ط¬ط¯ظٹط¯ط©
+                    departments.forEach(department => {
+                        const option = document.createElement('option');
+                        option.value = department.id;
+                        option.textContent = department.name;
+                        departmentSelect.appendChild(option);
+                    });
+
+                    // ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ ط§ظ„ظ‚ط§ط¦ظ…ط©
+                    departmentSelect.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error fetching departments:', error);
+                    departmentSelect.innerHTML = '<option value="">-- ط­ط¯ط« ط®ط·ط£ --</option>';
+                    // ظ„ط§ طھظ‚ظ… ط¨ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ ط§ظ„ظ‚ط§ط¦ظ…ط© ظپظٹ ط­ط§ظ„ط© ط§ظ„ط®ط·ط£
+                });
+        });
+    }
+    
+// ظپظٹ ظ…ظ„ظپ /public/js/main.js
+   // =================================================================
+    //        ظ…ط¹ط§ظ„ط¬ ظ„ظˆط­ط© ظ…ط¹ظ„ظˆظ…ط§طھ ط£ط¯ط§ط، ط§ظ„طھط¯ط±ظٹط¨ (ظ…ط¹ ظˆط¸ظٹظپط© ط§ظ„ط·ط¨ط§ط¹ط©)
+    // =================================================================
+    const branchesAccordion = document.getElementById('branchesAccordion');
+
+    if (branchesAccordion) {
+        // --- 1. ط¥ط¶ط§ظپط© ط²ط± ط§ظ„ط·ط¨ط§ط¹ط© ط§ظ„ط´ط§ظ…ظ„ ---
+        const pageHeader = document.querySelector('.page-header');
+        if (pageHeader) {
+            const printButtonHtml = `
+                <div class="no-print mb-3 text-start">
+                    <button id="print-global-report-btn" class="btn btn-primary">
+                        <i class="fas fa-print me-2"></i>ط·ط¨ط§ط¹ط© ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ط´ط§ظ…ظ„
+                    </button>
+                </div>`;
+            pageHeader.insertAdjacentHTML('afterend', printButtonHtml);
+        }
+
+        // --- 2. ط§ظ„طھط¹ط§ظ…ظ„ ظ…ط¹ ظپطھط­ ط£ظƒظˆط±ط¯ظٹظˆظ† ط§ظ„ظپط±ظˆط¹ (ظ„ط¬ظ„ط¨ ط§ظ„ط£ظ‚ط³ط§ظ…) ---
+        branchesAccordion.addEventListener('show.bs.collapse', function (event) {
+            const accordionBody = event.target.querySelector('.accordion-body');
+            const branchId = event.target.id.replace('collapse-', '');
+
+            if (accordionBody.dataset.loaded === 'true') return;
+
+            accordionBody.innerHTML = `<div class="text-center p-4"><div class="spinner-border text-primary"></div><p class="mt-2">ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ظ‚ط³ط§ظ…...</p></div>`;
+            
+            fetch(`${BASE_URL}/api/reports/departments-by-branch/${branchId}`)
+                .then(response => response.json())
+                .then(departments => {
+                    accordionBody.dataset.loaded = 'true';
+                    if (departments.length === 0) {
+                        accordionBody.innerHTML = '<div class="alert alert-secondary text-center">ظ„ط§ طھظˆط¬ط¯ ط£ظ‚ط³ط§ظ… ظ…ظ‚ظٹظ…ط© ظپظٹ ظ‡ط°ط§ ط§ظ„ظپط±ط¹.</div>';
+                        return;
+                    }
+
+                    let departmentsHtml = `
+                        <div class="text-start mb-3 no-print">
+                            <button class="btn btn-outline-secondary btn-sm print-branch-report-btn" data-branch-id="${branchId}">
+                                <i class="fas fa-print me-2"></i>ط·ط¨ط§ط¹ط© طھظ‚ط±ظٹط± ظ‡ط°ط§ ط§ظ„ظپط±ط¹
+                            </button>
+                        </div>
+                        <div class="accordion" id="departmentsAccordion-${branchId}">`;
+
+                    departments.forEach(dept => {
+                        departmentsHtml += `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dept-collapse-${dept.department_id}" onclick="loadCoursesForDashboard(${dept.department_id})">
+                                        <div class="d-flex justify-content-between w-100 pe-4">
+                                            <span><i class="fas fa-sitemap me-2"></i>${dept.department_name}</span>
+                                            <span class="badge bg-success rounded-pill">ظ…طھظˆط³ط· ط§ظ„ط£ط¯ط§ط،: ${parseFloat(dept.avg_final_score || 0).toFixed(2)}%</span>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="dept-collapse-${dept.department_id}" class="accordion-collapse collapse" data-bs-parent="#departmentsAccordion-${branchId}">
+                                    <div class="accordion-body" id="courses-body-${dept.department_id}" data-department-id="${dept.department_id}">
+                                        <div class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                    departmentsHtml += '</div>';
+                    accordionBody.innerHTML = departmentsHtml;
+                })
+                .catch(error => {
+                    console.error('Error fetching departments:', error);
+                    accordionBody.innerHTML = '<div class="alert alert-danger">ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ظ‚ط³ط§ظ….</div>';
+                });
+        });
+
+        // --- 3. ط§ظ„طھط¹ط§ظ…ظ„ ظ…ط¹ ط¬ظ…ظٹط¹ ط£ط²ط±ط§ط± ط§ظ„ط·ط¨ط§ط¹ط© ط¨ط§ط³طھط®ط¯ط§ظ… طھظپظˆظٹط¶ ط§ظ„ط£ط­ط¯ط§ط« ---
+        document.body.addEventListener('click', function(event) {
+            // ط§ظ„طھط£ظƒط¯ ظ…ظ† ط£ظ† ط¯ط§ظ„ط© ط§ظ„ط·ط¨ط§ط¹ط© ظ…ظˆط¬ظˆط¯ط© (طھظ… طھط­ظ…ظٹظ„ظ‡ط§ ظ…ظ† ط§ظ„ظ…ظ„ظپ ط§ظ„ط¢ط®ط±)
+            if (typeof fetchAndPrintReport !== 'function') return;
+
+            // ط²ط± ط§ظ„ط·ط¨ط§ط¹ط© ط§ظ„ط´ط§ظ…ظ„
+            if (event.target.id === 'print-global-report-btn') {
+                fetchAndPrintReport('company');
+            }
+
+            // ط²ط± ط·ط¨ط§ط¹ط© ط§ظ„ظپط±ط¹
+            const printBranchBtn = event.target.closest('.print-branch-report-btn');
+            if (printBranchBtn) {
+                fetchAndPrintReport('branch', printBranchBtn.dataset.branchId);
+            }
+
+            // ط²ط± ط·ط¨ط§ط¹ط© ط§ظ„ظ‚ط³ظ…
+            const printDeptBtn = event.target.closest('.print-department-report-btn');
+            if (printDeptBtn) {
+                fetchAndPrintReport('department', printDeptBtn.dataset.departmentId);
+            }
+        });
+    }
+    // =================================================================
+//   ظ…ط¹ط§ظ„ط¬ ظ„ظˆط­ط© ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظˆط±ط´ (Workshops Dashboard Handler)
+//   ظ‡ط°ط§ ط§ظ„ظƒظˆط¯ ظ…ط®طµطµ ظپظ‚ط· ظ„طµظپط­ط© طھظ‚ط§ط±ظٹط± ط§ظ„ظˆط±ط´
+// =================================================================
+// =================================================================
+//   ظ…ط¹ط§ظ„ط¬ ظ„ظˆط­ط© ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظˆط±ط´ (ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط© ظ…ط¹ ط£ط²ط±ط§ط± ط§ظ„ط·ط¨ط§ط¹ط©)
+// =================================================================
+const workshopsBranchesAccordion = document.getElementById('workshopsBranchesAccordion');
+
+if (workshopsBranchesAccordion) {
+
+    workshopsBranchesAccordion.addEventListener('show.bs.collapse', function (event) {
+        const collapsePanel = event.target; 
+        const accordionBody = collapsePanel.querySelector('.accordion-body');
+        const button = document.querySelector(`[data-bs-target="#${collapsePanel.id}"]`);
+        
+        if (!button) return;
+        const branchId = button.dataset.branchId;
+        if (!branchId || accordionBody.dataset.loaded === 'true') return;
+
+        accordionBody.innerHTML = `<div class="text-center p-4"><div class="spinner-border text-primary"></div><p class="mt-2">ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ظ‚ط³ط§ظ…...</p></div>`;
+        
+        fetch(`${BASE_URL}/api/reports/workshops-by-branch/${branchId}`)
+            .then(response => response.json())
+            .then(departments => {
+                accordionBody.dataset.loaded = 'true';
+
+                if (!departments || departments.length === 0) {
+                    accordionBody.innerHTML = '<div class="alert alert-secondary text-center">ظ„ط§ طھظˆط¬ط¯ ط£ظ‚ط³ط§ظ… ظ„ط¯ظٹظ‡ط§ ظˆط±ط´ ط¹ظ…ظ„ ظ…ظ‚ظٹظ‘ظ…ط© ظپظٹ ظ‡ط°ط§ ط§ظ„ظپط±ط¹.</div>';
+                    return;
+                }
+
+                // ===> ط¥ط¶ط§ظپط© ط²ط± ط·ط¨ط§ط¹ط© ط§ظ„ظپط±ط¹ ظ‡ظ†ط§ <===
+                let departmentsHtml = `
+                    <div class="text-start mb-3 no-print">
+                        <button class="btn btn-outline-secondary btn-sm js-print-workshop-btn" data-level="branch" data-id="${branchId}">
+                            <i class="fas fa-print me-2"></i>ط·ط¨ط§ط¹ط© طھظ‚ط±ظٹط± ظ‡ط°ط§ ط§ظ„ظپط±ط¹
+                        </button>
+                    </div>
+                    <div class="accordion" id="departmentsAccordion-${branchId}">`;
+
+                departments.forEach(dept => {
+                    const avgScore = parseFloat(dept.average_score || 0).toFixed(1);
+                    departmentsHtml += `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dept-collapse-${dept.id}" onclick="loadWorkshops(${dept.id})">
+                                    <div class="d-flex justify-content-between w-100 pe-4">
+                                        <span><i class="fas fa-sitemap me-2"></i>${dept.name}</span>
+                                        <span class="badge bg-success rounded-pill">ظ…طھظˆط³ط· ط§ظ„ط£ط¯ط§ط،: ${avgScore}%</span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="dept-collapse-${dept.id}" class="accordion-collapse collapse" data-bs-parent="#departmentsAccordion-${branchId}">
+                                <div class="accordion-body" id="workshops-dept-${dept.id}">
+                                    <div class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+
+                departmentsHtml += '</div>';
+                accordionBody.innerHTML = departmentsHtml;
+            })
+            .catch(error => {
+                console.error('Error fetching workshop departments:', error);
+                accordionBody.innerHTML = '<div class="alert alert-danger text-center">ط­ط¯ط« ط®ط·ط£ ظپط§ط¯ط­ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ.</div>';
+            });
+    });
+
+    // ===> ط¥ط¶ط§ظپط© ظ…ط¹ط§ظ„ط¬ ط§ظ„ط·ط¨ط§ط¹ط© ط§ظ„ط®ط§طµ ط¨ط§ظ„ظˆط±ط´ <===
+    document.body.addEventListener('click', function(event) {
+        // ط§ط¨ط­ط« ط¹ظ† ط£ظ‚ط±ط¨ ط²ط± ط·ط¨ط§ط¹ط© طھظ… ط§ظ„ط¶ط؛ط· ط¹ظ„ظٹظ‡
+        const printBtn = event.target.closest('.js-print-workshop-btn');
+        if (printBtn) {
+            const level = printBtn.dataset.level;
+            const id = printBtn.dataset.id;
+            
+            // ط¨ظ†ط§ط، ط§ظ„ط±ط§ط¨ط· ظ„طµظپط­ط© ط§ظ„ط·ط¨ط§ط¹ط©
+            let url = `${BASE_URL}/reports/workshops/print?level=${level}`;
+            if (id) {
+                url += `&id=${id}`;
+            }
+            // ظپطھط­ ط§ظ„ط±ط§ط¨ط· ظپظٹ ظ†ط§ظپط°ط© ط¬ط¯ظٹط¯ط©
+            window.open(url, '_blank');
+        }
+    });
+}
+// (ط§ظ„ظƒظˆط¯ ط§ظ„ط³ط§ط¨ظ‚ ظپظٹ ط§ظ„ظ…ظ„ظپ ظٹط¨ظ‚ظ‰ ظƒظ…ط§ ظ‡ظˆ)
+// ...
+
+// ظپظٹ ظ†ظ‡ط§ظٹط© ط§ظ„ظ…ظ„ظپطŒ ط§ط³طھط¨ط¯ظ„ ط§ظ„ط¬ط²ط، ط§ظ„ط®ط§طµ ط¨ظ€ "ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ ط¬ط¯ظٹط¯" ط¨ط§ظ„ظƒظˆط¯ ط§ظ„طھط§ظ„ظٹ:
+
+// ==================================================
+//        ظ…ط¹ط§ظ„ط¬ط§طھ ط®ط§طµط© ط¨طµظپط­ط© ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ ط¬ط¯ظٹط¯ (ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط© ط§ظ„ظ…طµط­ط­ط©)
+// ==================================================
+const addEmployeeForm = document.getElementById('add-employee-form');
+if (addEmployeeForm) {
+    const btnSaveAndEvaluate = document.getElementById('btn-save-and-evaluate');
+    const evaluationSection = document.getElementById('evaluation-section');
+    const submitAndEvaluateBtn = document.getElementById('submit-and-evaluate');
+    const positionSelect = document.getElementById('position_id');
+    const templateSelect = document.getElementById('template_id');
+    const saveOnlyBtn = addEmployeeForm.querySelector('button[value="save"]');
+
+    // 1. ط§ظ„طھط¹ط§ظ…ظ„ ظ…ط¹ ط²ط± "ط­ظپط¸ ظˆط¨ط¯ط، ط§ظ„طھظ‚ظٹظٹظ…"
+    if (btnSaveAndEvaluate) {
+        btnSaveAndEvaluate.addEventListener('click', function() {
+            // ط¥ط¸ظ‡ط§ط± ظ‚ط³ظ… ط§ظ„طھظ‚ظٹظٹظ…
+            evaluationSection.style.display = 'block';
+           // ===>  ط£ط¶ظپ ط§ظ„ظƒظ„ط§ط³ ط§ظ„ط®ط§طµ ط¨ط§ظ„طھظ†ط³ظٹظ‚ <===
+        submitAndEvaluateBtn.classList.add('btn-submit-form');
+            // ط¥ط®ظپط§ط، ط§ظ„ط£ط²ط±ط§ط± ط§ظ„ظ‚ط¯ظٹظ…ط©
+            this.style.display = 'none';
+            saveOnlyBtn.style.display = 'none';
+
+            // ط¥ط¸ظ‡ط§ط± ط²ط± ط§ظ„ط¥ط±ط³ط§ظ„ ط§ظ„ظپط¹ظ„ظٹ ظ„ط¹ظ…ظ„ظٹط© "ط­ظپط¸ ظˆطھظ‚ظٹظٹظ…"
+            submitAndEvaluateBtn.style.display = '';
+            submitAndEvaluateBtn.classList.add('btn-save');
+            
+            // ط¬ط¹ظ„ ط­ظ‚ظˆظ„ ط§ظ„طھظ‚ظٹظٹظ… ظ…ط·ظ„ظˆط¨ط©
+            document.getElementById('evaluator_employee_id').required = true;
+            document.getElementById('evaluation_date').required = true;
+            if (templateSelect) templateSelect.required = true;
+
+            // ط¬ظ„ط¨ ط§ظ„ظ‚ظˆط§ظ„ط¨ ظپظˆط±ط§ظ‹ ط¥ط°ط§ ظƒط§ظ† ط§ظ„ظ…ظ†طµط¨ ظ…ط­ط¯ط¯ط§ظ‹
+            if (positionSelect && positionSelect.value) {
+                fetchTemplatesForPosition(positionSelect.value);
+            }
+        });
+    }
+
+    // 2. ط¬ظ„ط¨ ط§ظ„ظ‚ظˆط§ظ„ط¨ ط¹ظ†ط¯ طھط؛ظٹظٹط± ط§ظ„ظ…ظ†طµط¨ ط§ظ„ظˆط¸ظٹظپظٹ
+    if (positionSelect) {
+        positionSelect.addEventListener('change', function() {
+            const positionId = this.value;
+            fetchTemplatesForPosition(positionId);
+        });
+    }
+
+    // 3. ط¯ط§ظ„ط© ظ„ط¬ظ„ط¨ ط§ظ„ظ‚ظˆط§ظ„ط¨
+    async function fetchTemplatesForPosition(positionId) {
+        if (!templateSelect) return;
+        templateSelect.disabled = true;
+        if (!positionId) {
+            templateSelect.innerHTML = '<option value="">ط§ط®طھط± ط§ظ„ظ…ظ†طµط¨ ط§ظ„ظˆط¸ظٹظپظٹ ط£ظˆظ„ط§ظ‹...</option>';
+            return;
+        }
+        templateSelect.innerHTML = '<option value="">ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...</option>';
+        
+        try {
+            const response = await fetch(`${APP_URL}/api/templates/by-position/${positionId}`);
+            const templates = await response.json();
+            
+            templateSelect.innerHTML = '';
+            if (templates.length > 0) {
+                templateSelect.innerHTML = '<option value="">-- ط§ط®طھط± ظ‚ط§ظ„ط¨ ط§ظ„طھظ‚ظٹظٹظ… --</option>';
+                templates.forEach(template => {
+                    const option = new Option(template.template_name, template.id);
+                    templateSelect.appendChild(option);
+                });
+                templateSelect.disabled = false;
+            } else {
+                templateSelect.innerHTML = '<option value="">ظ„ط§ طھظˆط¬ط¯ ظ‚ظˆط§ظ„ط¨ ظ…طھط§ط­ط© ظ„ظ‡ط°ط§ ط§ظ„ظ…ظ†طµط¨.</option>';
+            }
+        } catch (error) {
+            console.error('Error fetching templates:', error);
+            templateSelect.innerHTML = '<option value="">ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ظ‚ظˆط§ظ„ط¨.</option>';
+        }
+    }
+
+    // 4. ط¥ط¹ط§ط¯ط© ط§ط³طھط®ط¯ط§ظ… ظ…ظ†ط·ظ‚ ط§ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ظˆط¸ظپ (ط§ظ„ظ…ظڈظ‚ظٹظ‘ظگظ…)
+    const evaluatorSearchInput = document.getElementById('evaluator_employee_search');
+    const evaluatorIdInput = document.getElementById('evaluator_employee_id');
+    const evaluatorResultsContainer = document.getElementById('evaluator-search-results');
+    let searchTimeout;
+
+    if (evaluatorSearchInput) {
+        evaluatorSearchInput.addEventListener('keyup', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value;
+            if (query.length < 2) {
+                if (evaluatorResultsContainer) evaluatorResultsContainer.style.display = 'none';
+                return;
+            }
+            searchTimeout = setTimeout(() => searchEmployees(query, evaluatorResultsContainer), 300);
+        });
+
+        if (evaluatorResultsContainer) {
+            evaluatorResultsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('search-result-item') && e.target.dataset.id) {
+                    evaluatorIdInput.value = e.target.dataset.id;
+                    evaluatorSearchInput.value = e.target.textContent;
+                    evaluatorResultsContainer.style.display = 'none';
+                }
+            });
+        }
+    }
+
+    // ط¯ط§ظ„ط© ط§ظ„ط¨ط­ط«
+    async function searchEmployees(query, container) {
+        if (!container) return;
+        const response = await fetch(`${APP_URL}/api/employees/search?q=${encodeURIComponent(query)}`);
+        const employees = await response.json();
+        container.innerHTML = '';
+        if (employees.length > 0) {
+            employees.forEach(employee => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item';
+                item.textContent = `${employee.full_name} (${employee.emp_code})`;
+                item.dataset.id = employee.id;
+                container.appendChild(item);
+            });
+        } else {
+            container.innerHTML = '<div class="search-result-item disabled">ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬.</div>';
+        }
+        container.style.display = 'block';
+    }
+}
+
+
+
+
+}); // ظ†ظ‡ط§ظٹط© DOMContentLoaded
+
+
+/**
+ * ط¯ط§ظ„ط© ظ„ط¬ظ„ط¨ ظˆط¹ط±ط¶ ط§ظ„ط¯ظˆط±ط§طھ ظ„ظ‚ط³ظ… ظ…ط¹ظٹظ† ظپظٹ ظ„ظˆط­ط© ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ.
+ * (طھط¨ظ‚ظ‰ ط®ط§ط±ط¬ DOMContentLoaded ظ„طھظƒظˆظ† ظ…طھط§ط­ط© ظ„ظ„ط§ط³طھط¯ط¹ط§ط، ظ…ظ† onclick)
+ */
+function loadCoursesForDashboard(departmentId) {
+    const coursesBody = document.getElementById(`courses-body-${departmentId}`);
+    if (coursesBody.dataset.loaded === 'true') return;
+
+    fetch(`${BASE_URL}/api/reports/courses-by-department/${departmentId}`)
+        .then(response => response.json())
+        .then(courseGroups => {
+            coursesBody.dataset.loaded = 'true';
+            if (courseGroups.length === 0) {
+                coursesBody.innerHTML = '<div class="alert alert-light p-2 text-center">ظ„ط§ طھظˆط¬ط¯ ط¯ظˆط±ط§طھ ظ…ظ‚ظٹظ…ط© ظپظٹ ظ‡ط°ط§ ط§ظ„ظ‚ط³ظ….</div>';
+                return;
+            }
+
+            let html = `
+                <div class="text-start mb-3 no-print">
+                    <button class="btn btn-outline-info btn-sm print-department-report-btn" data-department-id="${departmentId}">
+                        <i class="fas fa-print me-2"></i>ط·ط¨ط§ط¹ط© طھظ‚ط±ظٹط± ظ‡ط°ط§ ط§ظ„ظ‚ط³ظ…
+                    </button>
+                </div>`;
+
+            courseGroups.forEach(group => {
+                html += `<h6 class="mt-3">${group.course_title}</h6>`;
+                html += '<ul class="list-group list-group-flush mb-3">';
+                group.courses.forEach(course => {
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-book me-2 text-muted"></i>
+                                <a href="${BASE_URL}/training/evaluations/show/${course.evaluation_id}">ط¯ظˆط±ط© ط¨طھط§ط±ظٹط® ${course.start_date}</a>
+                            </div>
+                            <span class="badge bg-info">ط§ظ„ظ†طھظٹط¬ط©: ${parseFloat(course.final_score || 0).toFixed(2)}%</span>
+                        </li>`;
+                });
+                html += '</ul>';
+            });
+            coursesBody.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error fetching courses:', error);
+            coursesBody.innerHTML = '<div class="alert alert-danger">ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ…ظٹظ„ ط§ظ„ط¯ظˆط±ط§طھ.</div>';
+        });
+}
+
+// public/js/main.js
+
+function confirmDelete(event, itemName = 'ظ‡ط°ط§ ط§ظ„ط¹ظ†طµط±') {
+    event.preventDefault(); // ظ…ظ†ط¹ ط¥ط±ط³ط§ظ„ ط§ظ„ظ†ظ…ظˆط°ط¬ ظپظˆط±ط§ظ‹
+    const form = event.target;
+
+    Swal.fire({
+        title: 'ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں',
+        text: `ط³ظٹطھظ… ط­ط°ظپ ${itemName} ط¨ط´ظƒظ„ ظ†ظ‡ط§ط¦ظٹ! ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ظ†ط¹ظ…طŒ ظ‚ظ… ط¨ط§ظ„ط­ط°ظپ!',
+        cancelButtonText: 'ط¥ظ„ط؛ط§ط،'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            form.submit(); // ط¥ط°ط§ ط£ظƒط¯ ط§ظ„ظ…ط³طھط®ط¯ظ…طŒ ظ‚ظ… ط¨ط¥ط±ط³ط§ظ„ ط§ظ„ظ†ظ…ظˆط°ط¬
+        }
+    });
+}
+function confirmReopen(event) {
+    event.preventDefault();
+    const form = event.target;
+
+    Swal.fire({
+        title: 'ط¥ط¹ط§ط¯ط© ظپطھط­ ط§ظ„طھظ‚ظٹظٹظ…طں',
+        text: 'ط³ظٹطھظ… طھط؛ظٹظٹط± ط­ط§ظ„ط© ط§ظ„طھظ‚ظٹظٹظ… ط¥ظ„ظ‰ "ظ…ط³ظˆط¯ط©" ظˆط³ظٹطھظ… طھظˆط¬ظٹظ‡ظƒ ظ„طµظپط­ط© ط§ظ„طھط¹ط¯ظٹظ„. ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'ظ†ط¹ظ…طŒ ط£ط¹ط¯ ط§ظ„ظپطھط­!',
+        cancelButtonText: 'ط¥ظ„ط؛ط§ط،'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            form.submit();
+        }
+    });
+}
+
+// public/js/main.js
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ظ†ظ†ط§ ظپظٹ طµظپط­ط© ط§ظ„طھظ‚ظٹظٹظ…
+    const evaluationLayout = document.querySelector('.evaluation-layout');
+    if (!evaluationLayout) return;
+
+    const sidebarLinks = document.querySelectorAll('#criteria-navigation a');
+    const criteriaSections = document.querySelectorAll('.criterion-accordion .accordion-item');
+
+    // 1. ط§ظ„طھظ…ط±ظٹط± ط§ظ„ط³ظ„ط³ ط¹ظ†ط¯ ط§ظ„ظ†ظ‚ط± ط¹ظ„ظ‰ ط±ظˆط§ط¨ط· ط§ظ„ط´ط±ظٹط· ط§ظ„ط¬ط§ظ†ط¨ظٹ
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                // ط­ط³ط§ط¨ ط¥ط²ط§ط­ط© ط§ظ„ظ‡ظٹط¯ط± ط§ظ„ط±ط¦ظٹط³ظٹ ط¥ط°ط§ ظƒط§ظ† ظ„ط¯ظٹظƒ ظ‡ظٹط¯ط± ط«ط§ط¨طھ
+                const offsetTop = targetElement.getBoundingClientRect().top + window.pageYOffset - 80; // 80px ظƒط¥ط²ط§ط­ط©
+                window.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+
+    // 2. طھط­ط¯ظٹط« ط§ظ„ط±ط§ط¨ط· ط§ظ„ظ†ط´ط· ظپظٹ ط§ظ„ط´ط±ظٹط· ط§ظ„ط¬ط§ظ†ط¨ظٹ ط£ط«ظ†ط§ط، ط§ظ„طھظ…ط±ظٹط±
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const id = entry.target.getAttribute('id');
+            const navLink = document.querySelector(`#criteria-navigation a[href="#${id}"]`);
+            
+            if (entry.isIntersecting) {
+                // ط¥ط²ط§ظ„ط© 'active' ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ط±ظˆط§ط¨ط·
+                sidebarLinks.forEach(link => link.classList.remove('active'));
+                // ط¥ط¶ط§ظپط© 'active' ط¥ظ„ظ‰ ط§ظ„ط±ط§ط¨ط· ط§ظ„ط­ط§ظ„ظٹ
+                if(navLink) navLink.classList.add('active');
+            }
+        });
+    }, { rootMargin: "-40% 0px -60% 0px" }); // ظٹط­ط¯ط¯ ظ…طھظ‰ ظٹط¹طھط¨ط± ط§ظ„ط¹ظ†طµط± "ظ…ط±ط¦ظٹط§ظ‹"
+
+    criteriaSections.forEach(section => {
+        observer.observe(section);
+    });
+});

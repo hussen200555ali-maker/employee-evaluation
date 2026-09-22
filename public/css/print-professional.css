@@ -1,0 +1,273 @@
+/* ملف: public/css/print-professional.css - تصميم احترافي للطباعة */
+
+/* 1. تعريف الخطوط المتوافقة مع العربية */
+@font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/Cairo-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: bold;
+    src: url('../fonts/Cairo-Bold.ttf') format('truetype');
+}
+
+/* التأكد من استخدام Cairo كخط افتراضي */
+body {
+    font-family: 'Cairo', sans-serif !important;
+}
+
+/* 2. أنماط عامة */
+body {
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    text-align: right;
+    background-color: #fff;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+* {
+    font-family: 'Cairo', sans-serif;
+}
+
+/* 3. أنماط الترويسة الاحترافية */
+.report-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #0d6efd;
+    padding: 20px;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.company-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.company-logo {
+    max-height: 80px;
+    max-width: 150px;
+}
+
+.report-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #0d6efd;
+    margin: 15px 0;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.report-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.report-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    color: #6c757d;
+    border-top: 1px solid #dee2e6;
+    padding: 5px 0;
+}
+
+/* 4. أنماط الأقسام */
+.section {
+    margin-bottom: 30px;
+    page-break-inside: avoid;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0d6efd;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* 5. أنماط الجداول المحسنة */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529;
+    border-collapse: collapse;
+    border: 1px solid #dee2e6;
+}
+
+.table th, .table td {
+    padding: 12px 8px;
+    vertical-align: top;
+    text-align: right;
+    border: 1px solid #dee2e6;
+}
+
+.table thead th {
+    background-color: #0d6efd;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* 6. أنماط الشارات */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.badge-primary {
+    background-color: #0d6efd;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+/* 7. أنماط إضافية */
+.text-center {
+    text-align: center;
+}
+
+.mt-3 {
+    margin-top: 1rem;
+}
+
+.mb-3 {
+    margin-bottom: 1rem;
+}
+
+/* 8. أنماط خاصة بالطباعة */
+@page {
+    margin: 2cm;
+    size: A4;
+}
+
+.print-only {
+    display: block;
+}
+
+.no-print {
+    display: none;
+}
+
+/* 9. أنماط الماء المكتوب */
+.watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 120px;
+    color: rgba(0, 0, 0, 0.05);
+    z-index: -1;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+/* 10. أنماط الملخص */
+.report-summary {
+    background-color: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+    padding: 15px;
+    margin-bottom: 25px;
+    border-radius: 4px;
+}
+
+.report-summary h3 {
+    margin-top: 0;
+    color: #0d6efd;
+}
+
+/* 11. أنماط المؤشرات الرئيسية */
+.key-metrics {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.metric-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    width: 30%;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0d6efd;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* 12. أنماط التوصيات */
+.recommendations {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.recommendations h3 {
+    color: #0d6efd;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+.recommendation-item {
+    margin-bottom: 15px;
+    padding-left: 25px;
+    position: relative;
+}
+
+.recommendation-item:before {
+    content: "•";
+    position: absolute;
+    left: 10px;
+    color: #0d6efd;
+    font-weight: bold;
+}

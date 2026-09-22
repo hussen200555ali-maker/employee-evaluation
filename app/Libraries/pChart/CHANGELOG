@@ -1,0 +1,21 @@
+### pChart
+Jean-Damien Pogolotti
+Ralf Hertsch <ralf.hertsch@phpmanufaktur.de>
+http://www.pchart.net/
+http://phpmanufaktur.de
+
+
+Release 2.1.3 - 2012-06-20
+
+* moved pChart files complete to the subdirectory /pchart
+* added LICENSE
+* added CHANGELOG
+* added README.md
+* updated to pChart library 2.1.3
+* changed WebsiteBaker version check
+* updated header informations
+
+Release 2.1.1 - 2011-06-18
+
+* first implementation of the pChart library for WebsiteBaker and LEPTON CMS
+* using pChart library 2.1.1

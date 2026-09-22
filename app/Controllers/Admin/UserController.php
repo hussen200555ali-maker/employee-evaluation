@@ -1,0 +1,415 @@
+<?php
+// نحدد الـ Namespace ليعكس مكان الملف داخل مجلد Admin.
+namespace App\Controllers\Admin;
+
+// استيراد الفئات التي سنحتاجها.
+use App\Core\Controller;
+use App\Core\Auth;
+use App\Models\User; // مودل المستخدمين لجلب البيانات.
+use App\Models\Role; // مودل الأدوار لجلب قائمة الأدوار للنافذة المنبثقة.
+
+/**
+ * UserController
+ * مسؤول عن إدارة المستخدمين وأدوارهم من قبل مدير النظام.
+ */
+class UserController extends Controller {
+
+    /**
+     * دالة البناء (Constructor)
+     * تعمل كحارس بوابة لهذه الوحدة بأكملها.
+     */
+    public function __construct() {
+        // التحقق من أن المستخدم الحالي هو "Admin" قبل السماح له بالوصول لأي دالة.
+        // استخدمنا دالة is() الجديدة التي أنشأناها.
+        if (!Auth::is('Admin')) {
+            // بند 7: إيقاف التنفيذ فورًا بعد عرض 403 — كان التنفيذ يستمر لدوال الإدارة
+            // دون التحقق (يدا `return` في الكونستركتور لا يمنع استدعاء دالة الهدف).
+            (new \App\Controllers\ErrorController())->forbidden();
+            exit;
+        }
+    }
+
+    /**
+     * يعرض صفحة قائمة المستخدمين.
+     * هذه الدالة تستجيب للطلب GET /admin/users.
+     */
+    public function index() {
+        // إنشاء كائنات من المودلز التي نحتاجها.
+        $userModel = new User();
+        $roleModel = new Role(); // سنحتاجه لملء قائمة الأدوار في نافذة التعديل.
+
+        // تجهيز البيانات التي سيتم تمريرها إلى الـ View.
+        $data = [
+            'pageTitle' => 'إدارة المستخدمين',
+            'users' => $userModel->getAllWithDetails(), // دالة جديدة سننشئها في المودل.
+            'roles' => $roleModel->getAll()             // دالة جديدة سننشئها في المودل.
+        ];
+
+        // عرض الـ View الخاص بإدارة المستخدمين.
+        $this->view('admin/users/index', $data);
+    }
+      /**
+     * ==================================================
+     *           ===>  الدالة الجديدة هنا  <===
+     * ==================================================
+     * 
+     * يحدّث دور مستخدم معين.
+     * هذه الدالة تستجيب للطلب POST /admin/users/update-role.
+     */
+    public function updateRole() {
+        // التأكد من أن الطلب هو POST وأن البيانات المطلوبة موجودة.
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_id'], $_POST['role_id'])) {
+            
+            // 1. الحصول على البيانات من الطلب.
+            $userId = (int)$_POST['user_id'];
+            $roleId = (int)$_POST['role_id'];
+
+            // 2. إنشاء كائن من مودل المستخدم.
+            $userModel = new \App\Models\User();
+            
+            // (ميزة أمان إضافية) لا تسمح للمدير بتغيير دوره بنفسه لمنع قفل الحساب.
+            if ($userId === \App\Core\Auth::id()) {
+                \App\Core\Flash::set('لا يمكنك تغيير دور حسابك الخاص.', 'warning');
+                header('Location: ' . APP_URL . '/admin/users');
+                exit();
+            }
+
+            // بند 3: منع خفض آخر مدير نظام نشط إلى دور غير إداري.
+            if ($userModel->isLastActiveAdmin($userId) && !in_array($roleId, \App\Core\Auth::adminRoleIds(), true)) {
+                \App\Core\Audit::log('LAST_ADMIN_PROTECTED', $userId, 'users', [
+                    'reason' => 'demote',
+                    'new_role_id' => $roleId,
+                    'actor_id' => \App\Core\Auth::id(),
+                ]);
+                \App\Core\Auth::notifyAdmins(
+                    'محاولة خفض آخر مدير نظام',
+                    'رُفضت محاولة تغيير دور آخر مدير نظام نشط إلى دور غير إداري.'
+                );
+                \App\Core\Flash::set('لا يمكن خفض آخر مدير نظام نشط إلى دور غير إداري.', 'danger');
+                header('Location: ' . APP_URL . '/admin/users');
+                exit();
+            }
+
+            // 3. استدعاء دالة تحديث الدور في المودل.
+            if ($userModel->updateRole($userId, $roleId)) {
+                // 4. في حالة النجاح، سجل الإجراء وعيّن رسالة نجاح.
+                \App\Core\Audit::log('USER_ROLE_UPDATE', $userId, 'users', ['new_role_id' => $roleId]);
+                \App\Core\Flash::set('تم تحديث دور المستخدم بنجاح.', 'success');
+                $this->warnIfSingleActiveAdmin();
+            } else {
+                // 5. في حالة الفشل، عيّن رسالة خطأ.
+                \App\Core\Flash::set('حدث خطأ أثناء تحديث دور المستخدم.', 'danger');
+            }
+        }
+
+        // 6. في كل الحالات، أعد التوجيه إلى صفحة قائمة المستخدمين.
+        header('Location: ' . APP_URL . '/admin/users');
+        exit();
+    }
+    /**
+ * ==================================================
+ *           ===>  الدالة الجديدة الأولى هنا  <===
+ * ==================================================
+ * 
+ * تعرض صفحة نموذج إنشاء مستخدم جديد.
+ */
+public function create() {
+    // نحتاج إلى قائمة الموظفين والأدوار لملء القوائم المنسدلة في النموذج
+    $userModel = new \App\Models\User();
+    $roleModel = new \App\Models\Role();
+    $employeeModel = new \App\Models\Employee(); // سنحتاج مودل الموظفين
+
+    $data = [
+        'pageTitle' => 'إضافة مستخدم جديد',
+        'roles' => $roleModel->getAll(),
+        // دالة جديدة لجلب الموظفين الذين ليس لديهم حساب مستخدم بعد
+        'employees' => $employeeModel->getUnlinkedEmployees() 
+    ];
+
+    $this->view('admin/users/create', $data);
+}
+
+/**
+ * ==================================================
+ *           ===>  الدالة الجديدة الثانية هنا  <===
+ * ==================================================
+ * 
+ * تعالج بيانات نموذج إنشاء المستخدم الجديد وتحفظه.
+ */
+public function store() {
+    // التأكد من أن الطلب هو POST
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: ' . APP_URL . '/admin/users/create');
+        exit();
+    }
+
+    // 1. جمع البيانات من النموذج
+    $data = [
+        'username' => trim($_POST['username']),
+        'email' => trim($_POST['email']),
+        'password' => $_POST['password'],
+        'password_confirm' => $_POST['password_confirm'],
+        'role_id' => (int)$_POST['role_id'],
+        'employee_id' => !empty($_POST['employee_id']) ? (int)$_POST['employee_id'] : null,
+    ];
+
+    // 2. التحقق من صحة البيانات (Validation)
+    if (empty($data['username']) || empty($data['email']) || empty($data['password'])) {
+        \App\Core\Flash::set('الرجاء ملء جميع الحقول الإلزامية.', 'danger');
+        header('Location: ' . APP_URL . '/admin/users/create');
+        exit();
+    }
+
+    if ($data['password'] !== $data['password_confirm']) {
+        \App\Core\Flash::set('كلمتا المرور غير متطابقتين.', 'danger');
+        header('Location: ' . APP_URL . '/admin/users/create');
+        exit();
+    }
+
+    // بند 11: فرض سياسة كلمة المرور قبل الإنشاء (رسائل موحدة من Auth)
+    $policy = \App\Core\Auth::validatePasswordPolicy($data['password']);
+    if (!$policy['ok']) {
+        foreach ($policy['errors'] as $error) {
+            \App\Core\Flash::set($error, 'danger');
+        }
+        header('Location: ' . APP_URL . '/admin/users/create');
+        exit();
+    }
+
+    // 3. إنشاء كائن من مودل المستخدم
+    $userModel = new \App\Models\User();
+
+    // 4. استدعاء دالة الإنشاء في المودل
+    $newUserId = $userModel->createUser($data);
+
+    if ($newUserId) {
+        // في حالة النجاح
+        \App\Core\Audit::log('USER_CREATE', $newUserId, 'users', ['username' => $data['username'], 'role_id' => $data['role_id']]);
+        \App\Core\Flash::set('تم إنشاء المستخدم الجديد بنجاح.', 'success');
+        header('Location: ' . APP_URL . '/admin/users'); // إعادة توجيه لقائمة المستخدمين
+    } else {
+        // في حالة الفشل (غالباً بسبب اسم مستخدم أو بريد إلكتروني مكرر)
+        \App\Core\Flash::set('فشل إنشاء المستخدم. قد يكون اسم المستخدم أو البريد الإلكتروني مستخدماً بالفعل.', 'danger');
+        header('Location: ' . APP_URL . '/admin/users/create'); // البقاء في صفحة الإنشاء
+    }
+    exit();
+}
+/**
+ * ==================================================
+ *           ===>  الدالة الجديدة هنا  <===
+ * ==================================================
+ * 
+ * تقوم بتغيير حالة المستخدم بين 'active' و 'suspended'.
+ */
+public function toggleStatus() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $json = file_get_contents('php://input');
+        $data = json_decode($json);
+
+        if (!isset($data->user_id)) {
+            http_response_code(400 );
+            echo json_encode(['success' => false, 'message' => 'بيانات ناقصة.']);
+            exit();
+        }
+
+        $userId = (int)$data->user_id;
+        $userModel = new \App\Models\User();
+
+        // لا تسمح للمدير بتعليق حسابه الخاص
+        if ($userId === \App\Core\Auth::id()) {
+            http_response_code(403 );
+            echo json_encode(['success' => false, 'message' => 'لا يمكنك تعليق حسابك الخاص.']);
+            exit();
+        }
+
+        // بند 3: منع تعليق آخر مدير نظام نشط.
+        if ($userModel->isLastActiveAdmin($userId)) {
+            \App\Core\Audit::log('LAST_ADMIN_PROTECTED', $userId, 'users', [
+                'reason' => 'suspend',
+                'actor_id' => \App\Core\Auth::id(),
+            ]);
+            \App\Core\Auth::notifyAdmins(
+                'محاولة تعليق آخر مدير نظام',
+                'رُفضت محاولة تعليق آخر مدير نظام نشط.'
+            );
+            http_response_code(403 );
+            echo json_encode(['success' => false, 'message' => 'لا يمكن تعليق آخر مدير نظام نشط.']);
+            exit();
+        }
+
+        $newStatus = $userModel->toggleStatus($userId);
+
+        if ($newStatus) {
+            $action = ($newStatus === 'active') ? 'USER_ACTIVATED' : 'USER_SUSPENDED';
+            \App\Core\Audit::log($action, $userId, 'users');
+            $this->warnIfSingleActiveAdmin();
+            echo json_encode(['success' => true, 'newStatus' => $newStatus, 'message' => 'تم تغيير حالة المستخدم بنجاح.']);
+        } else {
+            http_response_code(500 );
+            echo json_encode(['success' => false, 'message' => 'فشل تغيير حالة المستخدم.']);
+        }
+        exit();
+    }
+}
+
+
+public function edit($id) {
+    $userModel = new \App\Models\User();
+    $employeeModel = new \App\Models\Employee();
+    
+    $user = $userModel->findById($id);
+    if (!$user) {
+        // معالجة حالة عدم العثور على المستخدم
+        return (new \App\Controllers\ErrorController())->notFound();
+    }
+
+    $data = [
+        'pageTitle' => 'تعديل المستخدم',
+        'user' => $user,
+        // جلب كل الموظفين غير المرتبطين + الموظف المرتبط بهذا المستخدم (إن وجد)
+        'employees' => $employeeModel->getAvailableEmployeesForUser($user->employee_id)
+    ];
+    $this->view('admin/users/edit', $data);
+}
+
+public function update() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $data = [
+            'id' => (int)$_POST['id'],
+            'username' => trim($_POST['username']),
+            'email' => trim($_POST['email']),
+            'employee_id' => !empty($_POST['employee_id']) ? (int)$_POST['employee_id'] : null,
+      'password' => $_POST['password'] // جلب كلمة المرور الجديدة
+          ];
+   // 2. التحقق من كلمة المرور (فقط إذا لم تكن فارغة)
+        if (!empty($data['password'])) {
+            if ($data['password'] !== $_POST['password_confirm']) {
+                \App\Core\Flash::set('كلمتا المرور الجديدتان غير متطابقتين.', 'danger');
+                // إعادة التوجيه إلى نفس صفحة التعديل
+                header('Location: ' . APP_URL . '/admin/users/edit/' . $data['id']);
+                exit();
+            }
+            // بند 11: فرض سياسة كلمة المرور قبل التعديل (رسائل موحدة من Auth)
+            $policy = \App\Core\Auth::validatePasswordPolicy($data['password']);
+            if (!$policy['ok']) {
+                foreach ($policy['errors'] as $error) {
+                    \App\Core\Flash::set($error, 'danger');
+                }
+                header('Location: ' . APP_URL . '/admin/users/edit/' . $data['id']);
+                exit();
+            }
+        }
+           // 3. استدعاء المودل للتحديث
+        $userModel = new \App\Models\User();
+        if ($userModel->updateUser($data)) {
+            \App\Core\Audit::log('USER_UPDATE', $data['id'], 'users', $data);
+            \App\Core\Flash::set('تم تحديث بيانات المستخدم بنجاح.', 'success');
+        } else {
+            \App\Core\Flash::set('فشل تحديث البيانات. قد يكون اسم المستخدم أو البريد مكرراً.', 'danger');
+        }
+        header('Location: ' . APP_URL . '/admin/users');
+        exit();
+    }
+}
+// دالة حذف مستخدم اي تدميرة
+public function destroy() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $id = (int)$_POST['id'];
+
+        // لا تسمح للمدير بحذف حسابه
+        if ($id === \App\Core\Auth::id()) {
+            \App\Core\Flash::set('لا يمكنك حذف حسابك الخاص.', 'danger');
+            header('Location: ' . APP_URL . '/admin/users');
+            exit();
+        }
+
+        $userModel = new \App\Models\User();
+
+        // بند 3: منع حذف آخر مدير نظام نشط.
+        if ($userModel->isLastActiveAdmin($id)) {
+            \App\Core\Audit::log('LAST_ADMIN_PROTECTED', $id, 'users', [
+                'reason' => 'delete',
+                'actor_id' => \App\Core\Auth::id(),
+            ]);
+            \App\Core\Auth::notifyAdmins(
+                'محاولة حذف آخر مدير نظام',
+                'رُفضت محاولة حذف آخر مدير نظام نشط. يجب إبقاء مدير نظام نشط واحد على الأقل.'
+            );
+            \App\Core\Flash::set('لا يمكن حذف آخر مدير نظام نشط.', 'danger');
+            header('Location: ' . APP_URL . '/admin/users');
+            exit();
+        }
+
+        if ($userModel->deleteUser($id)) {
+            \App\Core\Audit::log('USER_DELETE', $id, 'users');
+            \App\Core\Flash::set('تم حذف المستخدم بنجاح.', 'success');
+            $this->warnIfSingleActiveAdmin();
+        } else {
+            \App\Core\Flash::set('فشل حذف المستخدم.', 'danger');
+        }
+        header('Location: ' . APP_URL . '/admin/users');
+        exit();
+    }
+}
+/**
+ * ==================================================
+ *           ===>  الدالة الجديدة هنا  <===
+ * ==================================================
+ * 
+ * تقوم بإعادة تعيين كلمة مرور مستخدم وإنشاء كلمة مرور عشوائية جديدة.
+ */
+public function resetPassword() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $json = file_get_contents('php://input');
+        $data = json_decode($json);
+
+        if (!isset($data->user_id)) {
+            http_response_code(400 );
+            echo json_encode(['success' => false, 'message' => 'بيانات ناقصة.']);
+            exit();
+        }
+
+        $userId = (int)$data->user_id;
+        $userModel = new \App\Models\User();
+
+        // لا تسمح للمدير بإعادة تعيين كلمة مروره بهذه الطريقة
+        if ($userId === \App\Core\Auth::id()) {
+            http_response_code(403 );
+            echo json_encode(['success' => false, 'message' => 'لا يمكنك استخدام هذه الميزة على حسابك.']);
+            exit();
+        }
+
+        // 1. إنشاء كلمة مرور عشوائية قوية مطابقة لسياسة بند 11
+        $newPassword = \App\Core\Auth::generateStrongPassword(12);
+
+        // 2. تحديث كلمة المرور في قاعدة البيانات (بند 9: إلزام التغيير عند الدخول التالي)
+        if ($userModel->updatePassword($userId, $newPassword, true)) {
+            // 3. تسجيل الإجراء
+            \App\Core\Audit::log('USER_PASSWORD_RESET', $userId, 'users');
+            
+            // 4. إرجاع كلمة المرور الجديدة إلى الواجهة الأمامية
+            echo json_encode(['success' => true, 'newPassword' => $newPassword, 'message' => 'تم إعادة تعيين كلمة المرور بنجاح. يجب على المستخدم تغييرها عند الدخول التالي.']);
+        } else {
+            http_response_code(500 );
+            $failMsg = !empty($userModel->lastPasswordErrors)
+                ? implode(' ', $userModel->lastPasswordErrors)
+                : 'فشل إعادة تعيين كلمة المرور.';
+            echo json_encode(['success' => false, 'message' => $failMsg]);
+        }
+        exit();
+    }
+    }
+
+    /**
+     * بند 3: تنبيه المشرفين عند هبوط عدد مدراء النظام النشطين إلى واحد.
+     */
+    private function warnIfSingleActiveAdmin() {
+        $userModel = new \App\Models\User();
+        if ($userModel->activeAdminCount() === 1) {
+            \App\Core\Auth::notifyAdmins(
+                'تنبيه: مدير نظام واحد فقط',
+                'لم يبقَ سوى مدير نظام نشط واحد. يُنصح بإضافة مدير نظام آخر لتفادي فقدان الوصول.'
+            );
+        }
+    }
+}

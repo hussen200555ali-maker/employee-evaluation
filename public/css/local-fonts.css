@@ -1,0 +1,18 @@
+@font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../libs/fonts/cairo-v31-arabic-regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 600;
+    src: url('../libs/fonts/cairo-v31-arabic-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 700;
+    src: url('../libs/fonts/cairo-v31-arabic-900.woff2') format('woff2');
+}
