@@ -398,21 +398,6 @@ use App\Core\Auth;
                             </li>
                             <?php endif; ?>
 
-                            <?php if (Auth::isAdmin()): ?>
-                            <li><hr class="dropdown-divider"></li>
-
-                            <li>
-                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/users">
-                                    <i class="fas fa-user-shield fa-fw me-2"></i> إدارة المستخدمين
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/roles">
-                                    <i class="fas fa-user-tag fa-fw me-2"></i> إدارة الأدوار
-                                </a>
-                            </li>
-                            <?php endif; ?>
-
                             <?php if (Auth::userHasPermission('backup.manage')): ?>
                             <li><hr class="dropdown-divider"></li>
 
@@ -423,6 +408,28 @@ use App\Core\Auth;
                             </li>
                             <?php endif; ?>
 
+                        </ul>
+                    </li>
+                    <?php endif; ?>
+
+                    <!-- البند 7: إدارة المستخدمين/الأدوار تظهر لمن يملك users.view
+                         خارج كتلة «الإعدادات» حتى تظهر لمن لا يملك صلاحيات الإعدادات. -->
+                    <?php if (Auth::isAdmin() || Auth::userHasPermission('users.view')): ?>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="usersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-users me-1"></i> المستخدمون
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="usersDropdown">
+                            <li>
+                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/users">
+                                    <i class="fas fa-user-shield fa-fw me-2"></i> إدارة المستخدمين
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/roles">
+                                    <i class="fas fa-user-tag fa-fw me-2"></i> إدارة الأدوار
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     <?php endif; ?>

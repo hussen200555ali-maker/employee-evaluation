@@ -1,5 +1,10 @@
 # سجل التغييرات
 
+## 2026-09-28 — CD-006 المرحلة 2 / بند 7: تفعيل صلاحيات `users.*` في حارس UserController
+- `UserController::__construct`: `Auth::is('Admin')` + `forbidden()/exit` → `Auth::can('users.view')`، مع حارس لكل عملية داخل دالتها: `create`+`store` → `users.create`، `edit`+`update`+`updateRole`+`toggleStatus`+`resetPassword` → `users.edit`، `destroy` → `users.delete` (9 مواضع). حماية آخر Admin (بند 3) بلا مساس. `header.php`: رابط «إدارة المستخدمين/الأدوار» صار قائمة مستقلة مشروطة بـ`Auth::isAdmin() || Auth::userHasPermission('users.view')` خارج كتلة «الإعدادات» (وإلا لم يظهر لمن يملك `users.view` وحدها).
+- **ترحيل `permissions_version`: مُتخطّى** (شرط مشروط تحقق) — `Auth::permissionsNeedRefresh()` يفحص DB كل 60 ثانية فيُبطل الجلسات تلقائيًا. بلا تعديل على مصفوفة الصلاحيات (`permissions=38` قبل/بعد)، بلا دور جديد، بلا مسّ FK.
+- إثبات Live HTTP على قاعدة الإنتاج `employee_evaluation_mvc`: Admin 200/200/200 · دور `users.view` فقط 200 على القائمة و403 على `create`/`edit`/`delete`/`update-role`/`toggle-status`/`reset-password`/`store` (وDB بلا تغيير: `users=30`، `smutairi` بلا تغيير) · Staff بلا `users.*` = 403 وبلا رابط · `php -l` نظيف. بيانات الاختبار حُذفت بالكامل (users 32→30، roles 5→4). نسخة الرجوع: `_emergency/rollback/CD-006/2026-09-28/`.
+
 ## 2026-09-21 — CD-006 المرحلة 1 / بند 6: منع تصعيد الصلاحيات في updatePermission
 - `RoleController::updatePermission`: الإلزام بدور Admin (`Auth::isAdmin`) وتضمين دالة جديدة `Role::findPermissionById` + رفض منح صلاحية لا يملكها المنفّذ + Audit بـ`old/new` و`permission_name` و`actor_id`. ترحيل DB غير مطلوب.
 - إثبات Live HTTP: Admin يضيف/يزيل (200)، تعديل دور Admin (403)، صلاحية غير موجودة (404)، مستخدم بـ roles.manage دون Admin (403). `php -l` نظيف، وبعد التنظيف DB رجع إلى users=4/user_roles=4/roles=4/permissions=38. نسخ رجوع في `_emergency/rollback/CD-006/2026-09-21/{controllers,models}`.
