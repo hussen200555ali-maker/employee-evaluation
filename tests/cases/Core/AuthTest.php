@@ -41,6 +41,8 @@ class AuthTest extends TestCase
         $db = $this->testDb();
         $db->prepare('INSERT INTO users (username, email, password_hash, status) VALUES (?, ?, ?, ?)')
             ->execute([$username, $username, password_hash(self::TEST_PASSWORD, PASSWORD_DEFAULT), $status]);
+        // البند 11-b: التسجيل هنا (لا عند مواضع الاستدعاء) يغطي كل مواضع البذر دفعةً واحدة.
+        $this->seededUsernames[] = $username;
         return (int)$db->lastInsertId();
     }
 
@@ -59,34 +61,50 @@ class AuthTest extends TestCase
     {
         $usernames = $this->seededUsernames;
         if ($usernames === [] || !db_available()) {
+            $this->seededUsernames = [];
             return;
         }
         try {
             $db = $this->testDb();
             $ph = implode(',', array_fill(0, count($usernames), '?'));
-            $db->prepare("DELETE FROM audit_logs WHERE entity_type = 'users'
-                          AND entity_id IN (SELECT id FROM users WHERE username IN ({$ph}))")
-               ->execute($usernames);
-            $db->prepare("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE username IN ({$ph}))")
-               ->execute($usernames);
-            $db->prepare("DELETE FROM notifications WHERE user_id IN (SELECT id FROM users WHERE username IN ({$ph}))")
-               ->execute($usernames);
+
+            // البند 11-b — الجذر الحقيقي للتسرّب (مثبت بالخطأ 1442):
+            // كان التنظيف يحذف user_roles بجملة تستعلم users في الوقت نفسه
+            // (… WHERE user_id IN (SELECT id FROM users …))، فتلتقط
+            // cd004_trg_user_roles_ad الذي ينفّذ UPDATE users فيتعارض معه
+            // MySQL ويُطلق 1442 «Can't update table 'users' …»، فيتوقف
+            // التنظيف عند ذاك السطر ولا يصل حذف المستخدمين إطلاقًا.
+            // الحل: تُحلّ المعرّفات أولًا في استعلام مستقل، ثم تُحذف كل
+            // الجداول بقائمة معرّفات literals بلا أي استعلام فرعي على users.
+            $st = $db->prepare("SELECT id FROM users WHERE username IN ({$ph})");
+            $st->execute($usernames);
+            $ids = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN));
+            if ($ids === []) {
+                $this->seededUsernames = [];
+                return;
+            }
+            $ip = implode(',', array_fill(0, count($ids), '?'));
+
+            $db->prepare("DELETE FROM audit_logs WHERE entity_type = 'users' AND entity_id IN ({$ip})")
+               ->execute($ids);
+            $db->prepare("DELETE FROM notifications WHERE user_id IN ({$ip})")
+               ->execute($ids);
             $delNotif = $db->prepare('DELETE FROM notifications WHERE title LIKE ?');
             foreach ($usernames as $u) {
                 $delNotif->execute(['%' . $u . '%']);
             }
             $db->prepare("DELETE FROM login_attempts WHERE username IN ({$ph})")->execute($usernames);
-            // المستخدمون المؤقتون قد تطابق معرفاتهم مراجع FK يتيمة من older data
-            // (مثل evaluations.created_by_user_id) — نعطّل الفحوص مؤقتًا لحذفنا السطحي فقط ثم نعيدها.
-            $db->exec('SET FOREIGN_KEY_CHECKS = 0');
-            try {
-                $db->prepare("DELETE FROM users WHERE username IN ({$ph})")->execute($usernames);
-            } finally {
-                $db->exec('SET FOREIGN_KEY_CHECKS = 1');
-            }
+            $db->prepare("DELETE FROM user_roles WHERE user_id IN ({$ip})")
+               ->execute($ids);
+            // الاعتماد على CASCADE الحقيقي بعد إزالة تجاوز تعطيل فحوص المفاتيح:
+            // notifications/csrf_tokens تُحذف تلقائيًا، وأي مرجع غير متوقَّع
+            // يظهر كفشل صريح بدل أن يُنتج تلفًا صامتًا.
+            $db->prepare("DELETE FROM users WHERE id IN ({$ip})")
+               ->execute($ids);
         } catch (\Throwable $e) {
             // التنظيف ثانوي — لا يُفشِل الاختبار
         }
+        $this->seededUsernames = [];
     }
 
     /** حذف الأدوار المؤقتة لبند 8 (حذف الدور يمحو role_permissions عبر FK cascade). */
@@ -661,6 +679,8 @@ echo "ADMIN_PASSED" . PHP_EOL;
         $db = $this->testDb();
         $db->prepare('INSERT INTO users (username, email, password_hash, status) VALUES (?, ?, ?, ?)')
             ->execute([$username, $username, password_hash($initialPassword, PASSWORD_DEFAULT), 'active']);
+        // البند 11-b: تسجيل الاسم حتى يمسحه tearDown (وإلا تسرّب).
+        $this->seededUsernames[] = $username;
         return (int)$db->lastInsertId();
     }
 
@@ -819,6 +839,8 @@ echo "ADMIN_PASSED" . PHP_EOL;
         $db = $this->testDb();
         $db->prepare('INSERT INTO users (username, email, password_hash, status, must_change_password) VALUES (?, ?, ?, ?, 1)')
             ->execute([$username, $username, password_hash(self::TEST_PASSWORD, PASSWORD_DEFAULT), 'active']);
+        // البند 11-b: تسجيل الاسم حتى يمسحه tearDown (وإلا تسرّب).
+        $this->seededUsernames[] = $username;
         return (int)$db->lastInsertId();
     }
 
@@ -1289,5 +1311,54 @@ echo "SURVIVED_DEMOTE";
         $this->assertStringContainsString('IS_ADMIN=0', $relogin['stdout'], 'بعد إعادة الدخول لم يعد الموظف مدير نظام (رفض تمرير isAdmin)');
         $this->assertStringContainsString('"Staff"', $relogin['stdout'], 'الأدوار المعاد بناؤها من DB = Staff');
         $this->assertFalse(str_contains($relogin['stdout'], '"Admin"'), 'دور Admin زال من الجلسة بعد التغيير');
+    }
+
+    /**
+     * البند 11-b: لا يجوز أن يترك تنظيف الاختبارات أي يتيم في user_roles.
+     *
+     * يثبت أن الاعتماد على CASCADE الحقيقي (بعد حذف SET FOREIGN_KEY_CHECKS = 0)
+     * ينظّف فِرَق الأدوار المرتبطة بالحسابات المؤقتة، وأن أي مرجع غير متوقَّع
+     * صار يُظهره الفشل بدل أن يُنتج تلفًا صامتًا.
+     */
+    public function testNoOrphanUserRolesAfterCleanup(): void
+    {
+        if (!db_available()) {
+            $this->markSkipped('DB غير متاحة');
+        }
+
+        $db = $this->testDb();
+        $orphanCount = static function () use ($db): int {
+            return (int)$db->query(
+                'SELECT COUNT(*) FROM user_roles ur
+                 LEFT JOIN users u ON u.id = ur.user_id
+                 WHERE u.id IS NULL'
+            )->fetchColumn();
+        };
+
+        $before = $orphanCount();
+
+        // بذر مستخدم بدور ثم تنظيفه صراحةً (tearDown سيكرّر التنظيف بأمان)
+        $username = 'orphancheck.' . bin2hex(random_bytes(4)) . '@test.local';
+        $adminId  = $this->seedAdminUser($username);
+        $linked = (int)$db->query('SELECT COUNT(*) FROM user_roles WHERE user_id = ' . $adminId)->fetchColumn();
+        $this->assertSame(1, $linked, 'البذر يربط المستخدم المؤقت بدور');
+
+        $this->cleanupStatusUsers();
+
+        $this->assertSame(
+            0,
+            (int)$db->query('SELECT COUNT(*) FROM users WHERE username = ' . $db->quote($username))->fetchColumn(),
+            'المستخدم المؤقت حُذف بالكامل'
+        );
+        $this->assertSame(
+            0,
+            (int)$db->query('SELECT COUNT(*) FROM user_roles WHERE user_id = ' . $adminId)->fetchColumn(),
+            'فِرَق الأدوار حُذفت مع المستخدم'
+        );
+        $this->assertSame(
+            $before,
+            $orphanCount(),
+            'التنظيف لم يترك أي يتيم جديد في user_roles'
+        );
     }
 }

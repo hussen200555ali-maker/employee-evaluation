@@ -1,5 +1,12 @@
 # سجل التغييرات
 
+## 2026-09-29 — CD-006 المرحلة 3 / بند 11-a: رابط `/admin/roles` محكوم بـ`roles.manage`
+- `app/Views/layouts/header.php` (ملف واحد، ‎+13/−1): كان `if (Auth::isAdmin() || Auth::userHasPermission('users.view'))` يلفّ قائمة «المستخدمون» كاملةً وكان رابط «إدارة الأدوار» داخلها — فكان `roles.manage` وحده **لا يرى** رابط الأدوار، و`users.view` وحده **يرى** رابطًا لا يملك صلاحيته. فُكّ الالتفاف إلى كتلتين مستقلتين: إدارة المستخدمين تحت `users.view` كما هي، وإدارة الأدوار في `<li>` مستقل بمعرّف `rolesDropdown` تحت `Auth::isAdmin() || Auth::userHasPermission('roles.manage')`.
+- **إثبات Live** على `/dashboard` (3× HTTP 200): `users.view` فقط ⇒ `/admin/users=True` و`/admin/roles=False` · `roles.manage` فقط ⇒ `False`/`True` · Admin ⇒ `True`/`True`.
+- **إثبات حاسم بـ`git stash`** (على نمط البند 9): بعد `git stash push` لملف `header.php` وحده (تحقّق: `rolesDropdown` غير موجود) أُعيد تشغيل سيناريو `roles.manage` على الكود القديم ⇒ `/admin/roles=False`؛ ثم `git stash pop` (تحقّق: `rolesDropdown` موجود و`stash` فارغ) ⇒ `True`.
+- **منهجية:** لم تُعدَّل كلمة مرور `sysadmin`؛ استُخدم مستخدم مؤقت بدور `Admin` لأن `Auth::isAdmin()` = `hasRole('Admin')` قائمًا على الدور. حُذفت كل الـfixtures (دوران 72/73 + مستخدمون 831/832/833) مع `audit_logs`/`login_attempts`/`notifications` المرتبطة + حدث `USER_CLEANUP_TEST_DATA` ⇒ البقايا 0 و`users` عاد إلى 30.
+- بلا ترحيل DB · بلا تعديل `RoleController` ولا صلاحيات جديدة · `php -l` نظيف · فحص المحارف الدخيلة (CJK/Cyrillic/Hangul/Kana + خلط لاتيني داخل عربي) = CLEAN. نسخة الرجوع: `_emergency/rollback/CD-006/2026-09-29/header.pre-item11.php`.
+
 ## 2026-09-28 — CD-006 المرحلة 2 / بند 10: بوابات التحقق المرجعي قبل إنشاء المستخدم
 - `UserController::store()`: ثلاث بوابات **قبل** `createUser` (إضافة فقط، ‎+42/−0، ولا تعديل لأي ملف آخر): (1) `Role::findById($data['role_id'])` ⇒ `USER_CREATE_BLOCKED_INVALID_ROLE` + «الدور المحدد غير موجود.»، (2) `Employee::findById($data['employee_id'])` عند إرسال الموظف فقط ⇒ `USER_CREATE_BLOCKED_INVALID_EMPLOYEE` + «الموظف المحدد غير موجود.»، (3) `SELECT id FROM users WHERE employee_id = :emp_id LIMIT 1` ⇒ `USER_CREATE_BLOCKED_EMPLOYEE_TAKEN` + «هذا الموظف مرتبط بحساب مستخدم آخر.» مع `linked_user_id`. كل بوابة: فحص ⇒ Audit (`entity_id=null` و`user_id`=المنفِّذ) + `Flash` + إعادة توجيه + `exit`. و`role_id` الفارغ/0 يعطي رسالة «الدور المحدد غير موجود.»
 - **توصيف دقيق للأثر:** القيود في قاعدة البيانات (`user_roles_ibfk_2` و`users.employee_id UNIQUE`) كانت **منع الصفوف السيئة أصلًا** — قِسْتُ ذلك بتشغيل موازٍ على الكود قبل البوابات: الحالتان المرفوضتان أعادتا HTTP 200 و**0 صف تدقيق** و**لا مستخدم** مع رسالة **مضلِّلة** «فشل إنشاء المستخدم. قد يكون اسم المستخدم أو البريد الإلكتروني مستخدماً بالفعل.». فقيمة البند 10 هي (أ) رسالة صحيحة ومحددة و(ب) أثر تدقيق يتيح تتبّع المحاولة المرفوضة — لا «منع تلف» (بخلاف البند 9 الذي كانت فيه خسائر حقيقية).
@@ -216,7 +223,9 @@
 
 ## 2026-09-01 — مولد Excel الديناميكي (100 موظف) + قالب التقرير الشهري
 - انشاء قالب `id=2` التقرير الشهري — 3 معايير 40/30/30 — 9 اقسام تقدير
-## 2026-09-02 � ��� ������ ������� ������
-- evaluations_by_year.php � ����� ���� �� 4 KPIs (�����/����/���/����) � grid 3 ����� �� ���� ���� � progress � ����� ����� PHP ����� numeric � clamp 0-100 � ������ navy/gold ������� �� ������ � Evaluation.php:getComparisonStatsForYear ���� ���� status completed
-## 2026-09-02 � ����� �������� ������ ��� �������
-- evaluations_by_year.php � ������� ����� width:min(96%,1400px) + padding:clamp � ������� uto-fit minmax(240px/340px) � ������ clamp � ����� �� 100% ��� 1366/1920 � 90%/125% zoom � ������� ������� �����
+## 2026-09-02 — لوحة التقييمات السنوية: 4 بطاقات KPI
+- `evaluations_by_year.php` — لوحة سنوية تضيف 4 بطاقات KPI (متوسط الأداء/أعلى درجة/متوسط القسم/متوسط الشركة) فوق شبكة التقييمات بثلاثة أعمدة، مع شريط تقدّم لكل تقييم، وحساب المتوسطات في PHP مع تثبيت النسب على المدى 0-100، وهوية بصرية navy/gold. مصدر المقارنة `Evaluation.php:getComparisonStatsForYear`، والعرض محصور بحالة `completed`.
+  > **إعادة بناء نصية (2026-09-29):** النص الأصلي لهذا الإدخال تلف قبل استيراد المستودع، ومحارف U+FFFD غير قابلة للاسترجاع من تاريخ git (النسخة الأساس نفسها تحمل 206 محرفًا). صيغ هذا السطر من المصدر الباقي `app/Views/employees/evaluations_by_year.php`، لا من النص الأصلي.
+## 2026-09-02 — استجابة لوحة التقييمات السنوية (responsive)
+- `evaluations_by_year.php` — ضبط الحاوية `width:min(96%,1400px)` مع `padding:clamp(...)`، وشبكة `auto-fit minmax(240px/340px)`، وحدود `clamp` على المقاسات، مع كسرات استجابة لعرضَي 1366/1920 ونِسَب التكبير 90%/125%.
+  > **إعادة بناء نصية (2026-09-29):** كما سبق — المصدر الباقي هو الملف نفسه، والقيم الرقمية محفوظة من الشظايا الباقية في السطر الأصلي.

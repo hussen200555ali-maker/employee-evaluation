@@ -412,7 +412,7 @@ use App\Core\Auth;
                     </li>
                     <?php endif; ?>
 
-                    <!-- البند 7: إدارة المستخدمين/الأدوار تظهر لمن يملك users.view
+                    <!-- البند 7: إدارة المستخدمين تظهر لمن يملك users.view
                          خارج كتلة «الإعدادات» حتى تظهر لمن لا يملك صلاحيات الإعدادات. -->
                     <?php if (Auth::isAdmin() || Auth::userHasPermission('users.view')): ?>
                     <li class="nav-item dropdown">
@@ -425,6 +425,18 @@ use App\Core\Auth;
                                     <i class="fas fa-user-shield fa-fw me-2"></i> إدارة المستخدمين
                                 </a>
                             </li>
+                        </ul>
+                    </li>
+                    <?php endif; ?>
+
+                    <!-- البند 11-a: إدارة الأدوار تُحكم بـ roles.manage بشكل مستقل
+                         عن users.view، فتظهر لمن يملك صلاحية إدارة الأدوار فقط. -->
+                    <?php if (Auth::isAdmin() || Auth::userHasPermission('roles.manage')): ?>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="rolesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-tag me-1"></i> الأدوار
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="rolesDropdown">
                             <li>
                                 <a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/roles">
                                     <i class="fas fa-user-tag fa-fw me-2"></i> إدارة الأدوار
