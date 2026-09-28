@@ -410,6 +410,54 @@ public function destroy() {
             exit();
         }
 
+        // البند 12-b: منع حذف مستخدم ترتبط به سجلات لا تقبل الحذف التلقائي.
+        //
+        // قياس كل قيود المفاتيح الأجنبية المؤدية إلى users (لا افتراض):
+        //   CASCADE (تُنظَّف ذاتيًا، 5): user_roles، notifications، admin_notifications،
+        //                                csrf_tokens، password_history
+        //   SET NULL (9):              audit_logs، backup_logs، backup_settings،
+        //                                course_catalog، course_evaluations،
+        //                                evaluation_schedules، form_templates (×2)،
+        //                                training_courses، workshop_catalog
+        //   RESTRICT (تمنع الحذف، 2):  evaluations.created_by_user_id
+        //                                evaluation_import_batches.uploaded_by_user_id
+        // بلا هذه البوابة كان الحذف ينتهي بخطأ قاعدة بيانات 1452 بدل رسالة مفهومة.
+        // ملاحظة: evaluations لا ترتبط بـ users إلا عبر created_by_user_id؛ المُقيَّم
+        // نفسه يُخزَّن كـ evaluator_employee_id (موظف) مع لقطة نصية للاسم والمسمى.
+        $dbGate = \App\Core\Database::getInstance();
+        // placeholders منفصلة عمدًا: PDO بوضع EMULATE_PREPARES=false لا يقبل
+        // تكرار نفس الاسم في الجملة الواحدة.
+        $dbGate->query("SELECT
+                            (SELECT COUNT(*) FROM evaluations WHERE created_by_user_id = :id1) AS evals,
+                            (SELECT COUNT(*) FROM evaluation_import_batches WHERE uploaded_by_user_id = :id2) AS batches");
+        $dbGate->bind(':id1', $id);
+        $dbGate->bind(':id2', $id);
+        $refs = $dbGate->fetch();
+        $evalCount = (int)($refs->evals ?? 0);
+        $batchCount = (int)($refs->batches ?? 0);
+
+        if ($evalCount > 0 || $batchCount > 0) {
+            $parts = [];
+            if ($evalCount > 0) {
+                $parts[] = $evalCount === 1 ? 'تقييم واحد' : $evalCount . ' تقييمات';
+            }
+            if ($batchCount > 0) {
+                $parts[] = $batchCount === 1 ? 'دفعة استيراد واحدة' : $batchCount . ' دفعات استيراد';
+            }
+            \App\Core\Audit::log('USER_DELETE_BLOCKED_REFERENCES', $id, 'users', [
+                'evaluations_count'      => $evalCount,
+                'import_batches_count'   => $batchCount,
+                'actor_id'               => \App\Core\Auth::id(),
+            ]);
+            \App\Core\Flash::set(
+                'لا يمكن حذف المستخدم لارتباطه بـ ' . implode(' و', $parts)
+                . '. انقل السجلات المرتبطة إلى مستخدم آخر أو احذفها أولًا.',
+                'danger'
+            );
+            header('Location: ' . APP_URL . '/admin/users');
+            exit();
+        }
+
         if ($userModel->deleteUser($id)) {
             \App\Core\Audit::log('USER_DELETE', $id, 'users');
             \App\Core\Flash::set('تم حذف المستخدم بنجاح.', 'success');
