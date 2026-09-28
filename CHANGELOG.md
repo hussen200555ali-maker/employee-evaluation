@@ -1,5 +1,12 @@
 # سجل التغييرات
 
+## 2026-09-28 — CD-006 المرحلة 2 / بند 9: ذرّية استبدال الأدوار في `User::updateRole`
+- `User::updateRole`: كان `DELETE` ثم `INSERT` بلا معاملة — فشل `INSERT` بعد نجاح `DELETE` (مثل `role_id` غير موجود) يترك المستخدم **بلا دور نهائيًا**. صار يغلّف العملية في `beginTransaction()`/`commit()` عبر `Database::getInstance()->getPdo()` (وهو نفس اتصال `$this->db` كـsingleton، فالمعاملة تغطي الاستعلامين)، وفي `catch (PDOException)` يتراجع بـ`rollBack()` (بتحقّق `inTransaction()`) — فيُرجع الصف المحذوف فيحتفظ المستخدم بدوره القديم — ثم يستعلم `SELECT id FROM roles WHERE id=:id` لتمييز السبب: دور غير موجود ⇒ `return false` (نمط باقي الدوال بلا استثناء)، والدور موجود ⇒ `throw $e` كما كان.
+- **بلا ترحيل DB** وبلا تعديل `user_roles` ولا `createUser` (تستخدم Transaction أصلًا) ولا `Database.php` ولا `Audit.php` — وبلا Audit عند فشل تغيير الدور (نص البند 9 لا يطلبه؛ وُثّقت كفجوة في تقرير CP2 لـ CD-007+).
+- **اختبار وحدة جديد** `tests/cases/Models/UserTest.php` (3 حالات، يكتشفه `tests/runner.php` تلقائيًا) أهمّها `testUpdateRoleRollsBackOnInvalidRole`. **النتيجة 3/3 نجح.** وإثبات أن الاختبار يكتشف العطل: بعد `git stash` مؤقت فشل بخطأ `SQLSTATE[23000] … 1452 Cannot add or update a child row` — أي أن الكود القديم يرمي استثناءً غير ملتقط بعد تنفيذ `DELETE`، وهو الخطر الموصوف.
+- **لا انحدار:** نتيجة `tests/runner.php` الكاملة مطابقة لخط الأساس على الكود قبل التغيير.
+- حالة DB بعد الاختبارات: `users=30`, `roles=4`, `user_roles=20`, `permissions=38`, `employees=27`, `audit_logs=284` (بلا تغيير) · بلا يتام · `sysadmin` نشط · صلاحيات Admin=35. `php -l` نظيف. نسخة الرجوع: `_emergency/rollback/CD-006/2026-09-28/user-model.pre-item9.php`.
+
 ## 2026-09-28 — CD-006 المرحلة 2 / بند 8: تدقيق القيم القديمة/الجديدة في `audit_logs`
 - `UserController::updateRole`: كان `Audit::log('USER_ROLE_UPDATE', …, ['new_role_id' => $roleId])` فقط → صار يجلب الدور القديم **قبل** `User::updateRole` (لأنها تحذف كل الأدوار ثم تُدرج الجديد) عبر `\App\Core\Database::getInstance()`، ويسجّل `old.role_id` + `new.role_id`.
 - `UserController::toggleStatus`: كان بلا `details` إطلاقًا → صار يلتقط `status` القديم من `findById($userId)->status` ويسجّل `old.status` + `new.status` تحت الإجراء نفسه (**بلا توحيد الاسم**: يبقى `USER_ACTIVATED`/`USER_SUSPENDED` بقرار المستشار).

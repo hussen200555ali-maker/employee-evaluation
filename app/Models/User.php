@@ -97,17 +97,46 @@ class User extends Model {
      * ==================================================
      */
     public function updateRole($userId, $roleId) {
-        // استخدام transaction يتطلب التعامل المباشر مع PDO،
-        // لذا سنقوم بالعملية بدونها في الوقت الحالي لتبسيط الكود.
-        $this->db->query("DELETE FROM user_roles WHERE user_id = :user_id");
-        $this->db->bind(':user_id', $userId);
-        $this->db->execute();
+        $userId = (int)$userId;
+        $roleId = (int)$roleId;
 
-        $this->db->query("INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)");
-        $this->db->bind(':user_id', $userId);
-        $this->db->bind(':role_id', $roleId);
-        
-        return $this->db->execute();
+        // بند 9 (CD-006): تغليف الحذف/الإدراج في Transaction لضمان الذرية.
+        // $this->db هو Database::getInstance() (انظر Model::__construct)،
+        // وgetPdo() يعيد نفس الاتصال — فالمعاملة تغطي الاستعلامين معًا.
+        // بدونها: لو فشل الإدراج بعد نجاح الحذف (مثل role_id غير موجود)،
+        // يبقى المستخدم بلا دور نهائيًا.
+        $pdo = \App\Core\Database::getInstance()->getPdo();
+        $pdo->beginTransaction();
+
+        try {
+            $this->db->query("DELETE FROM user_roles WHERE user_id = :user_id");
+            $this->db->bind(':user_id', $userId);
+            $this->db->execute();
+
+            $this->db->query("INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)");
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':role_id', $roleId);
+            $this->db->execute();
+
+            $pdo->commit();
+            return true;
+
+        } catch (\PDOException $e) {
+            // التراجع يُرجع الصف المحذوف، فيحتفظ المستخدم بدوره القديم.
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            // التمييز: دور غير موجود ⇒ false (نمط باقي الدوال، بلا استثناء).
+            // أي خطأ آخر (اتصال/قيد) ⇒ يُعاد إلقاؤه كما كان سلوك الدوال الأخرى.
+            $this->db->query("SELECT id FROM roles WHERE id = :id");
+            $this->db->bind(':id', $roleId);
+            if (!$this->db->fetch()) {
+                return false;
+            }
+
+            throw $e;
+        }
     }
 
     /**
