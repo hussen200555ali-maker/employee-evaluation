@@ -144,17 +144,6 @@ class User extends Model {
      *           ===>  الدالة المصححة هنا  <===
      * ==================================================
      */
-    public function delete($id) {
-        $this->db->query("DELETE FROM users WHERE id = :id");
-        $this->db->bind(':id', $id);
-        return $this->db->execute();
-    }
-    
-    /**
-     * ==================================================
-     *           ===>  الدالة المصححة هنا  <===
-     * ==================================================
-     */
     public function hasRole($userId, $roleName) {
         $sql = "SELECT COUNT(*) 
                 FROM user_roles ur
