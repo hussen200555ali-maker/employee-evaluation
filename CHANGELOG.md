@@ -1,5 +1,13 @@
 # سجل التغييرات
 
+## 2026-09-28 — CD-006 المرحلة 2 / بند 8: تدقيق القيم القديمة/الجديدة في `audit_logs`
+- `UserController::updateRole`: كان `Audit::log('USER_ROLE_UPDATE', …, ['new_role_id' => $roleId])` فقط → صار يجلب الدور القديم **قبل** `User::updateRole` (لأنها تحذف كل الأدوار ثم تُدرج الجديد) عبر `\App\Core\Database::getInstance()`، ويسجّل `old.role_id` + `new.role_id`.
+- `UserController::toggleStatus`: كان بلا `details` إطلاقًا → صار يلتقط `status` القديم من `findById($userId)->status` ويسجّل `old.status` + `new.status` تحت الإجراء نفسه (**بلا توحيد الاسم**: يبقى `USER_ACTIVATED`/`USER_SUSPENDED` بقرار المستشار).
+- `RoleController::updatePermission`: `old`/`new` من booleans إلى كائنَي `{role_id, permission_id}` — `PERMISSION_ADDED` = `old:null`/`new`، `PERMISSION_REMOVED` = `old`/`new:null`، مع بقاء `permission_name` و`actor_id` أعلى المستوى.
+- `RoleController::update`: كان يمرّر `false` كقيمة `old` → صار يلتقط الوصف القديم من `findById($id)->description` ويسجّل `old.description` + `new.description`.
+- **`app/Core/Audit.php` بلا تعديل (0 سطر)** — `Audit::log()` يستقبل `details array` ويحوّله إلى JSON أصلًا (`Audit.php:18`, `:33`)؛ البند 8 مسألة مراسِل فقط. **بلا ترحيل DB** (عمود `details` من نوع `text` موجود) وبلا تعديل على السجلات التاريخية.
+- إثبات Live HTTP على `employee_evaluation_mvc`: 6 عمليات = 200/200/200/200/200/200 مع فحص `audit_logs` الفعلي → `USER_ROLE_UPDATE {"old":{"role_id":47},"new":{"role_id":48}}` · `PERMISSION_ADDED old:null/new` · `PERMISSION_REMOVED old/new:null` · `ROLE_UPDATE old.description→new.description` · `USER_SUSPENDED active→suspended` · `USER_ACTIVATED suspended→active`. فحص آلي للأشكال 7/7 PASS وكلها `utf8=valid` (فحص البايتات). السجلات التاريخية `id<=726` = **246 صفًا** كما هي تمامًا. `php -l` نظيف. بيانات الاختبار حُذفت: users 33→30، roles 6→4، permissions=38، بلا يتام في `user_roles`، `sysadmin` نشط وصلاحيات Admin=35 بلا تغيير. نسخة الرجوع: `_emergency/rollback/CD-006/2026-09-28/{audit,admin-user-controller,admin-role-controller}.pre-item8.php`.
+
 ## 2026-09-28 — اعتماد البند 7 من CD-006 + 12 إصلاحًا توثيقيًا (بلا تغيير كود)
 - **اعتماد:** البند 7 **معتمد** من كبير المستشارين (توقيع 2026-09-28). Commit التطبيق `f44d525` بلا تعديل.
 - **الإصلاحات (مستند فقط — `app/` لم يُمسّ):** تصحيح hash مفقود الحرف `f` في `CD-006_Phase2_Request.md` · إضافة Commit التقرير `ff66d2f` إلى ترويسة التقرير وسطر مرجع Git · إصلاح لصقة «أو حالة» في التقرير · تصحيح مرجع السطر `UserController.php:26` → `:25` في `13_Security.md` · تعليم بند خارطة المعالجة #1 في `13_Security.md` كمُنفَّذ (`991e0bb` + `f44d525`) مع إبقاء (ب/ج/د/هـ) مفتوحة · **إصلاح تشويش ترميز (محارف كورية/صينية) في `CD-006_IMPLEMENTATION.md:184`** · **شطب `OOS-8`** في `CD-006_OUT_OF_SCOPE.md` وإضافته للبند 12-b بقرار المستشار.

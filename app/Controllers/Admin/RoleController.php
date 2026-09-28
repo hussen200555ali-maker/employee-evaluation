@@ -127,12 +127,14 @@ public function updatePermission() {
     header('Content-Type: application/json');
 
     if ($success) {
-        // بند 6 (CD-006): تسجيل القيمة قبل/بعد (old/new) مع اسم الصلاحية والمنفّذ.
+        // البند 8 (CD-006): تسجيل القيم قبل/بعد (old/new) مع اسم الصلاحية والمنفّذ.
+        // الشكل المعتمد: الإضافة = new فقط، الإزالة = old فقط.
+        $permPair = ['role_id' => (int)$roleId, 'permission_id' => (int)$permissionId];
         \App\Core\Audit::log($action, $roleId, 'roles', [
             'permission_id' => $permissionId,
             'permission_name' => $permission->name,
-            'old' => !$isChecked,
-            'new' => $isChecked,
+            'old' => $isChecked ? null : $permPair,
+            'new' => $isChecked ? $permPair : null,
             'actor_id' => Auth::id(),
         ]);
         echo json_encode(['success' => true, 'message' => 'تم تحديث الصلاحية بنجاح.']);
@@ -210,9 +212,17 @@ public function update() {
         $description = trim($_POST['description']);
 
         $roleModel = new \App\Models\Role();
+        // البند 8: التقاط الوصف القديم قبل التحديث.
+        $roleBefore = $roleModel->findById($id);
+        $oldDescription = $roleBefore ? $roleBefore->description : null;
+
         if ($roleModel->updateRole($id, $description)) {
-          //تجسل العملية  
-          \App\Core\Audit::log('ROLE_UPDATE', $id, 'roles', ['description' => $description]);
+          //تجسل العملية
+          // البند 8: تسجيل الوصف القديم/الجديد.
+          \App\Core\Audit::log('ROLE_UPDATE', $id, 'roles', [
+            'old' => ['description' => $oldDescription],
+            'new' => ['description' => $description],
+          ]);
             
           \App\Core\Flash::set('تم تحديث وصف الدور بنجاح.', 'success');
         } else {

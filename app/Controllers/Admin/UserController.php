@@ -89,9 +89,19 @@ class UserController extends Controller {
             }
 
             // 3. استدعاء دالة تحديث الدور في المودل.
+            // البند 8: جلب الدور القديم قبل التحديث (لأن User::updateRole يحذف كل الأدوار ثم يُدرج الجديد).
+            $dbAudit = \App\Core\Database::getInstance();
+            $dbAudit->query("SELECT role_id FROM user_roles WHERE user_id = :user_id LIMIT 1");
+            $dbAudit->bind(':user_id', $userId);
+            $oldRoleRow = $dbAudit->fetch();
+            $oldRoleId = $oldRoleRow ? (int)$oldRoleRow->role_id : null;
+
             if ($userModel->updateRole($userId, $roleId)) {
-                // 4. في حالة النجاح، سجل الإجراء وعيّن رسالة نجاح.
-                \App\Core\Audit::log('USER_ROLE_UPDATE', $userId, 'users', ['new_role_id' => $roleId]);
+                // 4. في حالة النجاح، سجل الإجراء (البند 8: القيم القديمة/الجديدة) وعيّن رسالة نجاح.
+                \App\Core\Audit::log('USER_ROLE_UPDATE', $userId, 'users', [
+                    'old' => ['role_id' => $oldRoleId],
+                    'new' => ['role_id' => (int)$roleId],
+                ]);
                 \App\Core\Flash::set('تم تحديث دور المستخدم بنجاح.', 'success');
                 $this->warnIfSingleActiveAdmin();
             } else {
@@ -241,11 +251,19 @@ public function toggleStatus() {
             exit();
         }
 
+        // البند 8: التقاط الحالة القديمة قبل التغيير (findById يُرجع u.* ومنها status).
+        $userBefore = $userModel->findById($userId);
+        $oldStatus = $userBefore ? $userBefore->status : null;
+
         $newStatus = $userModel->toggleStatus($userId);
 
         if ($newStatus) {
             $action = ($newStatus === 'active') ? 'USER_ACTIVATED' : 'USER_SUSPENDED';
-            \App\Core\Audit::log($action, $userId, 'users');
+            // البند 8: تسجيل القيم القديمة/الجديدة.
+            \App\Core\Audit::log($action, $userId, 'users', [
+                'old' => ['status' => $oldStatus],
+                'new' => ['status' => $newStatus],
+            ]);
             $this->warnIfSingleActiveAdmin();
             echo json_encode(['success' => true, 'newStatus' => $newStatus, 'message' => 'تم تغيير حالة المستخدم بنجاح.']);
         } else {
