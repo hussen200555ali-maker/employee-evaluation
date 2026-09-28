@@ -188,6 +188,48 @@ public function store() {
         exit();
     }
 
+    // بند 10: البوابات المرجعية قبل الاستدعاء — تمنع تمرير قيم غير موجودة أو مرتبطة إلى createUser.
+    $roleGate = new \App\Models\Role();
+    if (!$roleGate->findById($data['role_id'])) {
+        \App\Core\Audit::log('USER_CREATE_BLOCKED_INVALID_ROLE', null, 'users', [
+            'username' => $data['username'],
+            'role_id' => $data['role_id'],
+        ]);
+        \App\Core\Flash::set('الدور المحدد غير موجود.', 'danger');
+        header('Location: ' . APP_URL . '/admin/users/create');
+        exit();
+    }
+
+    // الموظف اختياري: البوابتان التاليتان تعملان فقط عند إرسال employee_id.
+    if ($data['employee_id'] !== null) {
+        $employeeGate = new \App\Models\Employee();
+        if (!$employeeGate->findById($data['employee_id'])) {
+            \App\Core\Audit::log('USER_CREATE_BLOCKED_INVALID_EMPLOYEE', null, 'users', [
+                'username' => $data['username'],
+                'employee_id' => $data['employee_id'],
+            ]);
+            \App\Core\Flash::set('الموظف المحدد غير موجود.', 'danger');
+            header('Location: ' . APP_URL . '/admin/users/create');
+            exit();
+        }
+
+        // الموظف موجود، لكنه مرتبط بحساب مستخدم آخر (users.employee_id فريد).
+        $dbGate = \App\Core\Database::getInstance();
+        $dbGate->query("SELECT id FROM users WHERE employee_id = :emp_id LIMIT 1");
+        $dbGate->bind(':emp_id', $data['employee_id']);
+        $linkedUser = $dbGate->fetch();
+        if ($linkedUser) {
+            \App\Core\Audit::log('USER_CREATE_BLOCKED_EMPLOYEE_TAKEN', null, 'users', [
+                'username' => $data['username'],
+                'employee_id' => $data['employee_id'],
+                'linked_user_id' => (int)$linkedUser->id,
+            ]);
+            \App\Core\Flash::set('هذا الموظف مرتبط بحساب مستخدم آخر.', 'danger');
+            header('Location: ' . APP_URL . '/admin/users/create');
+            exit();
+        }
+    }
+
     // 3. إنشاء كائن من مودل المستخدم
     $userModel = new \App\Models\User();
 
