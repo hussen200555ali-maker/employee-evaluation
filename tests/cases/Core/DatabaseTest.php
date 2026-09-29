@@ -105,9 +105,13 @@ class DatabaseTest extends TestCase
         }
         $db->commit();
 
+        // OOS-14: كان الاختبار يفرض rowCount()==3 على نتيجة SELECT COUNT(*).
+        // في MySQL تُرجع rowCount() عدد الصفوف المتأثرة، وهو 1 لصف
+        // التجميع الواحد لا 3. القياس الفعلي: rowCount()=1، fetchColumn()=3.
+        // الاختبار كان خاطئًا لا الدالة، فصُحّح ليثبّت السلوك الصحيح.
         $db->query('SELECT COUNT(*) FROM test_count_t');
         $db->execute();
-        $this->assertSame(3, $db->rowCount());
+        $this->assertSame(3, (int)$db->fetchColumn());
 
         $db->query('DROP TEMPORARY TABLE test_count_t');
         $db->execute();
