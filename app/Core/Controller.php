@@ -20,10 +20,12 @@ class Controller {
         extract($data);
 
         // تكوين المسار الكامل لملف الـ View.
-        $viewFile = "../app/Views/{$view}.php";
+        // OOS-15: كان المسار نسبيًا لمجلد التشغيل ("../app/Views/...")، فكان يفشل
+        // خارجه ويُسقط كل طلب يعرض واجهة. الآن يُبنى من APP_ROOT (معرّف مطلق).
+        $viewFile = APP_ROOT . "/app/Views/{$view}.php";
 
         // التحقق من وجود ملف الـ View.
-        if (file_exists($viewFile)) {
+        if (is_file($viewFile)) {
             // إذا كان موجوداً، قم بتضمينه لعرضه.
             require_once $viewFile;
         } else {

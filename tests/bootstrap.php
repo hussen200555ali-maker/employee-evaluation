@@ -30,6 +30,12 @@ if (!defined('TEST_ROOT')) {
     define('TEST_ROOT', __DIR__);
 }
 
+// OOS-15b: RouterTest كان يُسقط 3 اختبارات بخطأ "فئة التحكم غير موجودة".
+// السبب: composer.json يربط App\ فقط، ولا يوجد autoload-dev لـ Tests\، و
+// Composer غير مثبَّت على هذا النظام فلا يمكن إعادة توليد خرائط التحميل.
+// نحمّل الـ fixture تحميلًا صريحًا (بديل متوافق مع سياسة المشروع بلا إنترنت).
+require_once TEST_ROOT . '/Fixtures/HelloController.php';
+
 // بدء جلسة حتى تعمل دوال Auth و CSRF كما في بيئة الويب
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
