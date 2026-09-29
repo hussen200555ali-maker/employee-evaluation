@@ -6,7 +6,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 <!-- تم نقل <div class="container"> إلى الهيدر -->
 <div class="page-header">
     <h2><i class="fas fa-building"></i> إدارة الفروع</h2>
-    <?php if (App\Core\Auth::can('branches.create')): ?>
+    <?php if (App\Core\Auth::userHasPermission('branches.create')): ?>
         <!-- هذا الزر سيقوم بفتح نافذة الإضافة المنبثقة -->
         <button class="btn-add" data-bs-toggle="modal" data-bs-target="#addBranchModal">
             <i class="fas fa-plus"></i> إضافة فرع جديد
@@ -39,7 +39,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                         <td><?php echo date('Y-m-d', strtotime($branch->created_at)); ?></td>
                         <td>
                             <div class="action-buttons">
-                                <?php if (App\Core\Auth::can('branches.edit')): ?>
+                                <?php if (App\Core\Auth::userHasPermission('branches.edit')): ?>
                                     <!-- زر التعديل: سيفتح نافذة التعديل ويمرر بيانات الفرع إليها -->
                                     <button class="btn-action btn-edit js-edit-branch"
                                             data-id="<?php echo $branch->id; ?>"
@@ -50,7 +50,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 <?php endif; ?>
-                                <?php if (App\Core\Auth::can('branches.delete')): ?>
+                                <?php if (App\Core\Auth::userHasPermission('branches.delete')): ?>
                                     <!-- زر الحذف: سيستخدم JavaScript لتأكيد الحذف -->
                                     <button class="btn-action btn-delete js-delete-branch"
                                             data-id="<?php echo $branch->id; ?>"

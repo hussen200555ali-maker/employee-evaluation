@@ -41,7 +41,7 @@ $code = $employee->emp_code ?: '—';
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <?php if(App\Core\Auth::can('employees.edit')): ?><a href="<?= APP_URL ?>/employees/<?= (int)$employee->id ?>/edit" class="btn btn-glass"><i class="fas fa-edit ms-1"></i> تعديل</a><?php endif; ?>
+                    <?php if(App\Core\Auth::userHasPermission('employees.edit')): ?><a href="<?= APP_URL ?>/employees/<?= (int)$employee->id ?>/edit" class="btn btn-glass"><i class="fas fa-edit ms-1"></i> تعديل</a><?php endif; ?>
                     <a href="<?= APP_URL ?>/employees/<?= (int)$employee->id ?>/evaluations" class="btn btn-glass"><i class="fas fa-chart-line ms-1"></i> السجل التقييمي</a>
                 </div>
             </div>
@@ -68,7 +68,7 @@ $code = $employee->emp_code ?: '—';
                 <div class="p-3 d-grid gap-2">
                     <a href="<?= APP_URL ?>/evaluations/create?employee_id=<?= (int)$employee->id ?>" class="btn btn-primary" style="border-radius:12px"><i class="fas fa-plus ms-1"></i> إنشاء تقييم جديد</a>
                     <a href="<?= APP_URL ?>/employees/<?= (int)$employee->id ?>/evaluations" class="btn btn-outline-primary" style="border-radius:12px"><i class="fas fa-history ms-1"></i> عرض السجل التقييمي</a>
-                    <?php if(App\Core\Auth::can('employees.edit')): ?><a href="<?= APP_URL ?>/employees/<?= (int)$employee->id ?>/edit" class="btn btn-light border" style="border-radius:12px"><i class="fas fa-edit ms-1"></i> تعديل البيانات</a><?php endif; ?>
+                    <?php if(App\Core\Auth::userHasPermission('employees.edit')): ?><a href="<?= APP_URL ?>/employees/<?= (int)$employee->id ?>/edit" class="btn btn-light border" style="border-radius:12px"><i class="fas fa-edit ms-1"></i> تعديل البيانات</a><?php endif; ?>
                 </div>
                 <?php if(!empty($employee->nickname)): ?><div class="px-3 pb-3 small text-muted"><i class="fas fa-tag me-1"></i> اللقب: <strong class="text-dark"><?= htmlspecialchars($employee->nickname) ?></strong></div><?php endif; ?>
             </div>

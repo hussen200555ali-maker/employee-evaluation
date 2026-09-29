@@ -5,7 +5,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 
 <div class="page-header">
     <h2><i class="fas fa-sitemap"></i> إدارة الأقسام</h2>
-    <?php if (App\Core\Auth::can('departments.create')): ?>
+    <?php if (App\Core\Auth::userHasPermission('departments.create')): ?>
         <button class="btn-add" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
             <i class="fas fa-plus"></i> إضافة قسم جديد
         </button>
@@ -42,7 +42,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                       </td-->
                       <td><?php echo date('Y-m-d', strtotime($dept->created_at)); ?></td>
                       <td>
-                          <?php if (App\Core\Auth::can('departments.edit')): ?>
+                          <?php if (App\Core\Auth::userHasPermission('departments.edit')): ?>
                               <button class="btn btn-sm btn-edit js-edit-department"
                                       data-id="<?php echo $dept->id; ?>"
                                       data-name="<?php echo htmlspecialchars($dept->name); ?>"
@@ -50,7 +50,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                                   <i class="fas fa-edit"></i> تعديل
                               </button>
                           <?php endif; ?>
-                          <?php if (App\Core\Auth::can('departments.delete')): ?>
+                          <?php if (App\Core\Auth::userHasPermission('departments.delete')): ?>
                               <button class="btn btn-sm btn-delete js-delete-department"
                                       data-id="<?php echo $dept->id; ?>"
                                       data-name="<?php echo htmlspecialchars($dept->name); ?>">

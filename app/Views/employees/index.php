@@ -109,7 +109,7 @@ $branchJson=json_encode(array_map(fn($b)=>['id'=>$b->id,'name'=>$b->name], $bran
                 <span class="page-title-icon"><i class="fas fa-users"></i></span>
                 قائمة الموظفين
             </h2>
-            <?php if(App\Core\Auth::can('employees.create')): ?>
+            <?php if(App\Core\Auth::userHasPermission('employees.create')): ?>
             <a href="<?= APP_URL ?>/employees/create" class="btn-add-emp"><i class="fas fa-plus"></i> إضافة موظف جديد</a>
             <?php endif; ?>
         </div>
@@ -184,7 +184,7 @@ $branchJson=json_encode(array_map(fn($b)=>['id'=>$b->id,'name'=>$b->name], $bran
                 <td><?= htmlspecialchars($e->department_name ?? '—') ?></td>
                 <td><?= htmlspecialchars($e->branch_name ?? '—') ?></td>
                 <td><?php if($e->is_active): ?><span class="status-pill status-active">نشط</span><?php else: ?><span class="status-pill status-inactive">غير نشط</span><?php endif; ?></td>
-                <td class="text-center"><div class="d-inline-flex gap-1"><a href="<?= APP_URL ?>/employees/<?= (int)$e->id ?>" class="action-btn view" title="عرض"><i class="fas fa-eye"></i></a><?php if(App\Core\Auth::can('employees.edit')): ?><a href="<?= APP_URL ?>/employees/<?= (int)$e->id ?>/edit" class="action-btn edit" title="تعديل"><i class="fas fa-edit"></i></a><?php endif; ?><?php if(App\Core\Auth::can('employees.delete')): ?><button class="action-btn delete js-delete-employee" data-id="<?= (int)$e->id ?>" data-name="<?= htmlspecialchars($e->full_name,ENT_QUOTES) ?>" title="حذف"><i class="fas fa-trash-alt"></i></button><?php endif; ?></div></td>
+                <td class="text-center"><div class="d-inline-flex gap-1"><a href="<?= APP_URL ?>/employees/<?= (int)$e->id ?>" class="action-btn view" title="عرض"><i class="fas fa-eye"></i></a><?php if(App\Core\Auth::userHasPermission('employees.edit')): ?><a href="<?= APP_URL ?>/employees/<?= (int)$e->id ?>/edit" class="action-btn edit" title="تعديل"><i class="fas fa-edit"></i></a><?php endif; ?><?php if(App\Core\Auth::userHasPermission('employees.delete')): ?><button class="action-btn delete js-delete-employee" data-id="<?= (int)$e->id ?>" data-name="<?= htmlspecialchars($e->full_name,ENT_QUOTES) ?>" title="حذف"><i class="fas fa-trash-alt"></i></button><?php endif; ?></div></td>
             </tr>
         <?php endforeach; else: ?>
             <tr><td colspan="7"><div class="empty-state"><i class="fas fa-users-slash d-block mb-2"></i><h6>لا يوجد موظفون يطابقون الفلترة</h6><p class="small mb-3" style="color:var(--muted)">جرّب تغيير البحث أو <a href="<?= APP_URL ?>/employees" style="color:var(--brand)">إعادة تعيين الفلاتر</a></p></div></td></tr>

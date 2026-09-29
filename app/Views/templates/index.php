@@ -6,7 +6,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 
 <div class="page-header">
     <h2><i class="fas fa-clipboard-list"></i> إدارة قوالب التقييم</h2>
-    <?php if (App\Core\Auth::can('templates.manage')): ?>
+    <?php if (App\Core\Auth::userHasPermission('templates.manage')): ?>
         <a href="<?php echo APP_URL; ?>/builder/create" class="btn-add">
             <i class="fas fa-plus"></i> إنشاء قالب جديد
         </a>
