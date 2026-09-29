@@ -33,8 +33,19 @@ class HelpersTest extends TestCase
         $this->assertObjectHasProperty('month_name', $result);
         $this->assertObjectHasProperty('year', $result);
         $this->assertObjectHasProperty('weekday', $result);
-        $this->assertTrue(is_numeric($result->year));
-        $this->assertGreaterThan(1300, (int)$result->year);
-        $this->assertLessThanOrEqual(1600, (int)$result->year);
+
+        // OOS-17: مُنسّق Intl (ar-SA-u-ca-islamic-umalqura) يُرجع السنة بأرقام
+        // هندية (مثال «١٤٤٧»)، لا ASCII. القياس: is_numeric('١٤٤٧')=false و
+        // (int)'١٤٤٧'=0. لذلك فشلت is_numeric وتحققت (int)$year>1300 زورًا.
+        // نحوّل الأرقام العربية (٠-٩) إلى ASCII محليًا (لا نعتمد على واجهة
+        // خارجية غير موجودة)، فنتحقق من القيمة الحقيقية لا من تمثيلها.
+        $yearDigits = strtr((string)$result->year, [
+            "\u{0660}" => '0', "\u{0661}" => '1', "\u{0662}" => '2', "\u{0663}" => '3',
+            "\u{0664}" => '4', "\u{0665}" => '5', "\u{0666}" => '6', "\u{0667}" => '7',
+            "\u{0668}" => '8', "\u{0669}" => '9',
+        ]);
+        $this->assertTrue(ctype_digit($yearDigits), 'سنة هجرية متوقعة كأرقام: ' . $result->year);
+        $this->assertGreaterThan(1300, (int)$yearDigits);
+        $this->assertLessThanOrEqual(1600, (int)$yearDigits);
     }
 }
