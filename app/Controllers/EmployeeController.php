@@ -95,9 +95,18 @@ class EmployeeController extends Controller {
         $this->view('employees/show', $data);
     }*/
         public function show($id) {
+    // A0-2: كان show($id) يفحص Auth::check() فقط، فيكشف ملف أي موظف لأي
+    // مستخدم مسجّل حتى بلا صلاحية عرض. أُضيف فرض employees.view اتساقًا
+    // مع index() (السطر 28). الترتيب: تحويل غير المسجَّل أولًا (سلوك قائم
+    // لا يُغيَّر)، ثم فحص الصلاحية. لأن Auth::can() تعالج غير المسجَّل
+    // بالـ403 لا بالتحويل، وعكس الترتيب كان سيحوّل 302 إلى 403.
     if (!Auth::check()) {
         header('Location: ' . APP_URL . '/login');
         exit();
+    }
+
+    if (!Auth::can('employees.view')) {
+        return (new ErrorController())->forbidden('employees.view');
     }
 
     $employeeModel = new Employee();
