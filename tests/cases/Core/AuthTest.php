@@ -276,6 +276,36 @@ echo "SURVIVED_LOGIN";
         $this->assertFalse(Auth::userHasPermission('employees.create'));
     }
 
+    /**
+     * OOS-1: حارس pages المناصب يجب أن يرفض دورًا بلا صلاحية positions.manage.
+     *
+     * هذا هو الاختبار الذي يثبت عمل الحارس فعليًا. الاختبار على Admin لا يثبت
+     * شيئًا هنا، لأن Auth::userHasPermission تتجاوز كل الصلاحيات لـ Admin
+     * (السطر 88). انظر OOS-18 في CD-006_OUT_OF_SCOPE.md.
+     */
+    public function testPositionsAccessForStaffWithoutPermission(): void
+    {
+        $_SESSION['user_id'] = 1;
+        $_SESSION['user_roles'] = ['Staff'];
+        $_SESSION['user_permissions'] = ['branches.view', 'departments.view'];
+        $this->assertFalse(Auth::userHasPermission('positions.manage'));
+    }
+
+    /**
+     * OOS-1: بعد المنح، صلاحية positions.manage (id=23) موجودة في مصفوفة
+     * صلاحيات Admin كما تعيدها getUserPermissions — أي أن الإصلاح صار في
+     * البيانات لا مجرد تجاوز.
+     */
+    public function testAdminPermissionsArrayContainsPositionsManage(): void
+    {
+        $this->skipIfDbUnavailable();
+        $adminId = (int)$this->testDb()->query("SELECT id FROM users WHERE username = 'sysadmin' LIMIT 1")->fetchColumn();
+        $this->assertGreaterThan(0, $adminId, 'مستخدم sysadmin غير موجود');
+
+        $perms = (new \App\Models\User())->getUserPermissions($adminId);
+        $this->assertContains('positions.manage', $perms);
+    }
+
     public function testGenerateCsrfTokenReturnsHexToken(): void
     {
         $this->skipIfDbUnavailable();
