@@ -1,5 +1,17 @@
 # سجل التغييرات
 
+## 2026-10-12 — CD-007 / OOS-10: إزالة محرفين صينيين من `app/Views/admin-reports/create.php`
+
+- **النطاق:** ملف واحد — `app/Views/admin-reports/create.php` (سطر 28).
+- **القياس قبل:** `Select-String` عن `[\u4E00-\u9FFF]` في الملف = **سطر واحد (28)**: `placeholder="مثال: تقرير ال… الإداري"` — المحرفان `U+52B2` و`U+6001`.
+- **التشخيص:** نص عرض (placeholder لحقل `report_title`)؛ المحرفان موجودان منذ أول التزام للملف (`6cfa863` — baseline CD-006) أي خلل من زمن التأليف لا انحدار لاحق؛ الكلمة المحرَّفة هي «الأداء» (العبارة السائدة في المشروع: `ReportPDF.php:11` · `reports/builder.php:21` · `ReportsController.php:51` …).
+- **الإصلاح:** `placeholder="مثال: تقرير الأداء الإداري"`.
+- **القياس بعد:** 0 نتائج CJK في الملف.
+- **الفحص الشامل `app/` خارج `pChart/`:** كل الملفات النصية بأي امتداد → **0** محارف CJK/Kana/Hangul. النتيجة نظيف: **قائمة جرد فارغة** — لا بنود تنتقل لـOOS-11.
+- **الفحص الحي:** عرض صفحة `admin/reports/create` عبر `AdminReportController@create` بجلسة Admin كاملة: تُرسم الصفحة (لا 403) طولها 61633 محرفًا، النص العربي ظاهر، وصفر بايتات CJK في المخرَج. **درس محقن:** أول محاولة أعطت 403 لأن الجلسة ناقصة `user_roles` — القياس الخاطئ لا يُعتمَد.
+- **الاختبارات:** 93/93 · فشل 0 · أخطاء 0 · بلا ترحيل قاعدة بيانات.
+- **نسخة الرجوع:** `_emergency/rollback/CD-007/2026-10-12/OOS-10/create.pre-item10.php`.
+
 ## 2026-10-12 — CD-007 / OOS-13: تدقيق فشل `updateRole`
 
 - **النطاق:** `app/Controllers/Admin/UserController.php` + `tests/cases/Controllers/UserControllerTest.php` — **لا تعديل على `User::updateRole`** (سلوكه معياري منذ البند 9: يرجع `false` للدور غير الموجود بعد rollback).

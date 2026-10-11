@@ -25,7 +25,7 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">عنوان التقرير *</label>
-            <input type="text" name="report_title" class="form-control" required placeholder="مثال: تقرير ال劲态 الإداري">
+            <input type="text" name="report_title" class="form-control" required placeholder="مثال: تقرير الأداء الإداري">
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">القالب *</label>
