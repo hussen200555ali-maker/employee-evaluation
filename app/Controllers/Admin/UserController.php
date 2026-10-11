@@ -96,17 +96,32 @@ class UserController extends Controller {
             $oldRoleRow = $dbAudit->fetch();
             $oldRoleId = $oldRoleRow ? (int)$oldRoleRow->role_id : null;
 
-            if ($userModel->updateRole($userId, $roleId)) {
-                // 4. في حالة النجاح، سجل الإجراء (البند 8: القيم القديمة/الجديدة) وعيّن رسالة نجاح.
-                \App\Core\Audit::log('USER_ROLE_UPDATE', $userId, 'users', [
-                    'old' => ['role_id' => $oldRoleId],
-                    'new' => ['role_id' => (int)$roleId],
+            try {
+                if ($userModel->updateRole($userId, $roleId)) {
+                    // 4. في حالة النجاح، سجل الإجراء (البند 8: القيم القديمة/الجديدة) وعيّن رسالة نجاح.
+                    \App\Core\Audit::log('USER_ROLE_UPDATE', $userId, 'users', [
+                        'old' => ['role_id' => $oldRoleId],
+                        'new' => ['role_id' => (int)$roleId],
+                    ]);
+                    \App\Core\Flash::set('تم تحديث دور المستخدم بنجاح.', 'success');
+                    $this->warnIfSingleActiveAdmin();
+                } else {
+                    // OOS-13: فشل التحديث بلا استثناء (دور غير موجود) — بعد rollback داخلي.
+                    // يُسجَّل تدقيق الفشل بالشكل الموقّعي، ويعطى المستخدم رسالة محددة.
+                    \App\Core\Audit::log('USER_ROLE_UPDATE_FAILED', $userId, 'users', [
+                        'role_id' => (int)$roleId,
+                        'reason' => 'invalid_role_or_transaction_failed',
+                    ]);
+                    // 5. في حالة الفشل، عيّن رسالة خطأ واضحة.
+                    \App\Core\Flash::set('تعذّر تحديث دور المستخدم: الدور المحدد غير موجود.', 'danger');
+                }
+            } catch (\Exception $e) {
+                // OOS-13: خطأ غير متوقع بعد rollback — يُسجَّل تدقيق الفشل ثم يُعاد إلقاء الاستثناء.
+                \App\Core\Audit::log('USER_ROLE_UPDATE_FAILED', $userId, 'users', [
+                    'role_id' => (int)$roleId,
+                    'error' => $e->getMessage(),
                 ]);
-                \App\Core\Flash::set('تم تحديث دور المستخدم بنجاح.', 'success');
-                $this->warnIfSingleActiveAdmin();
-            } else {
-                // 5. في حالة الفشل، عيّن رسالة خطأ.
-                \App\Core\Flash::set('حدث خطأ أثناء تحديث دور المستخدم.', 'danger');
+                throw $e;
             }
         }
 

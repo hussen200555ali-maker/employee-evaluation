@@ -1,5 +1,15 @@
 # سجل التغييرات
 
+## 2026-10-12 — CD-007 / OOS-13: تدقيق فشل `updateRole`
+
+- **النطاق:** `app/Controllers/Admin/UserController.php` + `tests/cases/Controllers/UserControllerTest.php` — **لا تعديل على `User::updateRole`** (سلوكه معياري منذ البند 9: يرجع `false` للدور غير الموجود بعد rollback).
+- **القياس قبل:** `SELECT COUNT(*) FROM audit_logs WHERE action='USER_ROLE_UPDATE_FAILED'` = **0** — كان المتحكّم يفشل بصمت بلا أثر قابل للتتبّع.
+- **الإصلاح:** في `updateRole()` يُغلَّف الاستدعاء في `try/catch`؛ عند `false` يُسجَّل `USER_ROLE_UPDATE_FAILED` (شكل موقّعي) بـ`role_id`+`reason='invalid_role_or_transaction_failed'` ورسالة Flash واضحة؛ وعند استثناء يُسجَّل بـ`role_id`+`error` ثم يُعاد إلقاؤه. النجاح يولّد `USER_ROLE_UPDATE` كما كان، بلا `_FAILED`.
+- **القياس بعد:** `_FAILED` = **1** بالتفاصيل `{"role_id":999,"reason":"invalid_role_or_transaction_failed"}` · `USER_ROLE_UPDATE` بلا تغيير عند الفشل · ضبط موجب: `USER_ROLE_UPDATE` **+1** (7→8) بلا `_FAILED`، والدور أُسند فعلًا · Flash `danger` عند الفشل و`success` عند النجاح.
+- **منهجية الاختبار:** المتحكّم ينتهي بـ`exit()`، فيُستدعى في عملية فرعية معزولة.
+- **الاختبارات:** 93/93 (أُضيف `testUpdateRoleFailureAuditLog`) · فشل 0 · أخطاء 0 · بلا ترحيل قاعدة بيانات.
+- **نسخة الرجوع:** `_emergency/rollback/CD-007/2026-10-12/OOS-13/` — `UserController.pre-item13.php` · `User.pre-item13.php`.
+
 ## 2026-10-06 — CD-007 / OOS-9: إعادة ربط 9 صفوف `evaluations` يتيمة إلى `sysadmin`
 
 - **سبب الجذر (مقيس):** `AuthTest` يحذف مستخدمين مع `SET FOREIGN_KEY_CHECKS=0`، فتتجاوز القيد `eval_fk_creator` من نوع `RESTRICT` وتبقى مراجع معلّقة. الأثر: **9 صفوف** `evaluations` يشير `created_by_user_id` إلى مستخدمين محذوفين (المعرّفات `7/8/11/12/16`؛ الصفوف `4`–`12`، كلها بتاريخ `2026-08-24 03:29:48`).
