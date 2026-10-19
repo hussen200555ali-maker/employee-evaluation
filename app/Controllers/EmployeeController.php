@@ -368,6 +368,16 @@ class EmployeeController extends Controller {
                 return;
             }
 
+            // CD-009: منع حذف مدير لديه مرؤوسون مباشرون.
+            // FK manager_id = ON DELETE SET NULL كان ييتّم المرؤوسين بصمت
+            // فيُدمّر التسلسل الإداري. يجب إعادة تعيينهم أولًا.
+            $reportsCount = $employeeModel->countDirectReports($id);
+            if ($reportsCount > 0) {
+                Flash::set('لا يمكن حذف الموظف "' . htmlspecialchars($employeeData->full_name) . '" لوجود ' . $reportsCount . ' موظفين يتبعون له. يرجى إعادة تعيين مديرهم أولاً.', 'error');
+                $this->redirect('/employees');
+                return;
+            }
+
             // 5. استدعاء دالة الحذف في المودل.
             try {
                 if ($employeeModel->delete($id)) {

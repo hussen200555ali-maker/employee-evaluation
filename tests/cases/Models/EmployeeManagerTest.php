@@ -168,4 +168,62 @@ class EmployeeManagerTest extends TestCase
         $this->assertSame($before, $this->managerOf($b), 'تغيّرت بيانات B رغم رفض الحلقة');
         $this->assertNull($this->managerOf($a), 'كُتب manager_id لـ A رغم رفض الحلقة');
     }
+
+    /** countDirectReports: يحصي المرؤوسين المباشرين فقط. */
+    public function testCountDirectReports(): void
+    {
+        $employee = new Employee();
+        $mgr = $this->createEmployee('cnt-mgr');
+        $r1 = $this->createEmployee('cnt-r1', $mgr);
+        $r2 = $this->createEmployee('cnt-r2', $mgr);
+        $leaf = $this->createEmployee('cnt-leaf');
+
+        $this->assertSame(2, $employee->countDirectReports($mgr), 'المدير له مرؤوسان مباشران');
+        $this->assertSame(0, $employee->countDirectReports($leaf), 'الورقة بلا مرؤوسين');
+    }
+
+    /**
+     * التكامل (Fix 3): مدير لديه مرؤوسون لا يُحذف ويبقى صفّه موجودًا.
+     * يحاكي حارس EmployeeController::destroy().
+     */
+    public function testManagerWithSubordinatesIsNotDeleted(): void
+    {
+        $db = Database::getInstance();
+        $employee = new Employee();
+        $mgr = $this->createEmployee('del-mgr');
+        $sub = $this->createEmployee('del-sub', $mgr);
+
+        // محاكاة الحارس: إذا كان لديه مرؤوسون، لا نحذف
+        if ($employee->countDirectReports($mgr) > 0) {
+            // رفض الحذف — لا استدعاء لـ delete()
+        } else {
+            $employee->delete($mgr);
+        }
+
+        // المدير ما زال موجودًا
+        $db->query("SELECT COUNT(*) FROM employees WHERE id = :id");
+        $db->bind(':id', $mgr);
+        $this->assertSame('1', (string)$db->fetchColumn(), 'حُذف مدير لديه مرؤوسون — الحارس فشل');
+
+        // المرؤوس ما زال مرتبطًا بمديره (لم يُيتّم)
+        $this->assertSame($mgr, $this->managerOf($sub), 'فُقد رابط المرؤوس بمديره');
+    }
+
+    /** موظف بلا مرؤوسين يمكن حذفه فعلًا. */
+    public function testLeafEmployeeCanBeDeleted(): void
+    {
+        $db = Database::getInstance();
+        $employee = new Employee();
+        $leaf = $this->createEmployee('del-leaf');
+
+        $this->assertSame(0, $employee->countDirectReports($leaf), 'الورقة بلا مرؤوسين مسبقًا');
+        $this->assertTrue($employee->delete($leaf), 'حذف ورقة يجب أن ينجح');
+
+        $db->query("SELECT COUNT(*) FROM employees WHERE id = :id");
+        $db->bind(':id', $leaf);
+        $this->assertSame('0', (string)$db->fetchColumn(), 'الورقة لم تُحذف');
+
+        // أُزيل من قائمة التنظيف لأن الحذف تم هنا
+        $this->tempIds = array_values(array_filter($this->tempIds, fn($x) => $x !== $leaf));
+    }
 }

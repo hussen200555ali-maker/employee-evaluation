@@ -150,6 +150,19 @@ class Employee extends Model {
         return false;
     }
 
+    /**
+     * CD-009: يحصي المرؤوسين المباشرين لموظف (من manager_id = $id).
+     * يُستخدم لمنع حذف مدير لديه مرؤوسون (FK manager_id = ON DELETE SET NULL
+     * كان ييتّمهم بصمت).
+     * @param int $employeeId
+     * @return int
+     */
+    public function countDirectReports($employeeId) {
+        $this->db->query("SELECT COUNT(*) FROM employees WHERE manager_id = :id");
+        $this->db->bind(':id', (int)$employeeId);
+        return (int)$this->db->fetchColumn();
+    }
+
            /**
      * ط¯ط§ظ„ط© ظ„ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ ط¬ط¯ظٹط¯ ط¥ظ„ظ‰ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ (ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ…ط­ط¯ط«ط©).
      *
