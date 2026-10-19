@@ -97,6 +97,59 @@ class Employee extends Model {
         return $this->db->fetch();
     }
 
+    /**
+     * CD-009: يجلب معرف المدير المباشر لموظف (أو null).
+     * @param int $employeeId
+     * @return int|null
+     */
+    public function getManagerId($employeeId) {
+        $this->db->query("SELECT manager_id FROM employees WHERE id = :id");
+        $this->db->bind(':id', (int)$employeeId);
+        $row = $this->db->fetch();
+        if (!$row || $row->manager_id === null) {
+            return null;
+        }
+        return (int)$row->manager_id;
+    }
+
+    /**
+     * CD-009: يفحص هل تعيين $managerId كمدير لـ $employeeId يُنشئ حلقة مفرغة.
+     * يمنع اختيار الموظف لنفسه كمدير، ويمنع السلاسل الدائرية (A→B→A أو أطول).
+     * يتحرك صاعدًا من المدير المقترح عبر manager_id، ويتوقف عند:
+     *   - بلوغ معرف الموظف نفسه (حلقة) → true
+     *   - بلوغ NULL (نهاية السلسلة) → false
+     *   - بلوغ $cap خطوة (حماية من سلاسل تالفة/دائرية قائمة) → true
+     *
+     * @param int $employeeId
+     * @param int|null $managerId
+     * @return bool
+     */
+    public function wouldCreateManagerCycle($employeeId, $managerId) {
+        if ($managerId === null || $managerId === '' || (int)$managerId === 0) {
+            return false;
+        }
+        $employeeId = (int)$employeeId;
+        $current = (int)$managerId;
+        $visited = [];
+        $cap = 100;
+        $steps = 0;
+        while ($current !== null && $steps < $cap) {
+            if ($current === $employeeId) {
+                return true;
+            }
+            if (isset($visited[$current])) {
+                return true;
+            }
+            $visited[$current] = true;
+            $current = $this->getManagerId($current);
+            $steps++;
+        }
+        if ($steps >= $cap) {
+            return true;
+        }
+        return false;
+    }
+
            /**
      * ط¯ط§ظ„ط© ظ„ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ ط¬ط¯ظٹط¯ ط¥ظ„ظ‰ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ (ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ…ط­ط¯ط«ط©).
      *

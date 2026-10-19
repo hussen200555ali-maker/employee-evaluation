@@ -294,6 +294,22 @@ class EmployeeController extends Controller {
             }
         }
 
+        // CD-009: فحص سلامة التسلسل الإداري — منع اختيار الموظف لنفسه كمدير
+        // ومنع الحلقات المفرغة (A→B→A أو أطول).
+        $managerId = !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null;
+        if ($managerId !== null) {
+            if ($managerId === $id) {
+                Flash::set('لا يمكن تعيين الموظف كمدير لنفسه.', 'error');
+                $this->redirect("/employees/{$id}/edit");
+                return;
+            }
+            if ($employeeModel->wouldCreateManagerCycle($id, $managerId)) {
+                Flash::set('التسلسل الإداري المختار يُنشئ حلقة مفرغة. اختر مديرًا آخر.', 'error');
+                $this->redirect("/employees/{$id}/edit");
+                return;
+            }
+        }
+
         // 3. تجهيز البيانات القادمة من النموذج.
         $data = [
             'emp_code' => !empty($emp_code) ? $emp_code : null,
@@ -301,7 +317,7 @@ class EmployeeController extends Controller {
             'nickname' => !empty($_POST['nickname']) ? trim($_POST['nickname']) : null,
             'department_id' => $department_id,
             'branch_id' => $branch_id,
-            'manager_id' => !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null,
+            'manager_id' => $managerId,
             'position_id' => (int)$_POST['position_id'],
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
         ];
