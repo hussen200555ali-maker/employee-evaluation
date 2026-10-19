@@ -284,3 +284,5 @@
 ## 2026-09-02 — استجابة لوحة التقييمات السنوية (responsive)
 - `evaluations_by_year.php` — ضبط الحاوية `width:min(96%,1400px)` مع `padding:clamp(...)`، وشبكة `auto-fit minmax(240px/340px)`، وحدود `clamp` على المقاسات، مع كسرات استجابة لعرضَي 1366/1920 ونِسَب التكبير 90%/125%.
   > **إعادة بناء نصية (2026-09-29):** كما سبق — المصدر الباقي هو الملف نفسه، والقيم الرقمية محفوظة من الشظايا الباقية في السطر الأصلي.
+[2026-10-19] OOS-12 closed: check-encoding.php now supports --path=delivery|app|all, hook passes --path=delivery, app/ scanned clean (426/73177), 6 negative tests, all 93 tests pass.
+[2026-10-19] CD-008: CP-A � reporting data mart and ReportEngine scaffolding.
