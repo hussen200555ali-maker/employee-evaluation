@@ -25,9 +25,8 @@ class EmployeeController extends Controller {
      */
 
             public function index() {
-    if (!Auth::can('employees.view')) {
-        return (new ErrorController())->forbidden('employees.view');
-    }
+    // CD-009: حارس صلاحية صريح (Auth::enforce يطبع 403 ويُنهي التنفيذ).
+    Auth::enforce('employees.view');
         $filters=[
             'search'=>trim($_GET['search'] ?? ''),
             'branch_id'=>$_GET['branch_id'] ?? '',
@@ -63,58 +62,20 @@ class EmployeeController extends Controller {
      *
      * @param int $id - معرف الموظف الذي يتم تمريره من الـ Router.
      */
-  /*  public function show($id) {
-        // 1. التحقق من الصلاحية: هنا، الشرط أبسط. أي مستخدم مسجل دخوله يمكنه محاولة عرض ملف شخصي.
-        // لاحقاً يمكن تعقيد هذا الشرط (مثلاً، المدير يرى فريقه فقط، والموظف يرى ملفه فقط).
-        if (!Auth::check()) {
-            // إذا لم يكن مسجلاً، أعد توجيهه لصفحة الدخول.
-            header('Location: ' . APP_URL . '/login');
-            exit();
-        }
-            
-
-        // 2. إنشاء كائن من مودل الموظفين.
-        $employeeModel = new Employee();
-        // البحث عن الموظف المحدد باستخدام الـ ID.
-        $employee = $employeeModel->findById($id);
-
-        // 3. التحقق مما إذا تم العثور على الموظف.
-        if (!$employee) {
-            // إذا لم يتم العثور على الموظف في قاعدة البيانات، أرسل كود 404 (Not Found).
-            http_response_code(404 );
-            die('<h1>404 - غير موجود</h1><p>لم يتم العثور على الموظف المطلوب.</p>');
-        }
-        
-        // 4. تجهيز البيانات للـ View.
-        $data = [
-            'pageTitle' => 'الملف الشخصي لـ ' . $employee->full_name,
-            'employee' => $employee
-        ];
-        
-        // 5. عرض الـ View الخاص بملف الموظف.
-        $this->view('employees/show', $data);
-    }*/
         public function show($id) {
-    // A0-2: كان show($id) يفحص Auth::check() فقط، فيكشف ملف أي موظف لأي
-    // مستخدم مسجّل حتى بلا صلاحية عرض. أُضيف فرض employees.view اتساقًا
-    // مع index() (السطر 28). الترتيب: تحويل غير المسجَّل أولًا (سلوك قائم
-    // لا يُغيَّر)، ثم فحص الصلاحية. لأن Auth::can() تعالج غير المسجَّل
-    // بالـ403 لا بالتحويل، وعكس الترتيب كان سيحوّل 302 إلى 403.
     if (!Auth::check()) {
         header('Location: ' . APP_URL . '/login');
         exit();
     }
 
-    if (!Auth::can('employees.view')) {
-        return (new ErrorController())->forbidden('employees.view');
-    }
+    // CD-009: حارس صلاحية صريح. الترتيب: تحويل غير المسجَّل أولًا (سلوك قائم
+    // لا يُغيَّر)، ثم فرض الصلاحية.
+    Auth::enforce('employees.view');
 
     $employeeModel = new Employee();
     $employee = $employeeModel->findById($id);
 
     if (!$employee) {
-        // ===> التعديل هنا <===
-        // بدلاً من طباعة رسالة بسيطة، نستدعي كنترولر الأخطاء لعرض صفحة 404 الكاملة.
         return (new ErrorController())->notFound();
     }
     
@@ -131,47 +92,9 @@ class EmployeeController extends Controller {
      * يعرض نموذج إضافة موظف جديد.
      * هذه الدالة تستجيب للطلب GET /employees/create.
      */
-  /*  public function create() {
-        // 1. التحقق من الصلاحية: هل يملك المستخدم صلاحية 'employees.create'؟
-        // هذه الصلاحية ممنوحة لـ 'Admin' و 'HR'.
-        if (!Auth::can('employees.create')) {
-            // 2. إذا لم يكن لديه الصلاحية، امنع الوصول.
-            http_response_code(403 );
-            die('<h1>403 - وصول ممنوع</h1><p>ليس لديك الصلاحية لإضافة موظف جديد.</p>');
-        }
-        
-        // 3. إذا كان مصرحاً له، قم بتجهيز وعرض صفحة النموذج.
-        $data = ['pageTitle' => 'إضافة موظف جديد'];
-        $this->view('employees/create', $data);
-    }*/
-
-  /*  public function create() {
-    // 1. التحقق من الصلاحية: هل يملك المستخدم صلاحية 'employees.create'؟
-        // هذه الصلاحية ممنوحة لـ 'Admin' و 'HR'.
-        if (!Auth::can('employees.create')) {
-            // 2. إذا لم يكن لديه الصلاحية، امنع الوصول.
-            http_response_code(403 );
-            die('<h1>403 - وصول ممنوع</h1><p>ليس لديك الصلاحية لإضافة موظف جديد.</p>');
-        }
-        // ===> التعديل هنا: جلب البيانات للقوائم المنسدلة <===
-        $branchModel = new Branch();
-        $departmentModel = new Department();
-        $employeeModel = new Employee();
-        $positionModel = new Position(); // إنشاء كائن من مودل المناصب
-
-        $data = [
-            'pageTitle' => 'إضافة موظف جديد',
-            'branches' => $branchModel->getAll(),
-            'departments' => $departmentModel->getAll(),
-            'managers' => $employeeModel->getAll(),
-            'positions' => $positionModel->getAll() // جلب المناصب وإضافتها للبيانات
-        ];
-        $this->view('employees/create', $data);
-    }*/
  public function create() {
-        if (!Auth::can('employees.create')) {
-            return (new ErrorController())->forbidden('employees.create');
-        }
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('employees.create');
         
         $branchModel = new Branch();
         $departmentModel = new Department();
@@ -188,69 +111,11 @@ class EmployeeController extends Controller {
         $this->view('employees/create', $data);
     }
     /**
-     * يخزن بيانات الموظف الجديد في قاعدة البيانات.
-     * هذه الدالة تستجيب للطلب POST /employees.
-     *//*
-    public function store() {
-        // 1. التحقق من الصلاحية مرة أخرى. هذا مهم لحماية نقطة النهاية (endpoint)
-        // من الطلبات المباشرة (مثل استخدام أدوات مثل Postman).
-        if (!Auth::can('employees.create')) {
-            http_response_code(403 );
-            die('<h1>403 - Forbidden</h1>');
-        }
-
-        // 2. التأكد من أن الطلب هو من نوع POST.
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            // إذا كان الطلب GET، أعد توجيهه لصفحة عرض النموذج.
-            header('Location: ' . APP_URL . '/employees/create');
-            exit();
-        }
-
-        // 3. (سيتم تحسينه لاحقاً) تنظيف وتجهيز البيانات القادمة من النموذج.
-        $data = [
-            'emp_code' => trim($_POST['emp_code']),
-            'full_name' => trim($_POST['full_name']),
-            'personal_email' => trim($_POST['personal_email']),
-            'phone' => trim($_POST['phone']),
-            'join_date' => trim($_POST['join_date']),
-            'department_id' => (int)$_POST['department_id'],
-            'branch_id' => (int)$_POST['branch_id'],
-            'manager_id' => !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null,
-            'is_active' => isset($_POST['is_active']) ? 1 : 0,
-        ];
-
-        // 4. إنشاء كائن من مودل الموظفين.
-        $employeeModel = new Employee();
-
-        // 5. استدعاء دالة create في المودل لحفظ البيانات.
-        if ($employeeModel->create($data)) {
-            // إذا نجحت العملية، أعد التوجيه إلى صفحة قائمة الموظفين.
-            // لاحقاً، سنضيف رسالة نجاح منبثقة.
-               // ===> تسجيل الإجراء <===
-            Audit::log('EMPLOYEE_CREATE', $newEmployeeId, 'employees', $data);
-          // ===> تعيين رسالة النجاح <===
-            Flash::set('تمت إضافة الموظف "' . $data['full_name'] . '" بنجاح.', 'success');
-            header('Location: ' . APP_URL . '/employees');
-            exit();
-        } else {
-            // إذا فشلت، اعرض رسالة خطأ.
-            die('حدث خطأ أثناء إضافة الموظف.');
-        }
-    }*/
-          /**
-     * يخزن بيانات الموظف الجديد (النسخة المحدثة مع منطق التقييم).
-     */
-    
-    /**
-     * يخزن بيانات الموظف الجديد (النسخة النهائية المصححة).
-     */
-      /**
      * يخزن بيانات الموظف الجديد (النسخة النهائية مع التحقق من التكرار).
      */
     public function store() {
-        if (!Auth::can('employees.create')) {
-            return (new ErrorController())->forbidden('employees.create');
-        }
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('employees.create');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/employees/create');
@@ -288,7 +153,6 @@ class EmployeeController extends Controller {
                 return;
             }
         }
-        // يمكنك إضافة تحقق مماثل للاسم الكامل إذا أردت أن يكون فريدًا أيضًا
 
         // 2. تجميع بيانات الموظف
         $employeeData = [
@@ -355,103 +219,16 @@ class EmployeeController extends Controller {
         }
     }
 
-    /* public function store() {
-          // 1. التحقق من الصلاحية مرة أخرى. هذا مهم لحماية نقطة النهاية (endpoint)
-        // من الطلبات المباشرة (مثل استخدام أدوات مثل Postman).
-        if (!Auth::can('employees.create')) {
-            http_response_code(403 );
-            die('<h1>403 - Forbidden</h1>');
-        }
-
-        // 2. التأكد من أن الطلب هو من نوع POST.
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            // إذا كان الطلب GET، أعد توجيهه لصفحة عرض النموذج.
-            header('Location: ' . APP_URL . '/employees/create');
-            exit();
-        }
-        // ===> التعديل هنا: إضافة position_id <===
-        $data = [
-            'emp_code' => trim($_POST['emp_code']),
-            'full_name' => trim($_POST['full_name']),
-            'personal_email' => trim($_POST['personal_email']),
-            'phone' => trim($_POST['phone']),
-            'join_date' => trim($_POST['join_date']),
-            'department_id' => (int)$_POST['department_id'],
-            'branch_id' => (int)$_POST['branch_id'],
-            'manager_id' => !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null,
-            'position_id' => !empty($_POST['position_id']) ? (int)$_POST['position_id'] : null, // الحقل الجديد
-            'is_active' => isset($_POST['is_active']) ? 1 : 0,
-        ];
-
-        $employeeModel = new Employee();
-        $newEmployeeId = $employeeModel->create($data); // استلام الـ ID الجديد
-
-        if ($newEmployeeId) {
-          // ===> تسجيل عملية إنشاء موظف <===
-            Audit::log('EMPLOYEE_CREATE', $newEmployeeId, 'employees', $data);
-            Flash::set('تمت إضافة الموظف "' . $data['full_name'] . '" بنجاح.', 'success');
-            header('Location: ' . APP_URL . '/employees');
-            exit();
-        } else {
-            die('حدث خطأ أثناء إضافة الموظف.');
-        }
-    }*/
     /**
      * يعرض نموذج تعديل بيانات موظف.
      * هذه الدالة تستجيب للطلب GET /employees/{id}/edit.
      *
      * @param int $id - معرف الموظف.
      */
-    // 1. التحقق من صلاحية 'employees.edit'.
-         /**
-     * يعرض نموذج تعديل بيانات موظف.
-     *
-     * @param int $id - معرف الموظف.
-     *//*
-    public function edit($id) {
-        // 1. التحقق من الصلاحية.
-        if (!Auth::can('employees.edit')) {
-            http_response_code(403 );
-            die('<h1>403 - وصول ممنوع</h1><p>ليس لديك الصلاحية لتعديل بيانات الموظفين.</p>');
-        }
-
-        
-        // 2. إنشاء كائنات من كل المودلز التي نحتاجها.
-        $employeeModel = new Employee();
-        $branchModel = new Branch();
-        $departmentModel = new Department(); // سنفترض وجود هذا المودل
-
-        // 3. جلب كل البيانات المطلوبة للنموذج.
-        $employee = $employeeModel->findById($id); // بيانات الموظف الحالي
-        $branches = $branchModel->getAll();         // قائمة كل الفروع
-        $departments = $departmentModel->getAll();   // قائمة كل الأقسام
-        $managers = $employeeModel->getAll();        // قائمة كل الموظفين (كمدراء محتملين)
-
-        // 4. التأكد من وجود الموظف.
-        if (!$employee) {
-            http_response_code(404 );
-          // استدعاء ErrorController 
-            return (new ErrorController())->forbidden('employees.edit');
-        }
-
-        // 5. تجهيز كل البيانات وتمريرها إلى الـ View.
-        $data = [
-            'pageTitle' => 'تعديل موظف',
-            'employee' => $employee,
-            'branches' => $branches,
-            'departments' => $departments,
-            'managers' => $managers
-        ];
-
-        // 6. عرض صفحة النموذج.
-        $this->view('employees/edit', $data);
-    }*/
         public function edit($id) {
-        // 1. التحقق من الصلاحية.
-        if (!Auth::can('employees.edit')) {
-            http_response_code(403 );
-            die('<h1>403 - وصول ممنوع</h1><p>ليس لديك الصلاحية لتعديل بيانات الموظفين.</p>');
-        }
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('employees.edit');
+
         $employeeModel = new Employee();
         $branchModel = new Branch();
         $departmentModel = new Department();
@@ -460,9 +237,8 @@ class EmployeeController extends Controller {
         $employee = $employeeModel->findById($id);
         // 4. التأكد من وجود الموظف.
         if (!$employee) {
-            http_response_code(404 );
-          // استدعاء ErrorController 
-            return (new ErrorController())->forbidden('employees.edit');
+            // CD-009: كان يُرجع forbidden() (403) رغم أنه 404. صُحِّح إلى notFound().
+            return (new ErrorController())->notFound();
         }
         // ===> التعديل هنا: إضافة positions إلى البيانات <===
         $data = [
@@ -476,62 +252,12 @@ class EmployeeController extends Controller {
 
         $this->view('employees/edit', $data);
     }  
-    /**
-     * يعالج البيانات المرسلة من نموذج التعديل ويحفظها.
-     * هذه الدالة تستجيب للطلب POST /employees/update.
-     */
-  /*  public function update() {
-        // 1. التحقق من الصلاحية.
-        if (!Auth::can('employees.edit')) {
-            http_response_code(403 );
-            die('<h1>403 - Forbidden</h1>');
-        }
-
-        // 2. التأكد من أن الطلب هو POST.
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ' . APP_URL . '/employees');
-            exit();
-        }
-
-        // 3. تجهيز البيانات القادمة من النموذج.
-        $data = [
-            'emp_code' => trim($_POST['emp_code']),
-            'full_name' => trim($_POST['full_name']),
-            'personal_email' => trim($_POST['personal_email']),
-            'phone' => trim($_POST['phone']),
-            'join_date' => trim($_POST['join_date']),
-            'department_id' => !empty($_POST['department_id']) ? (int)$_POST['department_id'] : null,
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null,
-            'manager_id' => !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null,
-            'is_active' => isset($_POST['is_active']) ? 1 : 0,
-        ];
-        // الحصول على معرف الموظف من الحقل المخفي.
-        $id = (int)$_POST['id'];
-
-        // 4. استدعاء دالة update في المودل.
-        $employeeModel = new Employee();
-        if ($employeeModel->update($id, $data)) {
-         // ===> تسجيل الإجراء <===
-            Audit::log('EMPLOYEE_UPDATE', $id, 'employees', $data);
-          
-          // ===> تعيين رسالة النجاح <===
-            Flash::set('تم تحديث بيانات الموظف "' . $data['full_name'] . '" بنجاح.', 'success');
-
-            // إذا نجح، أعد التوجيه إلى قائمة الموظفين.
-            header('Location: ' . APP_URL . '/employees');
-            exit();
-        } else {
-            // إذا فشل، اعرض رسالة خطأ.
-           return (new ErrorController())->forbidden('employees.edit');
-        }
-    }*/
               /**
      * يعالج البيانات المرسلة من نموذج التعديل ويحفظها (النسخة المحدثة).
      */
     public function update() {
-        if (!Auth::can('employees.edit')) {
-            return (new ErrorController())->forbidden('employees.edit');
-        }
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('employees.edit');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/employees');
@@ -596,53 +322,9 @@ class EmployeeController extends Controller {
      * يحذف موظفاً.
      * هذه الدالة تستجيب للطلب POST /employees/delete.
      */
-  /*  public function destroy() {
-        // 1. التحقق من الصلاحية.
-        if (!Auth::can('employees.delete')) {
-            http_response_code(403 );
-             return (new ErrorController())->forbidden('employees.delete');
-        }
-
-        // 2. التأكد من أن الطلب هو POST وأن ID موجود.
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
-            // 3. الحصول على ID الموظف.
-            $id = (int)$_POST['id'];
-            
-            // 4. إنشاء كائن من المودل.
-            $employeeModel = new Employee();
-
-            // (ميزة إضافية) لا تسمح للمستخدم بحذف نفسه.
-            if ($id === Auth::id()) {
-                // لاحقاً سنحول هذه إلى رسالة خطأ جميلة.
-                die('لا يمكنك حذف حسابك الخاص.');
-            }
-
-            // 5. استدعاء دالة الحذف في المودل.
-            if ($employeeModel->delete($id)) {
-                // ===> تسجيل عملية حذف موظف <===
-            Audit::log('EMPLOYEE_DELETE', $id, 'employees', (array)$employeeData);
-            
-            // ===> تعيين رسالة النجاح <===
-            Flash::set('تم حذف الموظف "' . $employeeData->full_name . '" بنجاح.', 'success');
-            
-            // إذا نجح الحذف، أعد التوجيه إلى قائمة الموظفين.
-                header('Location: ' . APP_URL . '/employees');
-                exit();
-            }
-        }
-        // إذا فشل أي شيء، أعد التوجيه.
-        header('Location: ' . APP_URL . '/employees');
-        exit();
-    }*/
-           /**
-     * يحذف موظفاً.
-     * هذه الدالة تستجيب للطلب POST /employees/delete.
-     */
     public function destroy() {
-        // 1. التحقق من الصلاحية.
-        if (!Auth::can('employees.delete')) {
-            return (new ErrorController())->forbidden('employees.delete');
-        }
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('employees.delete');
 
         // 2. التأكد من أن الطلب هو POST وأن ID موجود.
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
@@ -700,39 +382,7 @@ class EmployeeController extends Controller {
         // إذا فشل أي شيء، أعد التوجيه.
         $this->redirect('/employees');
     }
-  /**
-     * =================================================================
-     * دالة جديدة: عرض السجل التقييمي لموظف معين (مجمع حسب السنة)
-     * =================================================================
-     * @param int $employeeId - معرف الموظف (يأتي من الرابط)
-     */
-  /*  public function showEmployeeEvaluations($employeeId) {
-        Auth::can('reports.view.all'); // صلاحية لعرض هذه الصفحة
 
-        // جلب بيانات الموظف الأساسية
-        $employeeModel = new Employee();
-        $employee = $employeeModel->findById($employeeId);
-
-        if (!$employee) {
-            Flash::set('الموظف المطلوب غير موجود.', 'error');
-            $this->redirect('/evaluations');
-            return;
-        }
-
-        // جلب ملخص التقييمات السنوية
-        $evaluationModel = new Evaluation();
-        $evaluationsByYear = $evaluationModel->getEvaluationsByEmployeeGroupedByYear($employeeId);
-
-        $data = [
-            'pageTitle' => 'السجل التقييمي لـ ' . htmlspecialchars($employee->full_name),
-            'employee' => $employee,
-            'evaluationsByYear' => $evaluationsByYear
-        ];
-
-        // سنقوم بإنشاء هذا الملف في الخطوة التالية
-        $this->view('employees/evaluations_summary', $data);
-    }
-*/
       /**
      * =================================================================
      * دالة جديدة: عرض لوحة معلومات الأداء السنوي لموظف معين
@@ -740,22 +390,9 @@ class EmployeeController extends Controller {
      * @param int $employeeId - معرف الموظف
      * @param int $year - السنة المطلوبة
      */
-    /**
-     * =================================================================
-     * يعرض لوحة معلومات الأداء التحليلية لعام محدد
-     * =================================================================
-     * @param int $employeeId
-     * @param int $year
-     */
-     /**
-     * =================================================================
-     * دالة جديدة: عرض لوحة معلومات الأداء السنوي لموظف معين
-     * =================================================================
-     * @param int $employeeId - معرف الموظف
-     * @param int $year - السنة المطلوبة
-     */
     public function showEmployeeEvaluationsByYear($employeeId, $year) {
-        Auth::can('reports.view.all');
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('reports.view.all');
 
         $employeeModel = new Employee();
         $employee = $employeeModel->findById($employeeId);
@@ -787,85 +424,18 @@ class EmployeeController extends Controller {
         ];
 
         $this->view('employees/evaluations_by_year', $data);
-    }/*
-    public function showEmployeeEvaluationsByYear($employeeId, $year) {
-        Auth::can('reports.view.all');
-
-        $employeeModel = new Employee();
-        $employee = $employeeModel->findById($employeeId);
-
-        if (!$employee) {
-            Flash::set('الموظف المطلوب غير موجود.', 'error');
-            $this->redirect('/evaluations');
-            return;
-        }
-
-        $evaluationModel = new Evaluation();
-        
-        // *** استدعاء الدالة التحليلية مع تمرير السنة ***
-        $analysis = $evaluationModel->analyzeEmployeePerformance($employeeId, $year);
-
-        // جلب قائمة التقييمات الفردية لهذا العام
-        $evaluations = $evaluationModel->getEvaluationsByEmployeeForYear($employeeId, $year);
-
-        $data = [
-            'pageTitle' => "تحليل أداء {$employee->full_name} لعام {$year}",
-            'employee' => $employee,
-            'year' => $year,
-            'analysis' => $analysis,
-            'evaluations' => $evaluations
-        ];
-
-        // عرض واجهة لوحة المعلومات التحليلية
-        $this->view('employees/performance_dashboard', $data);
     }
-*/
-      /**
-     * =================================================================
-     * يعرض لوحة معلومات الأداء التحليلية للموظف (النسخة المحدثة)
-     * =================================================================
-     * @param int $employeeId
-     */
-  /*public function showEmployeeEvaluations($employeeId) {
-        Auth::can('reports.view.all');
 
-        $employeeModel = new Employee();
-        $employee = $employeeModel->findById($employeeId);
-
-        if (!$employee) {
-            Flash::set('الموظف المطلوب غير موجود.', 'error');
-            $this->redirect('/evaluations');
-            return;
-        }
-
-        $evaluationModel = new Evaluation();
-        
-        // *** استدعاء الدالة التحليلية الجديدة ***
-        $analysis = $evaluationModel->analyzeEmployeePerformance($employeeId);
-
-        // جلب قائمة التقييمات الفردية لعرضها في جدول
-        $evaluations = $evaluationModel->getEvaluationsByEmployeeForYear($employeeId, null); // null لجلب كل السنوات
-
-        $data = [
-            'pageTitle' => 'تحليل أداء: ' . htmlspecialchars($employee->full_name),
-            'employee' => $employee,
-            'analysis' => $analysis, // تمرير مصفوفة التحليل
-            'evaluations' => $evaluations
-        ];
-
-        // سنقوم بإنشاء/تحديث هذا الملف في الخطوة التالية
-        $this->view('employees/performance_dashboard', $data);
-    }*/
-         /**
+    /**
      * =================================================================
      * دالة جديدة: عرض السجل التقييمي لموظف معين (مجمع حسب السنة)
      * =================================================================
      * @param int $employeeId - معرف الموظف (يأتي من الرابط)
      */
-  /*  public function showEmployeeEvaluations($employeeId) {
-        Auth::can('reports.view.all'); // صلاحية لعرض هذه الصفحة
+    public function showEmployeeEvaluations($employeeId) {
+        // CD-009: حارس صلاحية صريح.
+        Auth::enforce('reports.view.all');
 
-        // جلب بيانات الموظف الأساسية
         $employeeModel = new Employee();
         $employee = $employeeModel->findById($employeeId);
 
@@ -875,9 +445,12 @@ class EmployeeController extends Controller {
             return;
         }
 
-        // جلب ملخص التقييمات السنوية
         $evaluationModel = new Evaluation();
-        $evaluationsByYear = $evaluationModel->getEvaluationsByEmployeeGroupedByYear($employeeId);
+
+        // ▼▼▼ بداية التعديل هنا ▼▼▼
+        // استدعاء الدالة الجديدة بدلاً من القديمة
+        $evaluationsByYear = $evaluationModel->getAnnualSummaryWithActualDate($employeeId);
+        // ▲▲▲ نهاية التعديل ▲▲▲
 
         $data = [
             'pageTitle' => 'السجل التقييمي لـ ' . htmlspecialchars($employee->full_name),
@@ -885,41 +458,7 @@ class EmployeeController extends Controller {
             'evaluationsByYear' => $evaluationsByYear
         ];
 
-        // سنقوم بإنشاء هذا الملف في الخطوة التالية
         $this->view('employees/evaluations_summary', $data);
-    }*/
-        // في ملف: app/Controllers/EmployeeController.php
-
-// ... (داخل كلاس EmployeeController)
-
-public function showEmployeeEvaluations($employeeId) {
-    Auth::can('reports.view.all');
-
-    $employeeModel = new Employee();
-    $employee = $employeeModel->findById($employeeId);
-
-    if (!$employee) {
-        Flash::set('الموظف المطلوب غير موجود.', 'error');
-        $this->redirect('/evaluations');
-        return;
     }
-
-    $evaluationModel = new Evaluation();
-    
-    // ▼▼▼ بداية التعديل هنا ▼▼▼
-    // استدعاء الدالة الجديدة بدلاً من القديمة
-    $evaluationsByYear = $evaluationModel->getAnnualSummaryWithActualDate($employeeId);
-    // ▲▲▲ نهاية التعديل ▲▲▲
-
-    $data = [
-        'pageTitle' => 'السجل التقييمي لـ ' . htmlspecialchars($employee->full_name),
-        'employee' => $employee,
-        'evaluationsByYear' => $evaluationsByYear
-    ];
-
-    $this->view('employees/evaluations_summary', $data);
-}
-
-// ... (بقية دوال الكنترولر)
 
 }

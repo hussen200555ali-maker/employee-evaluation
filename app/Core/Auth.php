@@ -106,6 +106,30 @@ class Auth {
         return true;
     }
 
+    /**
+     * CD-009: فحص صلاحية منطقي خالص (بلا طباعة 403 وبلا exit).
+     * تُستخدم كـbool صريح داخل المنطق (conditions / templates).
+     * @param string $permissionName
+     * @return bool
+     */
+    public static function canBool($permissionName) {
+        return self::userHasPermission($permissionName);
+    }
+
+    /**
+     * CD-009: حارس صلاحية صريح — يطبع 403 ويُنهي التنفيذ عند غياب الصلاحية.
+     * بديل واضح لاستخدام can() كحارس. لا يُعيد قيمة ذات معنى عند المرور.
+     * @param string $permissionName
+     * @return void
+     */
+    public static function enforce($permissionName) {
+        if (!self::userHasPermission($permissionName)) {
+            $errorController = new ErrorController();
+            $errorController->forbidden($permissionName);
+            exit();
+        }
+    }
+
     // ======================================================================
     // دوال CSRF (حماية من هجمات التزوير)
     // ======================================================================
