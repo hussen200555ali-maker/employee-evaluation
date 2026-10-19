@@ -254,6 +254,13 @@ abstract class TestCase
         }
     }
 
+    protected function assertStringNotContainsString(string $needle, string $haystack, string $message = ''): void
+    {
+        if (str_contains($haystack, $needle)) {
+            $this->fail(($message !== '' ? $message . ' — ' : '') . "النص '$needle' موجود في الناتج رغم أنه لا يجب أن يكون.");
+        }
+    }
+
     protected function assertMatches(string $pattern, string $subject, string $message = ''): void
     {
         if (!preg_match($pattern, $subject)) {

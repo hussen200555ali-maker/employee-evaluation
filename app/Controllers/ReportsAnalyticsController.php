@@ -14,6 +14,7 @@ use Mpdf\Mpdf;
 class ReportsAnalyticsController extends Controller
 {
     private ReportEngine $engine;
+    private \App\Core\Database $db;
 
     public function __construct()
     {
@@ -90,7 +91,7 @@ class ReportsAnalyticsController extends Controller
         $input = json_decode(file_get_contents('php://input'), true);
         $filters = $input['filters'] ?? [];
 
-        $this->db = new \App\Core\Database();
+        $this->db = \App\Core\Database::getInstance();
         $where = [];
         $params = [];
         if (!empty($filters['branch_id'])) {
@@ -153,7 +154,7 @@ class ReportsAnalyticsController extends Controller
         $input = json_decode(file_get_contents('php://input'), true);
         $filters = $input['filters'] ?? [];
 
-        $this->db = new \App\Core\Database();
+        $this->db = \App\Core\Database::getInstance();
         $where = [];
         $params = [];
         foreach (['branch_id', 'department_id', 'template_id', 'year', 'month'] as $k) {

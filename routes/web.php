@@ -217,6 +217,17 @@ $router->post('reports/print', 'App\Controllers\ReportsController@printReport');
 $router->get('reports/unified', 'App\Controllers\UnifiedReportController@index');
 $router->get('api/reports/unified', 'App\Controllers\UnifiedReportController@getData');
 $router->get('reports/unified/export', 'App\Controllers\UnifiedReportController@export');
+// --- CD-008: Report Builder + Core Reports (CP-B) ---
+$router->post('reports/builder/data', 'App\Controllers\ReportsController@builderData');
+$router->post('reports/builder/export/excel', 'App\Controllers\ReportsController@builderExportExcel');
+$router->post('reports/builder/export/pdf', 'App\Controllers\ReportsController@builderExportPdf');
+$router->get('reports/analytics/gap', 'App\Controllers\ReportsAnalyticsController@gap');
+$router->post('reports/analytics/gap/data', 'App\Controllers\ReportsAnalyticsController@gapData');
+$router->get('reports/analytics/scorecard', 'App\Controllers\ReportsAnalyticsController@scorecard');
+$router->get('reports/analytics/ninebox', 'App\Controllers\ReportsAnalyticsController@ninebox');
+$router->post('reports/analytics/ninebox/data', 'App\Controllers\ReportsAnalyticsController@nineboxData');
+$router->get('reports/analytics/executive', 'App\Controllers\ReportsAnalyticsController@executive');
+$router->post('reports/analytics/executive/data', 'App\Controllers\ReportsAnalyticsController@executiveData');
 // --- التقارير الإحصائية الرسمية + ملفات الأداء (المرحلة 4) ---
 $router->get('reports/statistics', 'App\Controllers\StatisticalReportController@index');
 $router->get('api/reports/statistics', 'App\Controllers\StatisticalReportController@data');

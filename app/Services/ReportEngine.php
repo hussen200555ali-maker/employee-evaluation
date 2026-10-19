@@ -8,10 +8,10 @@ class ReportEngine
 {
     private Database $db;
     private array $allowedDimensions = [
-        'branch' => 'b.id',
-        'branch_name' => 'b.name',
-        'department' => 'd.id',
-        'department_name' => 'd.name',
+        'branch' => 'v.branch_id',
+        'branch_name' => 'v.branch_name',
+        'department' => 'v.department_id',
+        'department_name' => 'v.department_name',
         'month' => 'v.eval_month',
         'year' => 'v.eval_year',
         'template' => 'v.template_id',
@@ -35,7 +35,7 @@ class ReportEngine
 
     public function __construct()
     {
-        $this->db = new Database();
+        $this->db = Database::getInstance();
     }
 
     public function build(array $filters = [], array $dimensions = [], array $measures = []): array
