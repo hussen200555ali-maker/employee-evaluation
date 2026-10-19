@@ -31,8 +31,8 @@ SELECT
   cs.id AS section_id,
   cs.section_name,
   ea.normalized_score AS score,
-  e.final_score,
-  e.final_score
+  e.final_score AS total_score,
+  e.final_score AS normalized_total
 FROM evaluations e
 LEFT JOIN form_templates ft ON ft.id = e.template_id
 LEFT JOIN employees emp ON emp.id = e.evaluated_employee_id
@@ -42,7 +42,7 @@ LEFT JOIN employees evlr ON evlr.id = e.evaluator_employee_id
 INNER JOIN evaluation_answers ea ON ea.evaluation_id = e.id
 LEFT JOIN criteria_sections cs ON cs.id = ea.section_id
 LEFT JOIN criteria c ON c.id = cs.criterion_id
-WHERE e.status IN ('submitted', 'completed');
+WHERE e.status IN ('approved', 'completed');
 
 -- 2) vw_employee_scores: Final score per evaluation
 DROP VIEW IF EXISTS `vw_employee_scores`;
@@ -61,15 +61,15 @@ SELECT
   e.evaluation_date,
   YEAR(e.evaluation_date) AS eval_year,
   MONTH(e.evaluation_date) AS eval_month,
-  e.final_score,
-  e.final_score,
+  e.final_score AS total_score,
+  e.final_score AS normalized_total,
   e.status
 FROM evaluations e
 LEFT JOIN form_templates ft ON ft.id = e.template_id
 LEFT JOIN employees emp ON emp.id = e.evaluated_employee_id
 LEFT JOIN departments d ON d.id = emp.department_id
 LEFT JOIN branches b ON b.id = emp.branch_id
-WHERE e.status IN ('submitted', 'completed');
+WHERE e.status IN ('approved', 'completed');
 
 -- 3) vw_criteria_averages: Criterion averages by dimensions
 DROP VIEW IF EXISTS `vw_criteria_averages`;
@@ -96,15 +96,15 @@ LEFT JOIN form_templates ft ON ft.id = e.template_id
 LEFT JOIN employees emp ON emp.id = e.evaluated_employee_id
 LEFT JOIN departments d ON d.id = emp.department_id
 LEFT JOIN branches b ON b.id = emp.branch_id
-WHERE e.status IN ('submitted', 'completed')
+WHERE e.status IN ('approved', 'completed')
 GROUP BY
   e.template_id,
   ft.template_name,
   c.id,
   c.criterion_name,
   emp.department_id,
-  d.name AS department_name,
+  d.name,
   emp.branch_id,
-  b.name AS branch_name,
+  b.name,
   YEAR(e.evaluation_date),
   MONTH(e.evaluation_date);

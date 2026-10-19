@@ -37,4 +37,4 @@ LEFT JOIN employees evlr ON evlr.id = e.evaluator_employee_id
 INNER JOIN evaluation_answers ea ON ea.evaluation_id = e.id
 LEFT JOIN criteria_sections cs ON cs.id = ea.section_id
 LEFT JOIN criteria c ON c.id = cs.criterion_id
-WHERE e.status IN ('submitted','completed');
+WHERE e.status IN ('approved','completed');

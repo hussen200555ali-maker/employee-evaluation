@@ -76,7 +76,7 @@ class ReportEngine
                     $select[] = 'COUNT(DISTINCT v.evaluated_employee_id) AS count_employees';
                     break;
                 case 'completion_rate':
-                    $select[] = "ROUND(COUNT(DISTINCT CASE WHEN v.status IN ('completed','submitted') THEN v.evaluation_id END)*100.0/NULLIF(COUNT(DISTINCT v.evaluation_id),0),2) AS completion_rate";
+                    $select[] = "ROUND(COUNT(DISTINCT CASE WHEN v.status IN ('approved','completed') THEN v.evaluation_id END)*100.0/NULLIF(COUNT(DISTINCT v.evaluation_id),0),2) AS completion_rate";
                     break;
             }
         }
