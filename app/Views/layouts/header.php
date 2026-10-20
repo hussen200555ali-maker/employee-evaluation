@@ -330,6 +330,30 @@ use App\Core\Auth;
                             </li>
 
                             <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">التحليل المتقدم</h6></li>
+
+                            <li>
+                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/reports/analytics/gap">
+                                    <i class="fas fa-chart-bar fa-fw me-2"></i> تحليل الفجوات
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/reports/analytics/scorecard">
+                                    <i class="fas fa-clipboard-list fa-fw me-2"></i> بطاقة أداء الموظفين
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/reports/analytics/ninebox">
+                                    <i class="fas fa-th fa-fw me-2"></i> مصفوفة 9-Box
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo APP_URL; ?>/reports/analytics/executive">
+                                    <i class="fas fa-tachometer-alt fa-fw me-2"></i> لوحة القيادة التنفيذية
+                                </a>
+                            </li>
+
+                            <li><hr class="dropdown-divider"></li>
                             <li><h6 class="dropdown-header">ملفات الأداء</h6></li>
 
                             <li>
