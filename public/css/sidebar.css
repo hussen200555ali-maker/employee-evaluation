@@ -1,0 +1,243 @@
+/* =====================================================================
+   CD-012 — Sidebar (شريط جانبي احترافي RTL)
+   النظام عربي: الشريط ثابت على اليمين، والمحتوى على اليسار.
+   الألوان مشتقة من هوية النظام: أخضر داكن #0d5e52 + ذهبي #c8943f.
+   ===================================================================== */
+
+:root {
+    --sidebar-width: 264px;
+    --sidebar-bg: linear-gradient(160deg, #0c2823 0%, #0d5e52 100%);
+    --sidebar-ink: rgba(255, 255, 255, .82);
+    --sidebar-ink-strong: #ffffff;
+    --sidebar-gold: #c8943f;
+    --sidebar-hover: rgba(255, 255, 255, .08);
+    --sidebar-active: rgba(200, 148, 63, .18);
+}
+
+/* هيكل التطبيق: شريط جانبي + عمود المحتوى */
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    align-items: stretch;
+}
+
+.app-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ============================ الشريط الجانبي ============================ */
+.app-sidebar {
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-ink);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, .18);
+    border-left: 2px solid var(--sidebar-gold);
+    z-index: 1045;
+}
+
+.app-sidebar::-webkit-scrollbar { width: 6px; }
+.app-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 6px; }
+
+/* رأس الشريط: الشعار */
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: 1.15rem 1.25rem;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.18rem;
+    letter-spacing: -.02em;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    text-decoration: none;
+}
+.sidebar-brand:hover { color: #fff; background: var(--sidebar-hover); }
+.sidebar-brand i { color: var(--sidebar-gold); font-size: 1.4rem; }
+
+/* عناوين المجموعات */
+.sidebar-group-title {
+    color: var(--sidebar-gold);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 1.15rem 1.3rem .4rem;
+    opacity: .9;
+}
+
+.sidebar-nav { list-style: none; margin: 0; padding: 0 0 .75rem; }
+
+/* عنصر القائمة (رابط مباشر أو مجموعة قابلة للفتح) */
+.sidebar-link,
+.sidebar-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    width: 100%;
+    padding: .7rem 1.3rem;
+    color: var(--sidebar-ink);
+    font-size: .9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 0;
+    background: transparent;
+    text-align: right;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease;
+    border-inline-start: 3px solid transparent;
+}
+.sidebar-link i,
+.sidebar-group-toggle i.sidebar-ico { width: 1.35rem; text-align: center; color: rgba(255,255,255,.7); transition: color .2s ease; }
+
+.sidebar-link:hover,
+.sidebar-group-toggle:hover {
+    background: var(--sidebar-hover);
+    color: var(--sidebar-ink-strong);
+}
+.sidebar-link:hover i,
+.sidebar-group-toggle:hover .sidebar-ico { color: var(--sidebar-gold); }
+
+/* الرابط النشط */
+.sidebar-link.active {
+    background: var(--sidebar-active);
+    color: #fff;
+    border-inline-start-color: var(--sidebar-gold);
+}
+.sidebar-link.active i { color: var(--sidebar-gold); }
+
+/* مجموعة فرعية قابلة للفتح */
+.sidebar-group-toggle { justify-content: space-between; }
+.sidebar-group-toggle .sidebar-group-label { display: flex; align-items: center; gap: .7rem; }
+.sidebar-caret { transition: transform .25s ease; font-size: .72rem; opacity: .7; }
+.sidebar-group.open > .sidebar-group-toggle .sidebar-caret { transform: rotate(-180deg); }
+
+.sidebar-subnav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease;
+    background: rgba(0, 0, 0, .14);
+}
+.sidebar-group.open > .sidebar-subnav { max-height: 40rem; }
+
+.sidebar-sublink {
+    display: block;
+    padding: .5rem 1.3rem .5rem 2.6rem;
+    color: rgba(255, 255, 255, .72);
+    font-size: .82rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-inline-start: 3px solid transparent;
+    transition: background .18s ease, color .18s ease;
+}
+.sidebar-sublink:hover { background: var(--sidebar-hover); color: #fff; }
+.sidebar-sublink.active { color: var(--sidebar-gold); border-inline-start-color: var(--sidebar-gold); background: rgba(200,148,63,.1); }
+
+.sidebar-subheader {
+    padding: .5rem 1.3rem .2rem;
+    color: var(--sidebar-gold);
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    opacity: .85;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: .85rem 1.3rem;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    font-size: .74rem;
+    color: rgba(255, 255, 255, .5);
+}
+
+/* ============================ الشريط العلوي النحيف ============================ */
+.thin-header {
+    position: sticky;
+    top: 0;
+    z-index: 1040;
+    background: linear-gradient(135deg, #0c2823, #0d5e52);
+    border-bottom: 2px solid var(--sidebar-gold);
+    box-shadow: 0 4px 20px rgba(10, 61, 53, .25);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .55rem 1.15rem;
+    min-height: 3.6rem;
+}
+
+.thin-header .thin-brand {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-decoration: none;
+}
+.thin-header .thin-brand i { color: var(--sidebar-gold); font-size: 1.3rem; }
+.thin-header .thin-spacer { flex: 1 1 auto; }
+
+.sidebar-toggle {
+    border: 1px solid rgba(200, 148, 63, .5);
+    background: transparent;
+    color: #fff;
+    border-radius: 9px;
+    padding: .35rem .6rem;
+    font-size: 1.05rem;
+    cursor: pointer;
+    display: none;
+}
+.sidebar-toggle:hover { background: rgba(255, 255, 255, .1); }
+
+/* عناصر المستخدم والإشعارات كما هي في الهيدر السابق */
+.thin-header .notification-bell { color: #fff; font-size: 1.15rem; position: relative; text-decoration: none; }
+.thin-header .user-dropdown-toggle { color: #fff; text-decoration: none; }
+.thin-header .welcome-msg { color: rgba(255, 255, 255, .9); font-weight: 600; }
+
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .45);
+    z-index: 1044;
+}
+
+/* ============================ الاستجابة ============================ */
+@media (max-width: 991.98px) {
+    .sidebar-toggle { display: inline-block; }
+
+    .app-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        transform: translateX(100%);
+        transition: transform .3s ease;
+        z-index: 1050;
+    }
+    body.sidebar-open .app-sidebar { transform: translateX(0); }
+    body.sidebar-open .sidebar-backdrop { display: block; }
+
+    .app-main { min-height: 100vh; }
+}
+
+@media (min-width: 992px) {
+    .sidebar-backdrop { display: none !important; }
+}

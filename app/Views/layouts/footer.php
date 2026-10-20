@@ -36,6 +36,9 @@
         </div>
     </footer>
 
+    </div> <!-- /.app-main -->
+</div> <!-- /.app-shell -->
+
     <?php /*
      * ===================================================================
      *  ▼▼▼ بداية منطقة التعديل: تحميل ملفات JavaScript المحلية ▼▼▼
@@ -67,6 +70,7 @@
     <script src="<?php echo APP_URL; ?>/public/js/main.js"></script>
     <script src="<?php echo APP_URL; ?>/public/js/print-logic.js"></script>
     <script src="<?php echo APP_URL; ?>/public/js/evaluation-creator.js"></script>
+    <script src="<?php echo APP_URL; ?>/public/js/sidebar.js"></script>
 
 </body>
 </html>
