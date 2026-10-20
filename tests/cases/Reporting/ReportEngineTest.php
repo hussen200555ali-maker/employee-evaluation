@@ -35,11 +35,14 @@ class ReportEngineTest extends TestCase
         }
     }
 
-    public function testFactsViewHasRows(): void
+    public function testFactsViewIsQueryable(): void
     {
         $this->skipIfDbUnavailable();
         $pdo = $this->testPdo();
-        $this->assertGreaterThan(0, (int)$pdo->query('SELECT COUNT(*) FROM vw_evaluation_facts')->fetchColumn());
+        // بعد إفراغ بيانات التشغيل (CD-012) قد يكون العرض فارغًا بشكل مشروع؛
+        // المطلوب هو أن يكون قابلًا للاستعلام ويعيد عددًا غير سالب.
+        $count = (int)$pdo->query('SELECT COUNT(*) FROM vw_evaluation_facts')->fetchColumn();
+        $this->assertTrue($count >= 0, 'العرض vw_evaluation_facts غير قابل للاستعلام.');
     }
 
     // ======================================================================
