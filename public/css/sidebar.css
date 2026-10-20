@@ -71,13 +71,14 @@
 /* عناوين المجموعات */
 .sidebar-group-title {
     color: var(--sidebar-gold);
-    font-size: .72rem;
+    font-size: .76rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: .06em;
-    padding: 1.15rem 1.3rem .4rem;
-    opacity: .9;
+    letter-spacing: .08em;
+    padding: 1.6rem 1.3rem .5rem;
+    opacity: 1;
 }
+.sidebar-group-title:first-of-type { padding-top: 1rem; }
 
 .sidebar-nav { list-style: none; margin: 0; padding: 0 0 .75rem; }
 
@@ -88,28 +89,29 @@
     align-items: center;
     gap: .7rem;
     width: 100%;
-    padding: .7rem 1.3rem;
-    color: var(--sidebar-ink);
-    font-size: .9rem;
+    padding: .82rem 1.3rem;
+    color: rgba(255, 255, 255, .95);
+    font-size: 1rem;
     font-weight: 600;
     text-decoration: none;
     border: 0;
     background: transparent;
     text-align: right;
     cursor: pointer;
-    transition: background .2s ease, color .2s ease;
+    transition: background .2s ease, color .2s ease, padding .2s ease;
     border-inline-start: 3px solid transparent;
 }
 .sidebar-link i,
-.sidebar-group-toggle i.sidebar-ico { width: 1.35rem; text-align: center; color: rgba(255,255,255,.7); transition: color .2s ease; }
+.sidebar-group-toggle i.sidebar-ico { width: 1.35rem; text-align: center; color: rgba(255,255,255,.85); transition: color .2s ease, transform .2s ease; }
 
 .sidebar-link:hover,
 .sidebar-group-toggle:hover {
     background: var(--sidebar-hover);
-    color: var(--sidebar-ink-strong);
+    color: #fff;
+    padding-inline-start: 1.6rem;
 }
 .sidebar-link:hover i,
-.sidebar-group-toggle:hover .sidebar-ico { color: var(--sidebar-gold); }
+.sidebar-group-toggle:hover .sidebar-ico { color: var(--sidebar-gold); transform: scale(1.12); }
 
 /* الرابط النشط */
 .sidebar-link.active {
@@ -138,33 +140,38 @@
 
 .sidebar-sublink {
     display: block;
-    padding: .5rem 1.3rem .5rem 2.6rem;
-    color: rgba(255, 255, 255, .72);
-    font-size: .82rem;
+    padding: .62rem 1.3rem .62rem 2.6rem;
+    color: rgba(255, 255, 255, .86);
+    font-size: .9rem;
     font-weight: 500;
     text-decoration: none;
     border-inline-start: 3px solid transparent;
-    transition: background .18s ease, color .18s ease;
+    transition: background .18s ease, color .18s ease, padding .18s ease;
 }
-.sidebar-sublink:hover { background: var(--sidebar-hover); color: #fff; }
+.sidebar-sublink:hover { background: var(--sidebar-hover); color: #fff; padding-inline-start: 3rem; }
 .sidebar-sublink.active { color: var(--sidebar-gold); border-inline-start-color: var(--sidebar-gold); background: rgba(200,148,63,.1); }
 
 .sidebar-subheader {
-    padding: .5rem 1.3rem .2rem;
+    padding: .7rem 1.3rem .25rem;
     color: var(--sidebar-gold);
-    font-size: .68rem;
+    font-size: .72rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .05em;
-    opacity: .85;
+    opacity: .9;
 }
+
+/* مسافة فاصلة بين المجموعات الأربع */
+.sidebar-group-title + li,
+.sidebar-group-title + .sidebar-group { margin-top: .35rem; }
+.sidebar-nav > li + .sidebar-group-title { border-top: 1px solid rgba(255, 255, 255, .08); margin-top: .5rem; }
 
 .sidebar-footer {
     margin-top: auto;
-    padding: .85rem 1.3rem;
+    padding: 1rem 1.3rem;
     border-top: 1px solid rgba(255, 255, 255, .1);
-    font-size: .74rem;
-    color: rgba(255, 255, 255, .5);
+    font-size: .78rem;
+    color: rgba(255, 255, 255, .55);
 }
 
 /* ============================ الشريط العلوي النحيف ============================ */
@@ -207,9 +214,13 @@
 .sidebar-toggle:hover { background: rgba(255, 255, 255, .1); }
 
 /* عناصر المستخدم والإشعارات كما هي في الهيدر السابق */
-.thin-header .notification-bell { color: #fff; font-size: 1.15rem; position: relative; text-decoration: none; }
-.thin-header .user-dropdown-toggle { color: #fff; text-decoration: none; }
-.thin-header .welcome-msg { color: rgba(255, 255, 255, .9); font-weight: 600; }
+.thin-header .notification-bell { color: #fff; font-size: 1.15rem; position: relative; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: .35rem .5rem; border-radius: 9px; transition: background .2s ease; }
+.thin-header .notification-bell:hover { background: rgba(255,255,255,.12); }
+.thin-header .notification-dropdown { margin-inline-end: .5rem; }
+.thin-header .notification-badge { position: absolute; top: -2px; inset-inline-end: -4px; }
+.thin-header .user-dropdown { gap: .85rem; }
+.thin-header .user-dropdown-toggle { color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
+.thin-header .welcome-msg { color: rgba(255, 255, 255, .92); font-weight: 600; }
 
 .sidebar-backdrop {
     display: none;
@@ -240,4 +251,45 @@
 
 @media (min-width: 992px) {
     .sidebar-backdrop { display: none !important; }
+}
+
+/* ============================ تلميع المحتوى (UI Polish) ============================ */
+
+/* الفوتر النحيف: سطر واحد فقط في الأسفل */
+.main-footer--thin {
+    background: linear-gradient(135deg, #0c2823, #0d5e52) !important;
+    color: rgba(255, 255, 255, .85);
+    border-top: 2px solid var(--sidebar-gold);
+    padding: 0 !important;
+    margin-top: 0 !important;
+}
+.main-footer--thin .container { max-width: 100%; padding: 0 1.15rem; }
+.main-footer__line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    padding: .7rem 0;
+    font-size: .82rem;
+    line-height: 1.4;
+}
+.main-footer__sep { opacity: .5; }
+
+/* توسيع مساحة الفلاتر لعرض كامل */
+.main-content .card .row.g-2,
+.main-content .filter-bar,
+.main-content .filters-row,
+.main-content form .row.g-2.report-filters { width: 100%; }
+.main-content .card .form-select,
+.main-content .card .form-control { width: 100%; }
+
+/* ظل خفيف للبطاقة البيضاء */
+.main-content .card {
+    border: 1px solid #e6eee9 !important;
+    box-shadow: 0 6px 22px rgba(16, 48, 43, .07) !important;
+    transition: box-shadow .25s ease, transform .25s ease;
+}
+.main-content .card:hover {
+    box-shadow: 0 10px 30px rgba(16, 48, 43, .11) !important;
 }

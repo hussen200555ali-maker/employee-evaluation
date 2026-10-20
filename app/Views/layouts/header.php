@@ -49,11 +49,6 @@ use App\Core\Auth;
         </button>
         <?php endif; ?>
 
-        <a class="thin-brand" href="<?php echo APP_URL; ?>">
-            <i class="fas fa-chart-line"></i>
-            <span><?php echo APP_NAME; ?></span>
-        </a>
-
         <span class="thin-spacer"></span>
 
         <div class="d-flex align-items-center user-dropdown">

@@ -5,33 +5,12 @@
     <!-- =================================================================== -->
     <!--  الفوتر السفلي (يبقى كما هو تماماً بدون أي تغيير) -->
     <!-- =================================================================== -->
-    <footer class="main-footer">
+    <footer class="main-footer main-footer--thin">
         <div class="container">
-            <div class="footer-content">
-                <div class="footer-section about">
-                    <h3 class="logo-text"><?php echo APP_NAME; ?></h3>
-                    <p>
-                        نظام متكامل لإدارة وتقييم أداء الموظفين بكفاءة وفعالية،
-                        مما يساعد على اتخاذ قرارات استراتيجية مبنية على البيانات.
-                    </p>
-                </div>
-                <div class="footer-section links">
-                    <h3>روابط سريعة</h3>
-                    <ul>
-                        <li><a href="#">الأسئلة الشائعة</a></li>
-                        <li><a href="#">سياسة الخصوصية</a></li>
-                        <li><a href="#">شروط الاستخدام</a></li>
-                        <li><a href="#">تواصل معنا</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section contact">
-                    <h3>تواصل معنا</h3>
-                    <span><i class="fas fa-phone"></i> &nbsp; 123-456-789</span>
-                    <span><i class="fas fa-envelope"></i> &nbsp; info@company.com</span>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                &copy; <?php echo date('Y'); ?> | <?php echo APP_NAME; ?> | جميع الحقوق محفوظة
+            <div class="main-footer__line">
+                <span>&copy; <?php echo date('Y'); ?> <?php echo APP_NAME; ?> — جميع الحقوق محفوظة</span>
+                <span class="main-footer__sep">·</span>
+                <span>توقيت الرياض (Asia/Riyadh)</span>
             </div>
         </div>
     </footer>
