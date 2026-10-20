@@ -260,11 +260,40 @@ echo "SURVIVED_LOGIN";
         $this->assertFalse(Auth::userHasPermission('employees.view'));
     }
 
-    public function testUserHasPermissionAdminBypass(): void
+    public function testUserHasPermissionNoAdminBypass(): void
     {
+        // OOS-18 (CD-014): أُزيل تجاوز isAdmin() — الفحص قائم على البيانات فقط.
+        // مستخدم بدور Admin لكن بلا صلاحيات في الجلسة يجب أن يُرفض.
         $_SESSION['user_id'] = 1;
         $_SESSION['user_roles'] = ['Admin'];
+        $_SESSION['user_permissions'] = [];
+        $this->assertFalse(Auth::userHasPermission('any.permission.xyz'));
+
+        // وعند وجود الصلاحية في البيانات يمرّ.
+        $_SESSION['user_permissions'] = ['any.permission.xyz'];
         $this->assertTrue(Auth::userHasPermission('any.permission.xyz'));
+    }
+
+    /**
+     * OOS-18 (CD-014): Admin يملك كل الصلاحيات عبر البيانات (role_permissions)
+     * لا عبر تجاوز برمجي. يثبت أن مصدر الحقيقة هو البيانات.
+     */
+    public function testAdminHoldsAllPermissionsFromData(): void
+    {
+        $this->skipIfDbUnavailable();
+        $adminId = (int)$this->testDb()->query("SELECT id FROM users WHERE username = 'sysadmin' LIMIT 1")->fetchColumn();
+        $this->assertGreaterThan(0, $adminId, 'مستخدم sysadmin غير موجود');
+
+        $perms = (new \App\Models\User())->getUserPermissions($adminId);
+        $total = (int)$this->testDb()->query("SELECT COUNT(*) FROM permissions")->fetchColumn();
+
+        $this->assertCount(
+            $total,
+            $perms,
+            'يجب أن يملك Admin كل الصلاحيات من البيانات (لا تجاوز برمجي)'
+        );
+        $this->assertContains('evaluations.view.team', $perms);
+        $this->assertContains('evaluations.create.team', $perms);
     }
 
     public function testUserHasPermissionExactMatch(): void
@@ -279,9 +308,9 @@ echo "SURVIVED_LOGIN";
     /**
      * OOS-1: حارس pages المناصب يجب أن يرفض دورًا بلا صلاحية positions.manage.
      *
-     * هذا هو الاختبار الذي يثبت عمل الحارس فعليًا. الاختبار على Admin لا يثبت
-     * شيئًا هنا، لأن Auth::userHasPermission تتجاوز كل الصلاحيات لـ Admin
-     * (السطر 88). انظر OOS-18 في CD-006_OUT_OF_SCOPE.md.
+     * هذا هو الاختبار الذي يثبت عمل الحارس فعليًا (يفحص مسار البيانات لا التجاوز).
+     * OOS-18 (CD-014): أُزيل تجاوز isAdmin() — وAdmin يملك positions.manage في
+     * البيانات. انظر testAdminHoldsAllPermissionsFromData.
      */
     public function testPositionsAccessForStaffWithoutPermission(): void
     {
@@ -522,18 +551,21 @@ echo "PHASE1_SENTINEL" . PHP_EOL;
             'لا يجب الوصول لصفحة إدارة المستخدمين'
         );
 
-        // عملية فرعية (2): مستخدم Admin — الحارس يجب أن يسمح بالمرور عبر الكونستركتور
+        // عملية فرعية (2): مستخدم Admin — الحارس يجب أن يسمح بالمرور عبر الكونستركتور.
+        // OOS-18 (CD-014): لا تجاوز isAdmin() — الصلاحيات تُقرأ من البيانات.
+        // نُعبّئ user_permissions من DB عبر refreshSessionPermissions كما يفعل الدخول الحقيقي.
         $script2 = $this->tempFile('php');
         file_put_contents($script2, '<?php
 require ' . $boot . ';
 $_SESSION["user_id"]    = ' . $admin . ';
 $_SESSION["user_roles"] = ["Admin"];
+\App\Core\Auth::refreshSessionPermissions();
 new \App\Controllers\Admin\UserController();
 echo "ADMIN_PASSED" . PHP_EOL;
 ');
         $res2 = $this->runCli([$script2], $stdoutFile2 = $this->tempFile('out'));
         $out2 = is_file($stdoutFile2) ? (string)file_get_contents($stdoutFile2) : (string)($res2['stdout'] ?? '');
-        // 4) تحقق إيجابي: المستخدم Admin يمر عبر الحارس
+        // 4) تحقق إيجابي: المستخدم Admin يمر عبر الحارس (صلاحياته من البيانات)
         $this->assertStringContainsString('ADMIN_PASSED', $out2, 'الحارس يجب أن يسمح للمستخدم Admin');
     }
 

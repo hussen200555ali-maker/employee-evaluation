@@ -101,12 +101,37 @@ abstract class TestCase
         if (!is_resource($proc)) {
             $this->fail('تعذّر تشغيل العملية الفرعية: ' . $cmdLine);
         }
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[2]);
+        // قراءة متزامنة لـ stdout/stderr لتفادي الجمود (deadlock) عندما يملأ
+        // الطفل ذاكرته المؤقتة (pipe buffer) ويكون الأب منشغلاً بقراءة الأنبوب الآخر.
+        // يحدث فعليًا مع مخرجات كبيرة (مثل صفحة 403 كاملة) — انظر CD-014/OOS-18.
+        $stderr = '';
         $stdout = '';
+        $readPipes = [2 => true];
         if ($stdoutFile === '' && isset($pipes[1])) {
-            $stdout = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
+            $readPipes[1] = true;
+        }
+        foreach (array_keys($readPipes) as $fd) {
+            stream_set_blocking($pipes[$fd], false);
+        }
+        while ($readPipes !== []) {
+            foreach (array_keys($readPipes) as $fd) {
+                $chunk = fread($pipes[$fd], 8192);
+                if ($chunk === '' || $chunk === false) {
+                    if (feof($pipes[$fd])) {
+                        fclose($pipes[$fd]);
+                        unset($readPipes[$fd]);
+                    }
+                    continue;
+                }
+                if ($fd === 2) {
+                    $stderr .= $chunk;
+                } else {
+                    $stdout .= $chunk;
+                }
+            }
+            if ($readPipes !== []) {
+                usleep(1000);
+            }
         }
         $exit = proc_close($proc);
         return ['exit' => $exit, 'stdout' => $stdout, 'stderr' => $stderr];

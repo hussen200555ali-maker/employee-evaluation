@@ -32,7 +32,7 @@ class UserControllerTest extends TestCase
         );
     }
 
-    /** فاعل بدور Admin (يتجاوز فحص الصلاحيات)، ويُعاد معرّفه. */
+    /** فاعل بدور Admin؛ صلاحياته تُحمَّل من البيانات (OOS-18: بلا تجاوز)، ويُعاد معرّفه. */
     private function seedActorAdmin(): int
     {
         $db = $this->testDb();
@@ -126,6 +126,7 @@ require ' . $boot . ';
 $_SESSION = [];
 $_SESSION["user_id"]    = ' . $a . ';
 $_SESSION["user_roles"] = ["Admin"];
+\App\Core\Auth::refreshSessionPermissions();
 $_SERVER["REQUEST_METHOD"] = "POST";
 $_SERVER["REMOTE_ADDR"]    = "127.0.0.1";
 $_POST = ["user_id" => ' . $t . ', "role_id" => 999];

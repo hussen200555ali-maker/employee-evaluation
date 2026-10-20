@@ -78,15 +78,15 @@ class Auth {
 
     /**
      * يتحقق مما إذا كان المستخدم يملك صلاحية معينة.
+     * OOS-18 (CD-014): فحص قائم على البيانات فقط — أُزيل تجاوز isAdmin().
+     * يملك دور Admin كل الصلاحيات في role_permissions (مصدر الحقيقة)، فلا حاجة
+     * لتجاوز برمجي. انظر ترحيل 2026_10_21_CD014_oos18_admin_full_permissions.sql.
      * @param string $permissionName - اسم الصلاحية (مثال: 'employees.view').
      * @return bool
      */
       public static function userHasPermission($permissionName) {
         if (!self::check()) {
             return false;
-        }
-        if (self::isAdmin()) {
-            return true;
         }
         return isset($_SESSION['user_permissions']) && in_array($permissionName, $_SESSION['user_permissions']);
     }
