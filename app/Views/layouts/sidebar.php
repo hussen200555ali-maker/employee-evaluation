@@ -17,12 +17,45 @@ $__isActive = static function (string $path) use ($__current): bool {
     // عدّ الرابط نشطاً أيضاً داخل صفحاته الفرعية (مثال: /employees/create).
     return $p !== '/' && strpos($__current, $p . '/') === 0;
 };
+
+// شارة حقيقية: عدد التقييمات قيد المراجعة (تُعرض لمن يملك صلاحية إدارة التقييمات).
+$__pendingEvals = null;
+if (Auth::check() && Auth::userHasPermission('reports.view.all')) {
+    try {
+        $__db = \App\Core\Database::getInstance();
+        $__db->query("SELECT COUNT(*) FROM evaluations WHERE status = :st");
+        $__db->bind(':st', 'pending_review');
+        $__pendingEvals = (int)$__db->fetchColumn();
+    } catch (\Throwable $e) {
+        $__pendingEvals = null;
+    }
+}
+
+$__user = Auth::user();
+$__displayName = $__user->full_name ?? ($__user->username ?? 'مستخدم');
+$__roleLabel = $__user->role_name ?? '';
+$__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__displayName : 'م', 0, 1, 'UTF-8');
 ?>
 <aside class="app-sidebar" id="appSidebar" aria-label="القائمة الرئيسية">
-    <a class="sidebar-brand" href="<?php echo APP_URL; ?>">
-        <i class="fas fa-chart-line"></i>
-        <span><?php echo APP_NAME; ?></span>
-    </a>
+
+    <!-- بطاقة المستخدم -->
+    <?php if (Auth::check()): ?>
+    <div class="sidebar-profile">
+        <div class="sidebar-avatar" aria-hidden="true"><?php echo htmlspecialchars($__avatarLetter, ENT_QUOTES, 'UTF-8'); ?></div>
+        <div class="sidebar-profile-info">
+            <span class="sidebar-profile-name"><?php echo htmlspecialchars($__displayName, ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php if ($__roleLabel !== ''): ?>
+            <span class="sidebar-profile-role"><?php echo htmlspecialchars($__roleLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- البحث السريع -->
+    <div class="sidebar-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="sidebarSearch" placeholder="بحث سريع..." aria-label="بحث سريع" autocomplete="off">
+    </div>
+    <?php endif; ?>
 
     <nav class="sidebar-nav-wrap">
         <ul class="sidebar-nav">
@@ -98,7 +131,7 @@ $__isActive = static function (string $path) use ($__current): bool {
                     <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/excel/import') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/excel/import"><i class="fas fa-file-excel fa-fw me-2"></i> استيراد تقييم من Excel</a></li>
                     <?php endif; ?>
                     <?php if (Auth::userHasPermission('reports.view.all')): ?>
-                    <li><a class="sidebar-sublink <?php echo ($__current === '/evaluations') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> إدارة التقييمات</a></li>
+                    <li><a class="sidebar-sublink <?php echo ($__current === '/evaluations') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> إدارة التقييمات<?php if ($__pendingEvals !== null && $__pendingEvals > 0): ?><span class="sidebar-badge"><?php echo (int)$__pendingEvals; ?></span><?php endif; ?></a></li>
                     <?php endif; ?>
 
                     <?php if (Auth::userHasPermission('units.create') || Auth::userHasPermission('units.manage')): ?>
@@ -238,7 +271,19 @@ $__isActive = static function (string $path) use ($__current): bool {
     </nav>
 
     <div class="sidebar-footer">
-        &copy; <?php echo date('Y'); ?> <?php echo APP_NAME; ?>
+        <div class="sidebar-status">
+            <span class="sidebar-status-dot" aria-hidden="true"></span>
+            <span>متصل</span>
+            <span class="sidebar-status-time"><?php echo date('H:i'); ?></span>
+        </div>
+        <?php if (Auth::check()): ?>
+        <form method="POST" action="<?php echo APP_URL; ?>/logout" class="m-0">
+            <?php echo csrf_field(); ?>
+            <button type="submit" class="sidebar-logout">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </button>
+        </form>
+        <?php endif; ?>
     </div>
 </aside>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>

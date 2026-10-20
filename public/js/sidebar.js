@@ -51,5 +51,31 @@
                 }
             });
         }
+
+        // البحث السريع: إظهار/إخفاء روابط القائمة بحسب النص.
+        var search = document.getElementById('sidebarSearch');
+        if (search && sidebar) {
+            var allLinks = sidebar.querySelectorAll('.sidebar-link, .sidebar-sublink, .sidebar-group-toggle');
+            search.addEventListener('input', function () {
+                var q = search.value.trim().toLowerCase();
+                if (q === '') {
+                    Array.prototype.forEach.call(allLinks, function (el) {
+                        el.parentElement.style.display = '';
+                    });
+                    return;
+                }
+                Array.prototype.forEach.call(allLinks, function (el) {
+                    var text = (el.textContent || '').toLowerCase();
+                    var li = el.parentElement;
+                    li.style.display = text.indexOf(q) !== -1 ? '' : 'none';
+                });
+                // افتح المجموعات التي ظهرت نتائجها.
+                var groups = sidebar.querySelectorAll('.sidebar-group');
+                Array.prototype.forEach.call(groups, function (g) {
+                    var visible = g.querySelectorAll('.sidebar-subnav li:not([style*="display: none"])').length;
+                    if (visible > 0) { g.classList.add('open'); }
+                });
+            });
+        }
     });
 })();
