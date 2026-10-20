@@ -6,14 +6,15 @@
 
 :root {
     --sidebar-width: 274px;
-    --navy-900: #0B1120;
-    --navy-800: #111827;
-    --navy-700: #1a2236;
-    --sidebar-bg: linear-gradient(180deg, #0B1120 0%, #111827 100%);
+    --green-900: #07211c;
+    --green-800: #0c2823;
+    --green-700: #0d3d34;
+    --sidebar-bg: linear-gradient(180deg, #07211c 0%, #0c2823 60%, #0d5e52 100%);
     --sidebar-glass-border: rgba(255, 255, 255, .10);
-    --sidebar-ink: rgba(255, 255, 255, .72);
+    --sidebar-ink: rgba(255, 255, 255, .74);
     --sidebar-ink-strong: #ffffff;
-    --emerald: #10b981;
+    --emerald: #34d399;
+    --emerald-strong: #10b981;
     --gold: #c8943f;
     --sidebar-hover: rgba(255, 255, 255, .06);
     --sidebar-active-bg: rgba(255, 255, 255, .06);
@@ -133,16 +134,42 @@
     box-shadow: 0 0 0 3px rgba(16, 185, 129, .15);
 }
 
-/* ============================ عناوين المجموعات ============================ */
-.sidebar-group-title {
-    color: rgba(255, 255, 255, .38);
+/* ============================ المستوى 1: الفئات (القابلة للطي) ============================ */
+.sidebar-category { margin: .25rem 0; }
+
+.sidebar-category-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: .85rem 1.35rem;
+    color: rgba(255, 255, 255, .55);
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .12em;
-    padding: 1.5rem 1.4rem .55rem;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: color .2s ease, background .2s ease;
 }
-.sidebar-group-title:first-of-type { padding-top: 1.1rem; }
+.sidebar-category-toggle:hover { color: var(--emerald); background: rgba(255,255,255,.03); }
+.sidebar-category-label { display: flex; align-items: center; gap: .6rem; }
+.sidebar-cat-ico { color: rgba(255,255,255,.35); font-size: .82rem; transition: color .2s ease; }
+.sidebar-category.open > .sidebar-category-toggle { color: #fff; }
+.sidebar-category.open > .sidebar-category-toggle .sidebar-cat-ico { color: var(--emerald); }
+.sidebar-category-toggle .sidebar-caret { color: rgba(255,255,255,.4); }
+
+/* جسم الفئة (L1) — طي سلس */
+.sidebar-category-body {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s ease;
+}
+.sidebar-category.open > .sidebar-category-body { max-height: 120rem; }
 
 .sidebar-nav { list-style: none; margin: 0; padding: 0 0 .6rem; }
 
@@ -258,8 +285,8 @@
     letter-spacing: .1em;
 }
 
-/* الفاصل بين المجموعات */
-.sidebar-nav > li + .sidebar-group-title { margin-top: .4rem; }
+/* فاصل رقيق بين الفئات (L1) */
+.sidebar-nav > li.sidebar-category + li.sidebar-category { border-top: 1px solid rgba(255,255,255,.07); margin-top: .35rem; }
 
 /* ============================ الشارات (Badges) ============================ */
 .sidebar-badge {
@@ -326,9 +353,9 @@
     position: sticky;
     top: 0;
     z-index: 1040;
-    background: linear-gradient(135deg, #0B1120, #111827);
-    border-bottom: 1px solid var(--sidebar-glass-border);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, .22);
+    background: linear-gradient(135deg, #07211c, #0d5e52);
+    border-bottom: 2px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(7, 33, 28, .35);
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -394,9 +421,9 @@
 
 /* الفوتر النحيف: سطر واحد فقط في الأسفل */
 .main-footer--thin {
-    background: linear-gradient(135deg, #0B1120, #111827) !important;
+    background: linear-gradient(135deg, #07211c, #0d5e52) !important;
     color: rgba(255, 255, 255, .8);
-    border-top: 1px solid var(--sidebar-glass-border);
+    border-top: 2px solid var(--gold);
     padding: 0 !important;
     margin-top: 0 !important;
 }
