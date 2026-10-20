@@ -13,7 +13,7 @@ class ArchiveCoursesController extends Controller {
     }
 
     public function branches() {
-        Auth::can('training.view');
+        Auth::enforce('training.view');
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
         $status = $_GET['status'] ?? null;
@@ -25,7 +25,7 @@ class ArchiveCoursesController extends Controller {
     }
 
     public function departments(int $branchId) {
-        Auth::can('training.view');
+        Auth::enforce('training.view');
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
         $status = $_GET['status'] ?? null;
@@ -38,7 +38,7 @@ class ArchiveCoursesController extends Controller {
     }
 
     public function years(int $departmentId) {
-        Auth::can('training.view');
+        Auth::enforce('training.view');
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
         $status = $_GET['status'] ?? null;
@@ -50,7 +50,7 @@ class ArchiveCoursesController extends Controller {
     }
 
     public function records(int $departmentId, int $year) {
-        Auth::can('training.view');
+        Auth::enforce('training.view');
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
         $search = $_GET['search'] ?? '';
@@ -62,7 +62,7 @@ class ArchiveCoursesController extends Controller {
     }
 
     public function show(int $courseId) {
-        Auth::can('training.view');
+        Auth::enforce('training.view');
         $evaluation = $this->archiveModel->getCourseEvaluation($courseId);
         if (!$evaluation) { echo 'لا يوجد تقييم لهذا الكيان'; return; }
         $answers = $this->archiveModel->getEvaluationAnswers($evaluation->id);
@@ -70,3 +70,4 @@ class ArchiveCoursesController extends Controller {
         require APP_ROOT . '/app/Views/archive/show_evaluation.php';
     }
 }
+

@@ -14,7 +14,7 @@ class TemplateController extends Controller {
 
     public function __construct() {
         // حماية الوحدة بأكملها
-        Auth::can('templates.manage');
+        Auth::enforce('templates.manage');
     }
 
     /**
@@ -33,10 +33,12 @@ class TemplateController extends Controller {
      */
     
 public function destroy() {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !Auth::can('templates.manage', false)) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         Flash::set('طلب غير مصرح به.', 'danger');
         $this->redirect('/templates');
     }
+
+    Auth::enforce('templates.manage');
 
     $id = $_POST['template_id'] ?? $_POST['id'] ?? null;
 
@@ -74,3 +76,4 @@ public function destroy() {
     $this->redirect('/templates');
 }
 }
+

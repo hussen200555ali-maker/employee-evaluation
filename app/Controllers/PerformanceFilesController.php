@@ -21,7 +21,7 @@ class PerformanceFilesController extends Controller {
     }
 
     public function courses() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $scope=$this->getScope();
         $db=\App\Core\Database::getInstance();
         // Get courses with avg from flexible evaluations (entity_type=course) + legacy? Legacy is in course_evaluations, but we treat as archive - we show flexible only, but also include legacy via UNION
@@ -52,7 +52,7 @@ class PerformanceFilesController extends Controller {
     }
 
     public function workshops() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $scope=$this->getScope();
         $db=\App\Core\Database::getInstance();
         $db->query("SELECT tw.id, wc.title as name, b.name as branch_name,
@@ -71,7 +71,7 @@ class PerformanceFilesController extends Controller {
     }
 
     public function units() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $scope=$this->getScope();
         $db=\App\Core\Database::getInstance();
         // Branches
@@ -95,7 +95,7 @@ class PerformanceFilesController extends Controller {
     }
 
     public function employeeInCourse() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $db=\App\Core\Database::getInstance();
         $db->query("SELECT e.entity_id as emp_id, emp.full_name as name, emp.emp_code, COUNT(e.id) as cnt, AVG(e.final_score) as avg_score, MAX(e.final_score) as max_s
                     FROM evaluations e JOIN employees emp ON e.entity_id=emp.id
@@ -105,3 +105,4 @@ class PerformanceFilesController extends Controller {
         $this->view('performance/employee_in_course', ['pageTitle'=>'أداء الموظفين داخل الدورات','items'=>$rows]);
     }
 }
+

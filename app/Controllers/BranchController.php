@@ -17,10 +17,7 @@ class BranchController extends Controller {
      */
     public function index() {
         // التحقق من الصلاحية: فقط الأدوار المصرح لها يمكنها عرض الفروع.
-        if (!Auth::can('branches.view')) { // سنفترض وجود هذه الصلاحية
-          
-              return (new ErrorController())->forbidden('branches.view');
-        }
+        Auth::enforce('branches.view');
 
         // إنشاء كائنات من المودلز التي نحتاجها.
         $branchModel = new Branch();
@@ -46,10 +43,7 @@ class BranchController extends Controller {
      */
     public function store() {
         // التحقق من الصلاحية.
-        if (!Auth::can('branches.create')) {
-            
-          return (new ErrorController())->forbidden('branches.create');
-        }
+        Auth::enforce('branches.create');
 
         // التأكد من أن الطلب هو POST.
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -80,9 +74,7 @@ class BranchController extends Controller {
      */
     public function update() {
         // التحقق من الصلاحية.
-        if (!Auth::can('branches.edit')) {
-             return (new ErrorController())->forbidden('branches.edit');
-        }
+        Auth::enforce('branches.edit');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
@@ -104,17 +96,11 @@ class BranchController extends Controller {
 
     /**
      * يحذف فرعاً.
-     */
-    /**
-     * يحذف فرعاً.
      * هذه الدالة تستجيب للطلب POST /branches/delete.
      */
     public function destroy() {
         // 1. التحقق من الصلاحية.
-        if (!Auth::can('branches.delete')) {
-            // إذا لم يكن لديه الصلاحية، أوقف التنفيذ.
-             return (new ErrorController())->forbidden('branches.delete');
-        }
+        Auth::enforce('branches.delete');
 
         // 2. التأكد من أن الطلب هو POST وأن ID موجود.
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
@@ -153,7 +139,7 @@ class BranchController extends Controller {
         exit();
     }
     public function verifyIntegrity() {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     try {
         $monitor = new \App\Core\BackupMonitor();
@@ -176,3 +162,4 @@ class BranchController extends Controller {
     $this->redirect('/backup');
 }
 }
+

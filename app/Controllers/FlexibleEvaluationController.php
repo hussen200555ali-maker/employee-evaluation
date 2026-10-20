@@ -25,35 +25,35 @@ class FlexibleEvaluationController extends Controller {
     }
 
     public function createCourse() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         $courses=(new TrainingCourse())->getAll();
         $templates=(new Template())->findByScope('course');
         $this->view('flexible/create_course', ['pageTitle'=>'تقييم دورة ككيان (مرن)','courses'=>$courses,'templates'=>$templates]);
     }
 
     public function createWorkshop() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         $workshops=(new TrainingWorkshop())->getAll();
         $templates=(new Template())->findByScope('workshop');
         $this->view('flexible/create_workshop', ['pageTitle'=>'تقييم ورشة ككيان (مرن)','workshops'=>$workshops,'templates'=>$templates]);
     }
 
     public function createEmployeeInCourse() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         $courses=(new TrainingCourse())->getAll();
         $templates=(new Template())->findByScope('employee_in_course');
         $this->view('flexible/create_employee_in_course', ['pageTitle'=>'تقييم موظف داخل دورة (مرن)','courses'=>$courses,'templates'=>$templates]);
     }
 
     public function createEmployeeInWorkshop() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         $workshops=(new TrainingWorkshop())->getAll();
         $templates=(new Template())->findByScope('employee_in_workshop');
         $this->view('flexible/create_employee_in_workshop', ['pageTitle'=>'تقييم موظف داخل ورشة (مرن)','workshops'=>$workshops,'templates'=>$templates]);
     }
 
     public function storeCourse() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         if($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/flexible/evaluations/create/course');
         $courseId=(int)($_POST['course_id']??0); $templateId=(int)($_POST['template_id']??0);
         if(!$courseId||!$templateId){ Flash::set('بيانات غير مكتملة','danger'); $this->redirect('/flexible/evaluations/create/course'); }
@@ -74,7 +74,7 @@ class FlexibleEvaluationController extends Controller {
     }
 
     public function storeWorkshop() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         if($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/flexible/evaluations/create/workshop');
         $wid=(int)($_POST['workshop_id']??0); $tid=(int)($_POST['template_id']??0);
         if(!$wid||!$tid){ Flash::set('بيانات غير مكتملة','danger'); $this->redirect('/flexible/evaluations/create/workshop'); }
@@ -92,7 +92,7 @@ class FlexibleEvaluationController extends Controller {
     }
 
     public function storeEmployeeInCourse() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         if($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/flexible/evaluations/create/employee-in-course');
         $empId=(int)($_POST['employee_id']??0); $courseId=(int)($_POST['course_id']??0); $tid=(int)($_POST['template_id']??0);
         if(!$empId||!$courseId||!$tid){ Flash::set('بيانات غير مكتملة','danger'); $this->redirect('/flexible/evaluations/create/employee-in-course'); }
@@ -111,7 +111,7 @@ class FlexibleEvaluationController extends Controller {
     }
 
     public function storeEmployeeInWorkshop() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         if($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/flexible/evaluations/create/employee-in-workshop');
         $empId=(int)($_POST['employee_id']??0); $wid=(int)($_POST['workshop_id']??0); $tid=(int)($_POST['template_id']??0);
         if(!$empId||!$wid||!$tid){ Flash::set('بيانات غير مكتملة','danger'); $this->redirect('/flexible/evaluations/create/employee-in-workshop'); }
@@ -136,3 +136,4 @@ class FlexibleEvaluationController extends Controller {
         return (bool)$db->fetch();
     }
 }
+

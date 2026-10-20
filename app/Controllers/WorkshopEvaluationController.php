@@ -10,12 +10,12 @@ use App\Core\Flash;
 class WorkshopEvaluationController extends Controller {
 
 /*    public function __construct() {
-        Auth::can('training.manage'); // أو صلاحية خاصة بالتقييم
+        Auth::enforce('training.manage'); // أو صلاحية خاصة بالتقييم
     }*/
 
     // عرض نموذج التقييم لورشة معينة
     public function create($workshop_id) {
-      Auth::can('training.manage');
+      Auth::enforce('training.manage');
         $twModel = new TrainingWorkshop();
         $workshop = $twModel->findById($workshop_id);
         if (!$workshop) {
@@ -33,7 +33,7 @@ class WorkshopEvaluationController extends Controller {
 
     // حفظ التقييم
     public function store() {
-      Auth::can('training.manage');
+      Auth::enforce('training.manage');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/training/workshops');
             return;
@@ -61,7 +61,7 @@ class WorkshopEvaluationController extends Controller {
 
     // عرض تقييم محفوظ
 public function show($id) {
-  Auth::can('training.manage');
+  Auth::enforce('training.manage');
     $evaluationModel = new \App\Models\WorkshopEvaluation();
     $evaluation = $evaluationModel->findById($id);
 
@@ -82,3 +82,4 @@ public function show($id) {
 
 
 }
+

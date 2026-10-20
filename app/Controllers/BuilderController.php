@@ -20,7 +20,7 @@ class BuilderController extends Controller {
 
     public function __construct() {
         // حماية الوحدة بأكملها. لا يمكن الوصول لأي دالة هنا بدون هذه الصلاحية.
-        Auth::can('templates.manage');
+        Auth::enforce('templates.manage');
     }
 
     /**
@@ -176,3 +176,4 @@ class BuilderController extends Controller {
         ]);
     }
 }
+

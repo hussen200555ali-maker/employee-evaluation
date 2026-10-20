@@ -27,7 +27,7 @@ class UnitEvaluationController extends Controller {
     }
 
     public function create() {
-        Auth::can('units.create');
+        Auth::enforce('units.create');
         $branchModel = new Branch();
         $deptModel = new Department();
         $schedModel = new EvaluationSchedule();
@@ -40,7 +40,7 @@ class UnitEvaluationController extends Controller {
     }
 
     public function store() {
-        Auth::can('units.create');
+        Auth::enforce('units.create');
         if ($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/units/evaluations/create');
         $entityType = $_POST['entity_type'] ?? 'branch';
         $entityId = (int)($_POST['entity_id'] ?? 0);
@@ -114,7 +114,7 @@ class UnitEvaluationController extends Controller {
     }
 
     public function review() {
-        Auth::can('units.review');
+        Auth::enforce('units.review');
         if ($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/');
         $id = (int)($_POST['evaluation_id'] ?? 0);
         $action = $_POST['action'] ?? 'approve';
@@ -136,3 +136,4 @@ class UnitEvaluationController extends Controller {
         $this->redirect("/evaluations/{$id}/fill");
     }
 }
+

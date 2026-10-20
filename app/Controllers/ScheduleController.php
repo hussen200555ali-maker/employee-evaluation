@@ -13,7 +13,7 @@ use App\Core\Audit;
 class ScheduleController extends Controller {
 
     public function __construct() {
-        Auth::can('units.manage');
+        Auth::enforce('units.manage');
     }
 
     public function index() {
@@ -35,7 +35,7 @@ class ScheduleController extends Controller {
     }
 
     public function store() {
-        Auth::can('units.manage');
+        Auth::enforce('units.manage');
         if ($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/schedules');
         $data = [
             'template_id'=> (int)($_POST['template_id'] ?? 0),
@@ -64,7 +64,7 @@ class ScheduleController extends Controller {
     }
 
     public function update() {
-        Auth::can('units.manage');
+        Auth::enforce('units.manage');
         if ($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/schedules');
         $id = (int)($_POST['id'] ?? 0);
         $data = [
@@ -86,7 +86,7 @@ class ScheduleController extends Controller {
     }
 
     public function destroy() {
-        Auth::can('units.manage');
+        Auth::enforce('units.manage');
         if ($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/schedules');
         $id = (int)($_POST['id'] ?? 0);
         $model = new EvaluationSchedule();
@@ -101,3 +101,4 @@ class ScheduleController extends Controller {
         $this->redirect('/schedules');
     }
 }
+

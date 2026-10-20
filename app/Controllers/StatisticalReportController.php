@@ -36,7 +36,7 @@ class StatisticalReportController extends Controller {
     }
 
     public function index() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $branches=(new Branch())->getAll();
         $departments=(new Department())->getAll();
         $scope=$this->getScope();
@@ -53,7 +53,7 @@ class StatisticalReportController extends Controller {
     }
 
     public function data() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $entityFilter=$_GET['entity_filter'] ?? 'all';
         $branchId=!empty($_GET['branch_id'])?(int)$_GET['branch_id']:null;
         $deptId=!empty($_GET['department_id'])?(int)$_GET['department_id']:null;
@@ -109,7 +109,7 @@ class StatisticalReportController extends Controller {
     }
 
     public function exportExcel() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $entityFilter=$_GET['entity_filter'] ?? 'all';
         $branchId=!empty($_GET['branch_id'])?(int)$_GET['branch_id']:null;
         $deptId=!empty($_GET['department_id'])?(int)$_GET['department_id']:null;
@@ -128,8 +128,9 @@ class StatisticalReportController extends Controller {
     }
 
     public function exportPdf() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         // For now redirect to print view which has print logic
         $this->json(['message'=>'Use print view for PDF'], 200);
     }
 }
+

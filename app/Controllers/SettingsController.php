@@ -9,7 +9,7 @@ use App\Models\RatingSetting;
 class SettingsController extends Controller {
 
     public function __construct(){
-        Auth::can('settings.manage');
+        Auth::enforce('settings.manage');
     }
 
     public function rating(){
@@ -19,7 +19,7 @@ class SettingsController extends Controller {
     }
 
     public function saveRating(){
-        Auth::can('settings.manage');
+        Auth::enforce('settings.manage');
         if($_SERVER['REQUEST_METHOD']!=='POST') $this->redirect('/settings/rating');
         $labels=$_POST['label']??[];
         $mins=$_POST['min_score']??[];
@@ -57,3 +57,4 @@ class SettingsController extends Controller {
         $this->redirect('/settings/rating');
     }
 }
+

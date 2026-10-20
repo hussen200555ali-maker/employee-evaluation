@@ -20,7 +20,7 @@ class EvaluationController extends Controller {
      */
     public function index() {
         // صلاحية لعرض هذه الصفحة
-        Auth::can('reports.view.all'); 
+        Auth::enforce('reports.view.all'); 
 
         // استدعاء مودل الموظفين لأننا نعرض قائمة موظفين
         $employeeModel = new Employee();
@@ -69,7 +69,7 @@ class EvaluationController extends Controller {
      * يعرض صفحة "بدء تقييم جديد".
      */
     public function create() {
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         
         $data = [
             'pageTitle' => 'بدء تقييم موظف جديد'
@@ -85,7 +85,7 @@ class EvaluationController extends Controller {
      */
 /*    public function store() {
         // 1. التحقق من الصلاحية وأن الطلب من نوع POST
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/evaluations/create');
         }
@@ -148,7 +148,7 @@ class EvaluationController extends Controller {
      */
     public function store() {
         // 1. التحقق من الصلاحية والطلب
-        Auth::can('evaluations.create');
+        Auth::enforce('evaluations.create');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/evaluations/create');
         }
@@ -252,7 +252,7 @@ class EvaluationController extends Controller {
      * @param int $id - معرف التقييم
      */
     public function fill($id) {
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
 
         $evaluationModel = new Evaluation();
         $evaluation = $evaluationModel->findById($id);
@@ -308,7 +308,7 @@ class EvaluationController extends Controller {
             $this->redirect('/');
         }
 
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
 
         $evaluationId = (int)$_POST['evaluation_id'];
         $results = $_POST['results'] ?? [];
@@ -354,7 +354,7 @@ class EvaluationController extends Controller {
      */
   /*  public function show($id) {
         // يمكنك إضافة صلاحية خاصة لعرض التقارير هنا
-        Auth::can('reports.view.all'); // مثال لصلاحية
+        Auth::enforce('reports.view.all'); // مثال لصلاحية
 
         $evaluationModel = new Evaluation();
         $evaluation = $evaluationModel->findById($id);
@@ -397,9 +397,7 @@ class EvaluationController extends Controller {
 
   public function show($id) {
         // التحقق من الصلاحية
-        if (!Auth::can('reports.view.all')) {
-            return (new ErrorController())->forbidden('reports.view.all');
-        }
+        Auth::enforce('reports.view.all');
 
         $evaluationModel = new \App\Models\Evaluation();
         $evaluation = $evaluationModel->findById($id);
@@ -456,7 +454,7 @@ class EvaluationController extends Controller {
         }
 
         // صلاحية خاصة للحذف
-        Auth::can('evaluations.delete'); // ستحتاج لإضافة هذه الصلاحية في قاعدة البيانات
+        Auth::enforce('evaluations.delete'); // ستحتاج لإضافة هذه الصلاحية في قاعدة البيانات
 
         $evaluationId = (int)$_POST['evaluation_id'];
 
@@ -491,7 +489,7 @@ class EvaluationController extends Controller {
             $this->redirect('/');
         }
 
-        Auth::can('evaluations.edit'); // صلاحية جديدة للتعديل
+        Auth::enforce('evaluations.edit'); // صلاحية جديدة للتعديل
 
         $evaluationId = (int)$_POST['evaluation_id'];
 
@@ -516,7 +514,7 @@ class EvaluationController extends Controller {
      */
     public function printView($id) {
         // يمكنك استخدام نفس صلاحيات العرض
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
 
         $evaluationModel = new \App\Models\Evaluation();
         $evaluation = $evaluationModel->findById($id);
@@ -561,3 +559,4 @@ class EvaluationController extends Controller {
         return $user && (int)($user->employee_id ?? 0) > 0 && (int)$evaluation->evaluator_employee_id === (int)$user->employee_id;
     }
 }
+

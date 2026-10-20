@@ -14,7 +14,7 @@ use App\Services\FormulaEngine;
 class AdminReportController extends Controller {
 
     public function __construct() {
-        Auth::can('admin_reports.view');
+        Auth::enforce('admin_reports.view');
     }
 
     public function index() {
@@ -248,3 +248,4 @@ class AdminReportController extends Controller {
         return $count > 0 ? round($total / $count, 1) : 0;
     }
 }
+

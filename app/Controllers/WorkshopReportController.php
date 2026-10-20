@@ -288,7 +288,7 @@ public function getDepartmentsByBranch($branchId) {
      */
     public function printReportPage() {
         // التأكد من أن المستخدم لديه الصلاحية
-        \App\Core\Auth::can('training.view'); // أو أي صلاحية مناسبة
+        \App\Core\Auth::enforce('training.view'); // أو أي صلاحية مناسبة
         
         $level = $_GET['level'] ?? 'company';
         $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
@@ -527,3 +527,4 @@ public function getDepartmentsByBranch($branchId) {
 
 
     }
+

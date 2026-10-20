@@ -9,7 +9,7 @@ use App\Core\Flash;
 class CourseCatalogController extends Controller {
 
     public function __construct() {
-        Auth::can('training.manage'); // صلاحية الإدارة
+        Auth::enforce('training.manage'); // صلاحية الإدارة
     }
 
     public function index() {
@@ -92,3 +92,4 @@ class CourseCatalogController extends Controller {
 }
 
 }
+

@@ -22,7 +22,7 @@ final class EvaluationExcelController extends Controller
     }
     public function importForm(): void
     {
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
         $templates = (new Template())->getAllActiveWithType();
         $branches = (new Branch())->getAllWithDepartments();
         $this->view('evaluations/excel_import', [
@@ -35,7 +35,7 @@ final class EvaluationExcelController extends Controller
     }
     public function downloadTemplate($id = null): void
     {
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
         $employeeId = $this->currentEmployeeId();
         if ($employeeId <= 0) {
             Flash::set('لا يرتبط حسابك بموظف مقيّم صالح لتصدير قالب النتائج.', 'danger');
@@ -77,7 +77,7 @@ final class EvaluationExcelController extends Controller
     }
     public function preview(): void
     {
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
         if (!Auth::validateCsrfToken($_POST['csrf_token'] ?? $_POST['_token'] ?? null)) {
             Flash::set('رمز الحماية غير صالح أو منتهي. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'danger');
             $this->redirect('/evaluations/excel/import');
@@ -123,7 +123,7 @@ final class EvaluationExcelController extends Controller
     }
     public function commit($batchId): void
     {
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
         if (!Auth::validateCsrfToken($_POST['csrf_token'] ?? $_POST['_token'] ?? null)) {
             Flash::set('رمز الحماية غير صالح أو منتهي. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'danger');
             $this->redirect('/evaluations/excel/import');
@@ -160,7 +160,7 @@ final class EvaluationExcelController extends Controller
     }
     public function downloadTrainingTemplate(): void
     {
-        Auth::can('evaluations.fill');
+        Auth::enforce('evaluations.fill');
         $employeeId = $this->currentEmployeeId();
         if ($employeeId <= 0) {
             Flash::set('لا يرتبط حسابك بموظف مقيّم صالح لتصدير قالب التقييم.', 'danger');
@@ -231,3 +231,4 @@ final class EvaluationExcelController extends Controller
         exit;
     }
 }
+

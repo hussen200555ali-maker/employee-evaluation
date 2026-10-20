@@ -21,9 +21,7 @@ class DepartmentController extends Controller {
      */
     public function index() {
         // 1. التحقق من الصلاحية.
-        if (!Auth::can('departments.view')) {
-            return (new ErrorController())->forbidden('departments.view');
-        }
+        Auth::enforce('departments.view');
 
         // 2. إنشاء كائنات من المودلز.
         $departmentModel = new Department();
@@ -49,9 +47,7 @@ class DepartmentController extends Controller {
      */
     public function store() {
         // 1. التحقق من الصلاحية.
-        if (!Auth::can('departments.create')) {
-            return (new ErrorController())->forbidden('departments.create');
-        }
+        Auth::enforce('departments.create');
 
         // 2. التأكد من أن الطلب هو POST.
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,9 +81,7 @@ class DepartmentController extends Controller {
      */
     public function update() {
         // 1. التحقق من الصلاحية.
-        if (!Auth::can('departments.edit')) {
-            return (new ErrorController())->forbidden('departments.edit');
-        }
+        Auth::enforce('departments.edit');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
@@ -113,9 +107,7 @@ class DepartmentController extends Controller {
      */
     public function destroy() {
         // 1. التحقق من الصلاحية.
-        if (!Auth::can('departments.delete')) {
-            return (new ErrorController())->forbidden('departments.delete');
-        }
+        Auth::enforce('departments.delete');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
             $id = (int)$_POST['id'];

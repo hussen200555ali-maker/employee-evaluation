@@ -9,7 +9,7 @@ class RoleController extends Controller {
 
     public function __construct() {
         // حماية كل دوال هذه الوحدة
-        Auth::can('roles.manage');
+        Auth::enforce('roles.manage');
     }
 
     /**
@@ -253,3 +253,4 @@ public function destroy() {
 
 
 }
+

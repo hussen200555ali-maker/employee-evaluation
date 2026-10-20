@@ -4,7 +4,7 @@ namespace App\Controllers;
 class BackupDashboardController extends Controller {
     
     public function index() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $manager = new \App\Core\BackupManager();
         $monitor = new \App\Core\BackupMonitor();
@@ -24,7 +24,7 @@ class BackupDashboardController extends Controller {
      * النسخ الذكي التلقائي
      */
     public function smartBackup() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $manager = new \App\Core\BackupManager();
@@ -48,7 +48,7 @@ class BackupDashboardController extends Controller {
      * فحص سلامة النسخ
      */
     public function verifyIntegrity() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $monitor = new \App\Core\BackupMonitor();
         $results = $monitor->verifyBackupIntegrity();

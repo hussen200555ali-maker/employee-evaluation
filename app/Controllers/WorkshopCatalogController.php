@@ -9,7 +9,7 @@ use App\Core\Flash;
 class WorkshopCatalogController extends Controller {
 
     public function __construct() {
-        Auth::can('training.manage');
+        Auth::enforce('training.manage');
     }
 
     public function index() {
@@ -94,3 +94,4 @@ public function delete() {
 }
 
 }
+

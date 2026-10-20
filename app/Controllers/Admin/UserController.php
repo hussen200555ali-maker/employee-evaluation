@@ -22,7 +22,7 @@ class UserController extends Controller {
         // البند 7: حارس الوصول أصبح قائمًا على الصلاحيات بدل دور "Admin" وحده.
         // `Auth::can()` يتجاوز الفحص تلقائيًا لمن يملك الصلاحية (bypass عبر `Auth::isAdmin()`).
         // حارس كل عملية (create/edit/delete) موضوع داخل دالتها لتحديد العملية المسموحة.
-        Auth::can('users.view');
+        Auth::enforce('users.view');
     }
 
     /**
@@ -54,7 +54,7 @@ class UserController extends Controller {
      */
     public function updateRole() {
         // البند 7: تغيير دور مستخدم = عملية تعديل، تتطلب صلاحية `users.edit`.
-        Auth::can('users.edit');
+        Auth::enforce('users.edit');
         // التأكد من أن الطلب هو POST وأن البيانات المطلوبة موجودة.
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_id'], $_POST['role_id'])) {
             
@@ -138,7 +138,7 @@ class UserController extends Controller {
  */
 public function create() {
     // البند 7: عرض نموذج الإنشاء يتطلب صلاحية `users.create`.
-    Auth::can('users.create');
+    Auth::enforce('users.create');
     // نحتاج إلى قائمة الموظفين والأدوار لملء القوائم المنسدلة في النموذج
     $userModel = new \App\Models\User();
     $roleModel = new \App\Models\Role();
@@ -163,7 +163,7 @@ public function create() {
  */
 public function store() {
     // البند 7: إنشاء مستخدم يتطلب صلاحية `users.create`.
-    Auth::can('users.create');
+    Auth::enforce('users.create');
     // التأكد من أن الطلب هو POST
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         header('Location: ' . APP_URL . '/admin/users/create');
@@ -272,7 +272,7 @@ public function store() {
  */
 public function toggleStatus() {
     // البند 7: تفعيل/تعطيل مستخدم = عملية تعديل، تتطلب صلاحية `users.edit`.
-    Auth::can('users.edit');
+    Auth::enforce('users.edit');
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $json = file_get_contents('php://input');
         $data = json_decode($json);
@@ -334,7 +334,7 @@ public function toggleStatus() {
 
 public function edit($id) {
     // البند 7: عرض نموذج التعديل يتطلب صلاحية `users.edit`.
-    Auth::can('users.edit');
+    Auth::enforce('users.edit');
     $userModel = new \App\Models\User();
     $employeeModel = new \App\Models\Employee();
     
@@ -355,7 +355,7 @@ public function edit($id) {
 
 public function update() {
     // البند 7: تحديث بيانات مستخدم يتطلب صلاحية `users.edit`.
-    Auth::can('users.edit');
+    Auth::enforce('users.edit');
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'id' => (int)$_POST['id'],
@@ -397,7 +397,7 @@ public function update() {
 // دالة حذف مستخدم اي تدميرة
 public function destroy() {
     // البند 7: حذف مستخدم يتطلب صلاحية `users.delete`.
-    Auth::can('users.delete');
+    Auth::enforce('users.delete');
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)$_POST['id'];
 
@@ -493,7 +493,7 @@ public function destroy() {
  */
 public function resetPassword() {
     // البند 7: إعادة تعيين كلمة المرور = عملية تعديل، تتطلب صلاحية `users.edit`.
-    Auth::can('users.edit');
+    Auth::enforce('users.edit');
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $json = file_get_contents('php://input');
         $data = json_decode($json);
@@ -548,3 +548,4 @@ public function resetPassword() {
         }
     }
 }
+

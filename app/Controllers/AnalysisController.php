@@ -31,7 +31,7 @@ class AnalysisController extends Controller {
      * =================================================================
      */
     public function index() {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         // 1. جلب قائمة الموظفين
         $employeeModel = new Employee();
@@ -67,7 +67,7 @@ class AnalysisController extends Controller {
      * =================================================================
      */
     public function showEmployeeAnalysis() {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         if (!isset($_GET['employee_id']) || empty($_GET['employee_id'])) {
             $this->redirect('/analysis');
@@ -117,7 +117,7 @@ class AnalysisController extends Controller {
      * =================================================================
      */
   public function report() {
-    Auth::can('analysis.view');
+    Auth::enforce('analysis.view');
 
     try {
         // تسجيل محاولة الوصول
@@ -370,7 +370,7 @@ private function generateReportData($filters) {
      * =================================================================
      */
     public function showIndividualReport($employeeId) {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         // قراءة بارامترات إضافية (اختياري)
         $scope = $_GET['scope'] ?? 'overall';
@@ -438,7 +438,7 @@ private function generateReportData($filters) {
      * =================================================================
      */
     public function export() {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         // حل مشكلة الرابط - إزالة بارامتر 'url' المزعج
         $queryParams = $_GET;
@@ -510,7 +510,7 @@ private function generateReportData($filters) {
      */
     public function exportExcel(): void
     {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         $level = $_GET['level'] ?? null;
         $targetId = isset($_GET['target_id']) ? (int)$_GET['target_id'] : null;
@@ -526,7 +526,7 @@ private function generateReportData($filters) {
      */
     public function exportExcelEmployees(): void
     {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         $empModel = new Employee();
         $employees = $empModel->getAll();
@@ -541,7 +541,7 @@ private function generateReportData($filters) {
      */
     public function exportPdfWithCharts() {
         set_time_limit(300);
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         try {
             $exportData = $this->prepareExportData();
@@ -628,7 +628,7 @@ private function generateReportData($filters) {
      */
   // في AnalysisController - تحديث دالة printView
 public function printView() {
-    Auth::can('analysis.view');
+    Auth::enforce('analysis.view');
 
     $level = $_GET['level'] ?? 'employee';
     $targetId = isset($_GET['target_id']) ? (int)$_GET['target_id'] : null;
@@ -682,7 +682,7 @@ public function printView() {
 // في App\Controllers\AnalysisController - تحديث دالة printViewLevel
 
 public function printViewLevel() {
-    Auth::can('analysis.view');
+    Auth::enforce('analysis.view');
     
     try {
         $level = $_GET['level'] ?? 'company';
@@ -919,7 +919,7 @@ public function printViewLevel() {
         set_time_limit(300);
 
         // 1. التحقق من صلاحية المستخدم
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         // 2. قراءة وتأمين المدخلات من رابط الـ URL
         $level = $_GET['level'] ?? null;
@@ -1061,7 +1061,7 @@ public function printViewLevel() {
      * =================================================================
      */
     public function exportSimplePdf() {
-        Auth::can('analysis.view');
+        Auth::enforce('analysis.view');
 
         $targetId = isset($_GET['target_id']) ? (int)$_GET['target_id'] : null;
         if (!$targetId) {

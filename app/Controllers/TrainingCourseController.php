@@ -14,7 +14,7 @@ use App\Models\CourseCatalog; // ===> استيراد المودل الجديد
 class TrainingCourseController extends Controller {
 
     public function __construct() {
-        Auth::can('training.manage');
+        Auth::enforce('training.manage');
     }
 
     public function index() {
@@ -189,3 +189,4 @@ public function destroy() {
     }
 
 }
+

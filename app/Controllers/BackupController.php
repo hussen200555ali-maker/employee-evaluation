@@ -21,7 +21,7 @@ class BackupController extends Controller {
      * عرض صفحة إدارة النسخ الاحتياطي
      */
     public function index() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $logs = $this->backupModel->getBackupLogs();
         $lastBackup = $this->backupModel->getLastBackup();
@@ -39,7 +39,7 @@ class BackupController extends Controller {
      * عرض لوحة التحكم الاحترافية
      */
   /*  public function proDashboard() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $logs = $this->backupModel->getBackupLogs(20);
         $lastBackup = $this->backupModel->getLastBackup();
@@ -58,7 +58,7 @@ class BackupController extends Controller {
         ]);
     }*/
         public function proDashboard() {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     $logs = $this->backupModel->getBackupLogs(20);
     $lastBackup = $this->backupModel->getLastBackup();
@@ -81,7 +81,7 @@ class BackupController extends Controller {
      * إنشاء نسخة احتياطية كاملة
      */
     public function createFullBackup() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $result = $this->backupModel->createFullBackup(Auth::id());
         
@@ -105,7 +105,7 @@ class BackupController extends Controller {
      * إنشاء نسخة احتياطية تزايدية
      */
     public function createIncrementalBackup() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $result = $this->backupModel->createIncrementalBackup(Auth::id());
         
@@ -129,7 +129,7 @@ class BackupController extends Controller {
      * إنشاء نسخة احتياطية ذكية (تزايدية حقيقية)
      */
     public function createSmartBackup() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $result = $this->backupModel->createSmartIncrementalBackup(Auth::id());
         
@@ -146,7 +146,7 @@ class BackupController extends Controller {
      * إنشاء نسخة احتياطية محسنة (لـ AJAX)
      */
     public function createOptimizedBackup() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         // استخدام النسخ المحسن (هنا نستخدم النسخ الكامل المحسن)
         $result = $this->backupModel->createFullBackup(Auth::id());
@@ -165,7 +165,7 @@ class BackupController extends Controller {
      * التحقق من سلامة النسخ
      */
     public function verifyIntegrity() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $manager = new \App\Core\BackupManager();
         $monitor = $manager->getMonitor();
@@ -185,7 +185,7 @@ class BackupController extends Controller {
      * فحص صحة النظام
      */
     public function healthCheck() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $manager = new \App\Core\BackupManager();
         $monitor = $manager->getMonitor();
@@ -226,7 +226,7 @@ class BackupController extends Controller {
      * تحميل نسخة احتياطية - النسخة المحسنة
      */
   /*  public function downloadBackup($id) {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $backup = $this->backupModel->getBackupById($id);
         
@@ -251,7 +251,7 @@ class BackupController extends Controller {
     */
 
 public function downloadBackup($id) {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     $backup = $this->backupModel->getBackupById($id);
     
@@ -358,7 +358,7 @@ public function downloadBackup($id) {
      * استعادة نسخة احتياطية
      */
   /*  public function restoreBackup($id) {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $backup = $this->backupModel->getBackupById($id);
         
@@ -388,7 +388,7 @@ public function downloadBackup($id) {
 
 // إنشاء دالة منفصلة للاستعادة
 public function restoreBackup($id) {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     $backup = $this->backupModel->getBackupById($id);
     
@@ -458,7 +458,7 @@ public function restoreBackup($id) {
      * حذف نسخة احتياطية
      */
     public function deleteBackup($id) {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $backup = $this->backupModel->getBackupById($id);
         
@@ -488,7 +488,7 @@ public function restoreBackup($id) {
      * تنظيف النسخ القديمة
      */
     public function cleanOldBackups() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $result = $this->backupModel->cleanOldBackups();
         
@@ -537,7 +537,7 @@ public function restoreBackup($id) {
      * إدارة التشفير
      */
     public function encryptionManager() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $this->view('backup/encryption_manager', [
             'pageTitle' => 'إدارة تشفير النسخ الاحتياطي'
@@ -548,7 +548,7 @@ public function restoreBackup($id) {
      * توليد مفتاح تشفير جديد
      */
     public function generateEncryptionKey() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $manager = new \App\Core\BackupManager();
         $encryption = $manager->getEncryption();
@@ -563,7 +563,7 @@ public function restoreBackup($id) {
      * الحصول على تقدم النسخ (لـ AJAX)
      */
     public function getBackupProgress($logId) {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $progress = $this->backupModel->getCurrentProgress($logId);
         
@@ -576,7 +576,7 @@ public function restoreBackup($id) {
      * API للحصول على إحصائيات النسخ
      */
     public function getBackupStatsApi() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $stats = $this->backupModel->getBackupStats();
         $health = (new \App\Core\BackupMonitor())->performHealthCheck();
@@ -593,7 +593,7 @@ public function restoreBackup($id) {
      * إجراء سريع (لـ AJAX)
      */
     public function quickAction() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $action = $_POST['action'] ?? '';
         $backupId = $_POST['backup_id'] ?? null;
@@ -661,7 +661,7 @@ protected function formatBytes($bytes, $precision = 2) {
 }
 // في BackupController - أضف دوال جديدة
 public function encryptionKeys() {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     $this->db->query("SELECT bek.*, bl.backup_name 
                      FROM backup_encryption_keys bek 
@@ -676,7 +676,7 @@ public function encryptionKeys() {
 }
 
 public function deleteEncryptionKey($id) {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     $this->db->query("DELETE FROM backup_encryption_keys WHERE id = ?");
     $this->db->bind(1, $id);
@@ -692,7 +692,7 @@ public function deleteEncryptionKey($id) {
 }
 //صفحة تقارير الصحة
 public function healthReports() {
-    Auth::can('backup.manage');
+    Auth::enforce('backup.manage');
     
     $this->db->query("SELECT * FROM backup_health_logs ORDER BY checked_at DESC LIMIT 50");
     $healthLogs = $this->db->fetchAll();
@@ -706,7 +706,7 @@ public function healthReports() {
      * التحقق من حالة الجدولة التلقائية
      */
     public function schedulerStatus() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $projectPath = "C:\\xamppp\\htdocs\\employee-evaluation";
@@ -768,7 +768,7 @@ public function healthReports() {
      * إعداد الجدولة التلقائية
      */
     public function setupScheduler() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $projectPath = "C:\\xamppp\\htdocs\\employee-evaluation";
@@ -809,7 +809,7 @@ public function healthReports() {
      * اختبار التشغيل التلقائي
      */
     public function testScheduler() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $projectPath = "C:\\xamppp\\htdocs\\employee-evaluation";
@@ -849,7 +849,7 @@ public function healthReports() {
      * إزالة الجدولة التلقائية
      */
     public function removeScheduler() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $projectPath = "C:\\xamppp\\htdocs\\employee-evaluation";
@@ -889,7 +889,7 @@ public function healthReports() {
      * فحص مساحة التخزين
      */
     public function checkDisk() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $projectPath = "C:\\xamppp\\htdocs\\employee-evaluation";
@@ -930,7 +930,7 @@ public function healthReports() {
      * تنظيف النسخ القديمة
      */
     public function cleanBackups() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $projectPath = "C:\\xamppp\\htdocs\\employee-evaluation";
@@ -970,7 +970,7 @@ public function healthReports() {
      * حفظ إعدادات النسخ الاحتياطي
      */
     public function saveSettings() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         try {
             $settingsModel = new \App\Models\BackupSetting();
@@ -1017,7 +1017,7 @@ public function healthReports() {
      * عرض صفحة الإعدادات
      */
     public function settings() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $settingsModel = new \App\Models\BackupSetting();
         $settings = $settingsModel->getCurrentSettings();

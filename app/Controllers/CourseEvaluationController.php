@@ -12,7 +12,7 @@ use App\Models\CourseEvaluation;
 class CourseEvaluationController extends Controller {
 
     public function __construct() {
-        Auth::can('training.evaluate');
+        Auth::enforce('training.evaluate');
     }
 
     public function create($course_id) {
@@ -116,7 +116,7 @@ class CourseEvaluationController extends Controller {
         // في ملف: app/Controllers/CourseEvaluationController.php
 
 public function show($id) {
-    Auth::can('training.view');
+    Auth::enforce('training.view');
 
     $evaluationModel = new \App\Models\CourseEvaluation();
     $evaluation = $evaluationModel->findById($id);
@@ -149,3 +149,4 @@ public function show($id) {
 }
 
 }
+

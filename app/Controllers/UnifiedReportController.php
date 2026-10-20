@@ -30,7 +30,7 @@ class UnifiedReportController extends Controller {
     }
 
     public function index() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         // Scope check for filtered requests will be done in data method, index shows all filters but limited
         $branches = (new Branch())->getAll();
         $departments = (new Department())->getAll();
@@ -42,7 +42,7 @@ class UnifiedReportController extends Controller {
     }
 
     public function getData() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $entityType = $_GET['entity_type'] ?? 'all';
         $branchId = !empty($_GET['branch_id']) ? (int)$_GET['branch_id'] : null;
         $deptId = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : null;
@@ -115,7 +115,7 @@ class UnifiedReportController extends Controller {
     }
 
     public function export() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $entityType = $_GET['entity_type'] ?? 'all';
         $where="WHERE status IN ('approved','completed')";
         $bind=[];
@@ -133,3 +133,4 @@ class UnifiedReportController extends Controller {
         fclose($out); exit;
     }
 }
+

@@ -11,7 +11,7 @@ use App\Models\WorkshopCatalog;
 class TrainingWorkshopController extends Controller {
 
     public function __construct() {
-        Auth::can('training.manage');
+        Auth::enforce('training.manage');
     }
 
     public function index() {
@@ -127,3 +127,4 @@ public function create() {
 
     
 }
+

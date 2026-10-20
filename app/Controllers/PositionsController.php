@@ -14,7 +14,7 @@ class PositionsController extends Controller {
      */
     public function index() {
         // لاحقاً، يمكنك إنشاء صلاحية مخصصة مثل 'positions.manage'
-     Auth::can('positions.manage');
+     Auth::enforce('positions.manage');
         $positionModel = new Position();
         $data = [
             'pageTitle' => 'إدارة المناصب الوظيفية',
@@ -28,7 +28,7 @@ class PositionsController extends Controller {
      * ينشئ منصباً جديداً.
      */
     public function store() {
-       Auth::can('positions.manage');
+       Auth::enforce('positions.manage');
 
         $data = [
             'title' => trim($_POST['title']),
@@ -66,7 +66,7 @@ class PositionsController extends Controller {
      * يحدّث بيانات منصب موجود.
      */
     public function update() {
-       Auth::can('positions.manage');
+       Auth::enforce('positions.manage');
 
         $data = [
             'id' => (int)$_POST['id'],
@@ -101,7 +101,7 @@ class PositionsController extends Controller {
      * يحذف منصباً.
      */
     public function destroy() {
-         Auth::can('positions.manage');
+         Auth::enforce('positions.manage');
 
         $id = (int)$_POST['id'];
         $positionModel = new Position();
@@ -133,3 +133,4 @@ class PositionsController extends Controller {
         exit();
     }
 }
+

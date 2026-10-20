@@ -20,14 +20,9 @@ class CriterionController extends Controller {
      * دالة البناء للتحقق من الصلاحية.
      */
     public function __construct() {
-        if (!Auth::check() || !Auth::can('templates.manage')) {
-            // استخدام die() هنا مقبول لأن هذا الـ Controller يجب ألا يتم الوصول إليه مباشرة
-            // إلا من خلال طلبات AJAX أو إرسال نماذج محمية.
-             http_response_code(403 );
-            // من الأفضل استدعاء ErrorController هنا أيضاً
-            (new ErrorController())->forbidden('templates.manage');
-            exit();
-        }
+        // استخدام enforce هنا مقبول لأن هذا الـ Controller يجب ألا يتم الوصول إليه مباشرة
+        // إلا من خلال طلبات AJAX أو إرسال نماذج محمية.
+        Auth::enforce('templates.manage');
     }
 
     /**

@@ -16,7 +16,7 @@ class TrainingReportController extends Controller {
     }
 
    public function dashboard() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         $evaluationModel = new CourseEvaluation();
         $reportData = $evaluationModel->getBranchLevelReport();
         $data = [
@@ -27,7 +27,7 @@ class TrainingReportController extends Controller {
     }
 // في ملف /app/Controllers/TrainingReportController.php
 /*public function dashboard() {
-    Auth::can('reports.view.all');
+    Auth::enforce('reports.view.all');
     
     // سنحتاج لدالة تجلب الهيكل التنظيمي
     $branchModel = new \App\Models\Branch(); // افترض أن لديك هذا المودل
@@ -46,7 +46,7 @@ class TrainingReportController extends Controller {
      * ===> تم إضافة try-catch block <===
      */
   /*  public function getDepartmentsByBranch($branch_id) {
-        Auth::can('reports.view.all'); // يجب التحقق من الصلاحية في دوال الـ API أيضاً
+        Auth::enforce('reports.view.all'); // يجب التحقق من الصلاحية في دوال الـ API أيضاً
         try {
             $evaluationModel = new \App\Models\CourseEvaluation();
             $reportData = $evaluationModel->getDepartmentLevelReportByBranch($branch_id);
@@ -75,7 +75,7 @@ class TrainingReportController extends Controller {
     public function getDepartmentsByBranch($branch_id) {
         try {
             // التأكد من أن المستخدم لديه الصلاحية
-            Auth::can('reports.view.all');
+            Auth::enforce('reports.view.all');
 
             $evaluationModel = new \App\Models\CourseEvaluation();
             $reportData = $evaluationModel->getDepartmentLevelReportByBranch($branch_id);
@@ -129,7 +129,7 @@ class TrainingReportController extends Controller {
      * API: يجلب الدورات المقيمة لقسم معين.
      */
     public function getCoursesByDepartment($department_id) {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         try {
             $reportModel = new \App\Models\CourseEvaluation();
             $courses = $reportModel->getGroupedCoursesReportByDepartment($department_id);
@@ -176,7 +176,7 @@ class TrainingReportController extends Controller {
      * /api/report?level=department&id=5
      */
     public function getReportData() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         
         $level = $_GET['level'] ?? 'company';
         $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
@@ -221,7 +221,7 @@ class TrainingReportController extends Controller {
      * هذه الدالة تعرض صفحة طباعة حقيقية يتم إنشاؤها من الخادم.
      */
     public function printReportPage() {
-        Auth::can('reports.view.all');
+        Auth::enforce('reports.view.all');
         
         $level = $_GET['level'] ?? 'company';
         $id = isset($_GET['id']) ? (int)$_GET['id'] : null;

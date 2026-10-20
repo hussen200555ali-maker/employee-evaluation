@@ -18,7 +18,7 @@ class BackupSettingController extends Controller {
      * عرض صفحة إعدادات النسخ الاحتياطي المحسنة
      */
     public function index() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         $settings = $this->backupSettingModel->getCurrentSettings();
         $settingsHistory = $this->backupSettingModel->getSettingsHistory(5);
@@ -34,7 +34,7 @@ class BackupSettingController extends Controller {
      * حفظ الإعدادات مع التفعيل التلقائي - النسخة الاحترافية
      */
     public function save() {
-        Auth::can('backup.manage');
+        Auth::enforce('backup.manage');
         
         if ($_POST) {
             // جمع البيانات من النموذج مع القيم الافتراضية
