@@ -28,8 +28,10 @@ class EmployeeReportService
                     t.template_name
              FROM evaluations e
              LEFT JOIN form_templates t ON t.id = e.template_id
+             INNER JOIN employees emp ON emp.id = e.evaluated_employee_id
              WHERE e.evaluated_employee_id = :employee_id
                AND e.status IN ('approved', 'completed')
+               AND emp.emp_code IS NOT NULL AND emp.emp_code != ''
              ORDER BY e.evaluation_date DESC, e.id DESC"
         );
         $this->db->bind(':employee_id', $employeeId);
