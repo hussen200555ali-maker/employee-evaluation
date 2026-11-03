@@ -203,7 +203,10 @@ class EvaluationController extends Controller {
                 return;
             }
         } else {
-            $evaluatorEmployeeId = !empty($_POST['evaluator_employee_id']) ? (int)$_POST['evaluator_employee_id'] : null;
+            $currentUserEmployeeId = (int)(Auth::user()->employee_id ?? 0);
+            $evaluatorEmployeeId = !empty($_POST['evaluator_employee_id'])
+                ? (int)$_POST['evaluator_employee_id']
+                : ($currentUserEmployeeId > 0 ? $currentUserEmployeeId : null);
             if ($evaluatorEmployeeId) {
                 $evalEmp = (new Employee())->findById($evaluatorEmployeeId);
                 if ($evalEmp) { $evaluatorName = $evalEmp->full_name; $evaluatorTitle = $evalEmp->position_title ?? ''; }
@@ -283,7 +286,9 @@ class EvaluationController extends Controller {
         // **************************
 
         $employeeModel = new Employee();
-        $evaluator = $employeeModel->getDetailsForSnapshot($evaluation->evaluator_employee_id);
+        $evaluator = !empty($evaluation->evaluator_employee_id)
+            ? $employeeModel->getDetailsForSnapshot((int)$evaluation->evaluator_employee_id)
+            : null;
 
         $templateModel = new Template();
         $template = $templateModel->getTemplateWithStructure($evaluation->template_id);

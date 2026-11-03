@@ -306,8 +306,8 @@ body {
                 <section class="evaluation-details-card">
                     <div class="info-grid">
                         <div class="info-item"><span>الموظف:</span> <strong><?php echo htmlspecialchars($evaluation->employee_name); ?></strong></div>
-                        <div class="info-item"><span>القائم بالتقييم:</span> <strong><?php echo htmlspecialchars($evaluation->evaluator_name ?? $evaluator->full_name ?? 'غير محدد'); ?></strong></div>
-                        <div class="info-item"><span>صفة المقيّم:</span> <strong><?php echo htmlspecialchars($evaluation->evaluator_title ?? $evaluator->position_title ?? ''); ?></strong></div>
+                        <div class="info-item"><span>القائم بالتقييم:</span> <strong><?php echo htmlspecialchars($evaluation->evaluator_name ?? ($evaluator?->full_name ?? 'غير محدد')); ?></strong></div>
+                        <div class="info-item"><span>صفة المقيّم:</span> <strong><?php echo htmlspecialchars($evaluation->evaluator_title ?? ($evaluator?->position_title ?? '')); ?></strong></div>
                         <div class="info-item"><span>المنصب:</span> <strong><?php echo htmlspecialchars($evaluation->position_name); ?></strong></div>
                         <div class="info-item"><span>تاريخ التقييم:</span>  <strong>
                                 <center><?php
