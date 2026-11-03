@@ -86,9 +86,9 @@ public function getTemplateWithStructure($id) {
     try {
         // --- 1. إدخال بيانات القالب الأساسية (بالأسماء الصحيحة) ---
         $sql_template = "INSERT INTO form_templates 
-                            (template_name, template_description, target_position_id, target_type, target_entity_id, unit_scope, is_active, created_by, updated_by) 
+                            (template_name, template_description, target_position_id, target_type, evaluation_mode, evaluation_frequency, target_entity_id, unit_scope, is_active, created_by, updated_by)
                          VALUES 
-                            (:name, :desc, :pos_id, :ttype, :tent, :uscope, :active, :creator_id, :updater_id)";
+                            (:name, :desc, :pos_id, :ttype, :evaluation_mode, :evaluation_frequency, :tent, :uscope, :active, :creator_id, :updater_id)";
         
         $this->db->query($sql_template);
         
@@ -97,6 +97,8 @@ public function getTemplateWithStructure($id) {
         $this->db->bind(':desc', $templateData['template_description']);
         $this->db->bind(':pos_id', $templateData['target_position_id']);
         $this->db->bind(':ttype', $templateData['target_type'] ?? 'employee');
+        $this->db->bind(':evaluation_mode', $templateData['evaluation_mode'] ?? 'numeric');
+        $this->db->bind(':evaluation_frequency', $templateData['evaluation_frequency'] ?? 'yearly');
         $this->db->bind(':tent', $templateData['target_entity_id'] ?? null);
         $this->db->bind(':uscope', $templateData['unit_scope'] ?? null);
         $this->db->bind(':active', $templateData['is_active']);
@@ -189,6 +191,8 @@ public function getTemplateWithStructure($id) {
                         template_description = :desc, 
                         target_position_id = :pos_id,
                         target_type = :ttype,
+                        evaluation_mode = :evaluation_mode,
+                        evaluation_frequency = :evaluation_frequency,
                         target_entity_id = :tent,
                         unit_scope = :uscope,
                         is_active = :active, 
@@ -202,6 +206,8 @@ public function getTemplateWithStructure($id) {
             $this->db->bind(':desc', $templateData['template_description']);
             $this->db->bind(':pos_id', $templateData['target_position_id']);
             $this->db->bind(':ttype', $templateData['target_type'] ?? 'employee');
+            $this->db->bind(':evaluation_mode', $templateData['evaluation_mode'] ?? 'numeric');
+            $this->db->bind(':evaluation_frequency', $templateData['evaluation_frequency'] ?? 'yearly');
             $this->db->bind(':tent', $templateData['target_entity_id'] ?? null);
             $this->db->bind(':uscope', $templateData['unit_scope'] ?? null);
             $this->db->bind(':active', $templateData['is_active']);

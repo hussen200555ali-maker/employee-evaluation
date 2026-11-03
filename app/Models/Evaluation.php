@@ -95,24 +95,28 @@ class Evaluation extends Model {
             $sql = "INSERT INTO evaluations (
                         template_id, entity_type, entity_id, context_type, context_id, schedule_id,
                         evaluated_employee_id, evaluator_employee_id, evaluator_name, evaluator_title,
-                        evaluation_date, created_by_user_id, employee_name, employee_code, nickname,
+                        evaluation_date, evaluation_type, final_grade_label, final_grade_value,
+                        created_by_user_id, employee_name, employee_code, nickname,
                         branch_name, department_name, position_name, entity_snapshot, status
                     ) VALUES (
                         :template_id, :entity_type, :entity_id, :context_type, :context_id, :schedule_id,
                         :evaluated_employee_id, :evaluator_employee_id, :evaluator_name, :evaluator_title,
-                        :evaluation_date, :created_by_user_id, :employee_name, :employee_code, :nickname,
+                        :evaluation_date, :evaluation_type, :final_grade_label, :final_grade_value,
+                        :created_by_user_id, :employee_name, :employee_code, :nickname,
                         :branch_name, :department_name, :position_name, :entity_snapshot, :status
                     )";
         } else {
             $sql = "INSERT INTO evaluations (
                         template_id, entity_type, entity_id,
                         evaluated_employee_id, evaluator_employee_id, evaluator_name, evaluator_title,
-                        evaluation_date, created_by_user_id, employee_name, employee_code, nickname,
+                        evaluation_date, evaluation_type, final_grade_label, final_grade_value,
+                        created_by_user_id, employee_name, employee_code, nickname,
                         branch_name, department_name, position_name, entity_snapshot
                     ) VALUES (
                         :template_id, :entity_type, :entity_id,
                         :evaluated_employee_id, :evaluator_employee_id, :evaluator_name, :evaluator_title,
-                        :evaluation_date, :created_by_user_id, :employee_name, :employee_code, :nickname,
+                        :evaluation_date, :evaluation_type, :final_grade_label, :final_grade_value,
+                        :created_by_user_id, :employee_name, :employee_code, :nickname,
                         :branch_name, :department_name, :position_name, :entity_snapshot
                     )";
         }
@@ -134,6 +138,9 @@ class Evaluation extends Model {
         $this->db->bind(':evaluator_name', $data['evaluator_name'] ?? null);
         $this->db->bind(':evaluator_title', $data['evaluator_title'] ?? null);
         $this->db->bind(':evaluation_date', $data['evaluation_date']);
+        $this->db->bind(':evaluation_type', $data['evaluation_type'] ?? null);
+        $this->db->bind(':final_grade_label', $data['final_grade_label'] ?? null);
+        $this->db->bind(':final_grade_value', $data['final_grade_value'] ?? null);
         $this->db->bind(':created_by_user_id', $data['created_by_user_id']);
         $this->db->bind(':employee_name', $data['employee_name'] ?? $data['entity_name'] ?? 'وحدة');
         $this->db->bind(':employee_code', $data['employee_code'] ?? $data['entity_code'] ?? '');
@@ -293,6 +300,30 @@ class Evaluation extends Model {
         $this->db->bind(':id', $evaluationId);
         return $this->db->execute();
     }
+
+    public function updateScoreGradeAndStatus(
+        int $evaluationId,
+        ?float $score,
+        string $gradeLabel,
+        float $gradeValue,
+        string $status
+    ): bool {
+        $this->db->query(
+            'UPDATE evaluations
+             SET final_score = :score,
+                 final_grade_label = :grade_label,
+                 final_grade_value = :grade_value,
+                 status = :status,
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
+        $this->db->bind(':score', $score);
+        $this->db->bind(':grade_label', $gradeLabel);
+        $this->db->bind(':grade_value', $gradeValue);
+        $this->db->bind(':status', $status);
+        $this->db->bind(':id', $evaluationId);
+        return $this->db->execute();
+    }
   
     /**
      * =================================================================
@@ -308,6 +339,7 @@ class Evaluation extends Model {
         $templateModel = new \App\Models\Template();
         $template = $templateModel->getTemplateWithStructure($evaluation->template_id);
         if (!$template) return null;
+        if (($template['evaluation_mode'] ?? 'numeric') === 'descriptive') return null;
 
         // 3. ط¬ظ„ط¨ ط§ظ„ط¥ط¬ط§ط¨ط§طھ ظ…ط¹ ط§ظ„ط¯ط±ط¬ط§طھ ط§ظ„ظ…ظˆط­ط¯ط© ط§ظ„ظ…ط­ظپظˆط¸ط©
         $this->db->query("SELECT section_id, normalized_score FROM evaluation_answers WHERE evaluation_id = :id");
@@ -1402,4 +1434,3 @@ public function archiveAdminReport(int $id): bool {
 }
 
 }
-

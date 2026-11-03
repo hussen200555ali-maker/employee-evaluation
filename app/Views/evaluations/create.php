@@ -68,6 +68,13 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                         ?>
                     </small>
                   </div>
+                <div class="col-md-4">
+                    <label for="evaluation_type" class="form-label fw-bold">نوع التقييم</label>
+                    <select class="form-select form-select-lg" id="evaluation_type" name="evaluation_type" required>
+                        <option value="annual">سنوي</option>
+                        <option value="periodic">دوري</option>
+                    </select>
+                </div>
             </div>
 
             <div class="form-actions mt-4">

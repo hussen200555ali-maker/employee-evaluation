@@ -153,6 +153,13 @@ class EvaluationController extends Controller {
             $this->redirect('/evaluations/create');
         }
 
+        $evaluationType = $_POST['evaluation_type'] ?? 'annual';
+        if (!in_array($evaluationType, ['annual', 'periodic'], true)) {
+            Flash::set('نوع التقييم المحدد غير صالح.', 'danger');
+            $this->redirect('/evaluations/create');
+            return;
+        }
+
         // 2. تجميع البيانات الأساسية
         $evaluatedEmployeeId = (int)$_POST['evaluated_employee_id'];
         
@@ -209,6 +216,7 @@ class EvaluationController extends Controller {
         }
         $data = [
             'template_id' => (int)$_POST['template_id'],
+            'evaluation_type' => $evaluationType,
             'evaluated_employee_id' => $evaluatedEmployeeId,
             'evaluator_employee_id' => $evaluatorEmployeeId,
             'evaluator_name' => $evaluatorName,
@@ -291,7 +299,8 @@ class EvaluationController extends Controller {
             'evaluation' => $evaluation,
             'evaluator' => $evaluator,
             'template' => $template,
-            'savedAnswers' => $savedAnswers // <-- تمرير الإجابات المحفوظة إلى الواجهة
+            'savedAnswers' => $savedAnswers,
+            'gradingScales' => (new \App\Models\GradingScale())->getActive(),
         ];
 
         $this->view('evaluations/fill', $data);
@@ -326,16 +335,51 @@ class EvaluationController extends Controller {
             $this->redirect('/dashboard');
             return;
         }
+        $template = (new Template())->getTemplateWithStructure($evaluation->template_id);
+        if (!$template) {
+            Flash::set('قالب التقييم المرتبط بهذا التقييم غير موجود.', 'error');
+            $this->redirect('/evaluations');
+            return;
+        }
+
+        $manualGrade = null;
+        if (in_array($template['evaluation_mode'] ?? 'numeric', ['descriptive', 'mixed'], true)) {
+            $gradeId = filter_var($_POST['final_grade_id'] ?? null, FILTER_VALIDATE_INT);
+            $manualGrade = ($gradeId !== false && $gradeId !== null && $gradeId > 0)
+                ? (new \App\Models\GradingScale())->findActiveById($gradeId)
+                : null;
+            if (!$manualGrade) {
+                Flash::set('اختر تقديرًا عامًا صالحًا من سلم التقديرات النشط.', 'danger');
+                $this->redirect("/evaluations/{$evaluationId}/fill");
+                return;
+            }
+        }
+
         $success = $evaluationModel->saveEvaluationResults($evaluationId, $results);
 
         if ($success) {
-            $finalScore = $evaluationModel->calculateFinalScore($evaluationId);
+            $isDescriptive = ($template['evaluation_mode'] ?? 'numeric') === 'descriptive';
+            $finalScore = $isDescriptive ? null : $evaluationModel->calculateFinalScore($evaluationId);
             $isUnit = in_array($evaluation->entity_type ?? 'employee', ['branch','department']);
             $nextStatus = $isUnit ? 'pending_review' : 'completed';
-            if ($finalScore !== null) {
-                $evaluationModel->updateScoreAndStatus($evaluationId, $finalScore, $nextStatus);
+            if ($manualGrade) {
+                $updated = $evaluationModel->updateScoreGradeAndStatus(
+                    $evaluationId,
+                    $finalScore,
+                    $manualGrade->grade_label,
+                    (float)$manualGrade->numeric_value,
+                    $nextStatus
+                );
+            } elseif ($finalScore !== null) {
+                $updated = $evaluationModel->updateScoreAndStatus($evaluationId, $finalScore, $nextStatus);
             } else {
-                $evaluationModel->updateStatus($evaluationId, $nextStatus);
+                $updated = $evaluationModel->updateStatus($evaluationId, $nextStatus);
+            }
+
+            if (!$updated) {
+                Flash::set('تم حفظ الإجابات، لكن تعذر تحديث نتيجة التقييم وحالته. يرجى المحاولة مرة أخرى.', 'error');
+                $this->redirect("/evaluations/{$evaluationId}/fill");
+                return;
             }
             Audit::log('EVALUATION_SUBMITTED', $evaluationId, 'evaluations');
             if ($isUnit) Flash::set('تم حفظ تقييم الوحدة وإرساله للمراجعة.', 'success');
@@ -559,4 +603,3 @@ class EvaluationController extends Controller {
         return $user && (int)($user->employee_id ?? 0) > 0 && (int)$evaluation->evaluator_employee_id === (int)$user->employee_id;
     }
 }
-

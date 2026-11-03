@@ -76,6 +76,12 @@ class BuilderController extends Controller {
         $allowedTypes = ['employee','employee_in_course','employee_in_workshop','course','workshop','unit','admin'];
         $ttype = $_POST['target_type'] ?? 'employee';
         if (!in_array($ttype, $allowedTypes)) $ttype='employee';
+        $allowedModes = ['numeric', 'descriptive', 'mixed'];
+        $evaluationMode = $_POST['evaluation_mode'] ?? 'numeric';
+        if (!in_array($evaluationMode, $allowedModes, true)) $evaluationMode = 'numeric';
+        $allowedFrequencies = ['yearly', 'quarterly', 'monthly', 'ad-hoc'];
+        $evaluationFrequency = $_POST['evaluation_frequency'] ?? 'yearly';
+        if (!in_array($evaluationFrequency, $allowedFrequencies, true)) $evaluationFrequency = 'yearly';
         $uscope = null;
         if ($ttype==='unit') {
             $us = $_POST['unit_scope'] ?? '';
@@ -86,6 +92,8 @@ class BuilderController extends Controller {
             'template_description' => trim($_POST['template_description'] ?? ''),
             'target_position_id'   => !empty($_POST['target_position_id']) ? (int)$_POST['target_position_id'] : null,
             'target_type'          => $ttype,
+            'evaluation_mode'      => $evaluationMode,
+            'evaluation_frequency' => $evaluationFrequency,
             'target_entity_id'     => null,
             'unit_scope'           => $uscope,
             'is_active'            => isset($_POST['is_active']) ? 1 : 0,
@@ -176,4 +184,3 @@ class BuilderController extends Controller {
         ]);
     }
 }
-

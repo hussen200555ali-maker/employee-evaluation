@@ -104,6 +104,29 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
                             <label for="target_type">نوع القالب (7 أنواع عامة)</label>
                         </div>
                     </div>
+                    <div class="col-md-2">
+                        <div class="form-floating">
+                            <?php $mode = $template['evaluation_mode'] ?? 'numeric'; ?>
+                            <select class="form-select" id="evaluation_mode" name="evaluation_mode">
+                                <option value="numeric" <?= $mode === 'numeric' ? 'selected' : '' ?>>عددي</option>
+                                <option value="descriptive" <?= $mode === 'descriptive' ? 'selected' : '' ?>>وصفي</option>
+                                <option value="mixed" <?= $mode === 'mixed' ? 'selected' : '' ?>>مختلط</option>
+                            </select>
+                            <label for="evaluation_mode">نمط التقييم</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating">
+                            <?php $frequency = $template['evaluation_frequency'] ?? 'yearly'; ?>
+                            <select class="form-select" id="evaluation_frequency" name="evaluation_frequency">
+                                <option value="yearly" <?= $frequency === 'yearly' ? 'selected' : '' ?>>سنوي</option>
+                                <option value="quarterly" <?= $frequency === 'quarterly' ? 'selected' : '' ?>>ربع سنوي</option>
+                                <option value="monthly" <?= $frequency === 'monthly' ? 'selected' : '' ?>>شهري</option>
+                                <option value="ad-hoc" <?= $frequency === 'ad-hoc' ? 'selected' : '' ?>>حسب الحاجة</option>
+                            </select>
+                            <label for="evaluation_frequency">دورية القالب</label>
+                        </div>
+                    </div>
                     <div class="col-md-3" id="pos-wrapper">
                         <div class="form-floating">
                             <select class="form-select" id="target_position_id" name="target_position_id">

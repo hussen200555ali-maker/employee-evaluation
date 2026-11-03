@@ -94,6 +94,11 @@ $router->post('admin/roles/update', 'App\Controllers\Admin\RoleController@update
 $router->post('admin/roles/delete', 'App\Controllers\Admin\RoleController@destroy');
 $router->post('admin/roles/update-permission', 'App\Controllers\Admin\RoleController@updatePermission');
 
+// --- grading scales ---
+$router->get('grading-scales', 'App\Controllers\GradingScaleController@index');
+$router->post('grading-scales', 'App\Controllers\GradingScaleController@store');
+$router->post('grading-scales/delete', 'App\Controllers\GradingScaleController@destroy');
+
 /*
 |==========================================================================
 | 5. وحدة القوالب والتقييم (Templates & Evaluations)

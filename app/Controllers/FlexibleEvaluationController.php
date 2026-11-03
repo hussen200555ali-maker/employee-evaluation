@@ -63,7 +63,7 @@ class FlexibleEvaluationController extends Controller {
         $exists=$this->exists('course',$courseId,null,null,$templateId);
         if($exists){ Flash::set('يوجد تقييم لهذه الدورة بنفس القالب','danger'); $this->redirect('/flexible/evaluations/create/course'); }
         $data=[
-            'template_id'=>$templateId,'entity_type'=>'course','entity_id'=>$courseId,'context_type'=>null,'context_id'=>null,'schedule_id'=>null,
+            'template_id'=>$templateId,'entity_type'=>'course','entity_id'=>$courseId,'evaluation_type'=>'course','context_type'=>null,'context_id'=>null,'schedule_id'=>null,
             'evaluated_employee_id'=>null,'evaluator_employee_id'=>Auth::user()->employee_id??0,
             'evaluation_date'=>$_POST['evaluation_date']??date('Y-m-d'),'created_by_user_id'=>Auth::id(),
             'employee_name'=>$course->course_title,'employee_code'=>'course-'.$courseId,'branch_name'=>$course->branch_name??'','department_name'=>$course->dept_name??'','position_name'=>'دورة','entity_snapshot'=>['course_title'=>$course->course_title,'branch'=>$course->branch_name],'status'=>'draft'
@@ -82,7 +82,7 @@ class FlexibleEvaluationController extends Controller {
         if(!$w){ Flash::set('الورشة غير موجودة','danger'); $this->redirect('/flexible/evaluations/create/workshop'); }
         if($this->exists('workshop',$wid,null,null,$tid)){ Flash::set('يوجد تقييم','danger'); $this->redirect('/flexible/evaluations/create/workshop'); }
         $data=[
-            'template_id'=>$tid,'entity_type'=>'workshop','entity_id'=>$wid,'evaluated_employee_id'=>null,'evaluator_employee_id'=>Auth::user()->employee_id??0,
+            'template_id'=>$tid,'entity_type'=>'workshop','entity_id'=>$wid,'evaluation_type'=>'workshop','evaluated_employee_id'=>null,'evaluator_employee_id'=>Auth::user()->employee_id??0,
             'evaluation_date'=>$_POST['evaluation_date']??date('Y-m-d'),'created_by_user_id'=>Auth::id(),
             'employee_name'=>$w->workshop_title,'employee_code'=>'workshop-'.$wid,'branch_name'=>$w->branch_name??'','department_name'=>'','position_name'=>'ورشة','entity_snapshot'=>['workshop_title'=>$w->workshop_title],'status'=>'draft'
         ];
@@ -100,7 +100,7 @@ class FlexibleEvaluationController extends Controller {
         if(!$emp||!$course){ Flash::set('موظف أو دورة غير موجود','danger'); $this->redirect('/flexible/evaluations/create/employee-in-course'); }
         if($this->exists('employee',$empId,'course',$courseId,$tid)){ Flash::set('يوجد تقييم لهذا الموظف بنفس الدورة والقالب','danger'); $this->redirect('/flexible/evaluations/create/employee-in-course'); }
         $data=[
-            'template_id'=>$tid,'entity_type'=>'employee','entity_id'=>$empId,'context_type'=>'course','context_id'=>$courseId,'schedule_id'=>null,
+            'template_id'=>$tid,'entity_type'=>'employee','entity_id'=>$empId,'evaluation_type'=>'course','context_type'=>'course','context_id'=>$courseId,'schedule_id'=>null,
             'evaluated_employee_id'=>$empId,'evaluator_employee_id'=>Auth::user()->employee_id??0,
             'evaluation_date'=>$_POST['evaluation_date']??date('Y-m-d'),'created_by_user_id'=>Auth::id(),
             'employee_name'=>$emp->full_name,'employee_code'=>$emp->emp_code,'branch_name'=>$emp->branch_name??'','department_name'=>$emp->department_name??'','position_name'=>$emp->position_title??'','entity_snapshot'=>['course_title'=>$course->course_title],'status'=>'draft'
@@ -119,7 +119,7 @@ class FlexibleEvaluationController extends Controller {
         if(!$emp||!$w){ Flash::set('بيانات غير صحيحة','danger'); $this->redirect('/flexible/evaluations/create/employee-in-workshop'); }
         if($this->exists('employee',$empId,'workshop',$wid,$tid)){ Flash::set('يوجد تقييم','danger'); $this->redirect('/flexible/evaluations/create/employee-in-workshop'); }
         $data=[
-            'template_id'=>$tid,'entity_type'=>'employee','entity_id'=>$empId,'context_type'=>'workshop','context_id'=>$wid,'schedule_id'=>null,
+            'template_id'=>$tid,'entity_type'=>'employee','entity_id'=>$empId,'evaluation_type'=>'workshop','context_type'=>'workshop','context_id'=>$wid,'schedule_id'=>null,
             'evaluated_employee_id'=>$empId,'evaluator_employee_id'=>Auth::user()->employee_id??0,
             'evaluation_date'=>$_POST['evaluation_date']??date('Y-m-d'),'created_by_user_id'=>Auth::id(),
             'employee_name'=>$emp->full_name,'employee_code'=>$emp->emp_code,'branch_name'=>$emp->branch_name??'','department_name'=>$emp->department_name??'','position_name'=>$emp->position_title??'','entity_snapshot'=>['workshop_title'=>$w->workshop_title],'status'=>'draft'
@@ -136,4 +136,3 @@ class FlexibleEvaluationController extends Controller {
         return (bool)$db->fetch();
     }
 }
-

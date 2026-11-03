@@ -246,8 +246,8 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
             <?php endif; ?>
 
             <!-- ================= الإدارة والنظام (L1) ================= -->
-            <?php if (Auth::isAdmin() || Auth::userHasPermission('templates.manage') || Auth::userHasPermission('settings.manage') || Auth::userHasPermission('backup.manage') || Auth::userHasPermission('users.view') || Auth::userHasPermission('roles.manage')): ?>
-            <li class="sidebar-category <?php echo ($__isActive('/templates') || $__isActive('/builder') || $__isActive('/settings') || $__isActive('/backup') || $__isActive('/admin/users') || $__isActive('/admin/roles')) ? 'open' : ''; ?>">
+            <?php if (Auth::isAdmin() || Auth::userHasPermission('templates.manage') || Auth::userHasPermission('settings.manage') || Auth::userHasPermission('backup.manage') || Auth::userHasPermission('grading_scales.manage') || Auth::userHasPermission('users.view') || Auth::userHasPermission('roles.manage')): ?>
+            <li class="sidebar-category <?php echo ($__isActive('/templates') || $__isActive('/builder') || $__isActive('/settings') || $__isActive('/grading-scales') || $__isActive('/backup') || $__isActive('/admin/users') || $__isActive('/admin/roles')) ? 'open' : ''; ?>">
                 <button type="button" class="sidebar-category-toggle" aria-expanded="false">
                     <span class="sidebar-category-label"><i class="fas fa-layer-group sidebar-cat-ico"></i> الإدارة والنظام</span>
                     <i class="fas fa-chevron-down sidebar-caret"></i>
@@ -255,8 +255,8 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                 <ul class="sidebar-category-body">
 
                     <!-- L2: الإعدادات -->
-                    <?php if (Auth::isAdmin() || Auth::userHasPermission('templates.manage') || Auth::userHasPermission('settings.manage') || Auth::userHasPermission('backup.manage')): ?>
-                    <li class="sidebar-group <?php echo ($__isActive('/templates') || $__isActive('/builder') || $__isActive('/settings/rating') || $__isActive('/backup')) ? 'open' : ''; ?>">
+                    <?php if (Auth::isAdmin() || Auth::userHasPermission('templates.manage') || Auth::userHasPermission('settings.manage') || Auth::userHasPermission('grading_scales.manage') || Auth::userHasPermission('backup.manage')): ?>
+                    <li class="sidebar-group <?php echo ($__isActive('/templates') || $__isActive('/builder') || $__isActive('/settings/rating') || $__isActive('/grading-scales') || $__isActive('/backup')) ? 'open' : ''; ?>">
                         <button type="button" class="sidebar-group-toggle" aria-expanded="false">
                             <span class="sidebar-group-label"><i class="fas fa-cogs sidebar-ico"></i> الإعدادات</span>
                             <i class="fas fa-chevron-down sidebar-caret"></i>
@@ -268,6 +268,9 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                             <?php endif; ?>
                             <?php if (Auth::userHasPermission('settings.manage')): ?>
                             <li><a class="sidebar-sublink <?php echo $__isActive('/settings/rating') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/settings/rating"><i class="fas fa-sliders-h fa-fw me-2"></i> إعدادات التصنيف</a></li>
+                            <?php endif; ?>
+                            <?php if (Auth::userHasPermission('grading_scales.manage')): ?>
+                            <li><a class="sidebar-sublink <?php echo $__isActive('/grading-scales') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/grading-scales"><i class="fas fa-star fa-fw me-2"></i> سلم التقديرات</a></li>
                             <?php endif; ?>
                             <?php if (Auth::userHasPermission('backup.manage')): ?>
                             <li><a class="sidebar-sublink <?php echo $__isActive('/backup') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/backup/dashboard"><i class="fas fa-database fa-fw me-2"></i> النسخ الاحتياطي</a></li>

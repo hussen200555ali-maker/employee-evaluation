@@ -248,12 +248,34 @@ body {
 <form action="<?php echo APP_URL; ?>/evaluations/submit" method="POST" id="evaluation-form">
     <?= csrf_field() ?>
     <input type="hidden" name="evaluation_id" value="<?php echo $evaluation->id; ?>">
+    <?php if (in_array($template['evaluation_mode'] ?? 'numeric', ['descriptive', 'mixed'], true)): ?>
+        <div class="container mt-4">
+            <?php if (empty($gradingScales)): ?>
+                <div class="alert alert-danger">لا يمكن استكمال التقييم الوصفي؛ لا توجد درجات تقدير نشطة.</div>
+            <?php else: ?>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <label class="form-label fw-bold" for="final_grade_id">التقدير العام</label>
+                        <select class="form-select" id="final_grade_id" name="final_grade_id" required>
+                            <option value="">اختر التقدير العام</option>
+                            <?php foreach ($gradingScales as $grade): ?>
+                                <option value="<?= (int)$grade->id ?>">
+                                    <?= htmlspecialchars($grade->scale_name . ' — ' . $grade->grade_label, ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted">يُدخل المقيّم هذا التقدير يدويًا.</small>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <div class="container mt-4">
         <div class="evaluation-layout">
 
             <aside class="evaluation-sidebar d-none d-lg-block">
-                <div class="live-scoreboard">
+                <div class="live-scoreboard" <?= ($template['evaluation_mode'] ?? 'numeric') === 'descriptive' ? 'hidden' : '' ?>>
                     <div class="scoreboard-header">
                         <i class="fas fa-tachometer-alt"></i> النتيجة المباشرة
                     </div>
