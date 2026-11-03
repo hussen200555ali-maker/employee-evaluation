@@ -67,8 +67,8 @@
         <h2><i class="fas fa-chart-bar"></i> تفاصيل تقييم الدورة</h2>
         <div>
             <button onclick="window.print();" class="btn btn-primary"><i class="fas fa-print me-2"></i> طباعة</button>
-            <a href="<?php echo APP_URL; ?>/reports/training-dashboard" class="btn btn-secondary">
-                <i class="fas fa-arrow-left me-2"></i> العودة للتقارير
+            <a href="<?php echo APP_URL; ?>/training/courses" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> العودة للدورات
             </a>
         </div>
     </div>

@@ -217,55 +217,15 @@ $router->get('training/workshops/evaluations/show/:id', 'App\Controllers\Worksho
 |==========================================================================
 */
 // --- التقارير المؤسسية الشاملة ---
-$router->get('reports/builder', 'App\Controllers\ReportsController@builder');
-$router->post('reports/generate', 'App\Controllers\ReportsController@generate');
-$router->get('reports/generate', 'App\Controllers\ReportsController@generate');
-$router->post('reports/save-template', 'App\Controllers\ReportsController@saveTemplate');
-$router->post('reports/print', 'App\Controllers\ReportsController@printReport');
 // --- التقارير الموحدة (المرحلة 3) ---
-$router->get('reports/unified', 'App\Controllers\UnifiedReportController@index');
-$router->get('api/reports/unified', 'App\Controllers\UnifiedReportController@getData');
-$router->get('reports/unified/export', 'App\Controllers\UnifiedReportController@export');
 // --- CD-008: Report Builder + Core Reports (CP-B) ---
-$router->post('reports/builder/data', 'App\Controllers\ReportsController@builderData');
-$router->post('reports/builder/export/excel', 'App\Controllers\ReportsController@builderExportExcel');
-$router->post('reports/builder/export/pdf', 'App\Controllers\ReportsController@builderExportPdf');
-$router->get('reports/analytics/gap', 'App\Controllers\ReportsAnalyticsController@gap');
-$router->post('reports/analytics/gap/data', 'App\Controllers\ReportsAnalyticsController@gapData');
-$router->get('reports/analytics/scorecard', 'App\Controllers\ReportsAnalyticsController@scorecard');
-$router->get('reports/analytics/ninebox', 'App\Controllers\ReportsAnalyticsController@ninebox');
-$router->post('reports/analytics/ninebox/data', 'App\Controllers\ReportsAnalyticsController@nineboxData');
-$router->get('reports/analytics/executive', 'App\Controllers\ReportsAnalyticsController@executive');
-$router->post('reports/analytics/executive/data', 'App\Controllers\ReportsAnalyticsController@executiveData');
 // --- التقارير الإحصائية الرسمية + ملفات الأداء (المرحلة 4) ---
-$router->get('reports/statistics', 'App\Controllers\StatisticalReportController@index');
-$router->get('api/reports/statistics', 'App\Controllers\StatisticalReportController@data');
-$router->get('reports/statistics/export', 'App\Controllers\StatisticalReportController@exportExcel');
-$router->get('courses/performance-files', 'App\Controllers\PerformanceFilesController@courses');
-$router->get('workshops/performance-files', 'App\Controllers\PerformanceFilesController@workshops');
-$router->get('units/performance-files', 'App\Controllers\PerformanceFilesController@units');
-$router->get('employees/performance-files', 'App\Controllers\PerformanceFilesController@employeeInCourse');
 
 // --- تقارير التدريب ---
-$router->get('reports/training-dashboard', 'App\Controllers\TrainingReportController@dashboard');
-$router->get('reports/print', 'App\Controllers\TrainingReportController@printReportPage');
 
 // --- تقارير الورش ---
-$router->get('reports/workshop-dashboard', 'App\Controllers\WorkshopReportController@dashboard');
-$router->get('reports/workshops', 'App\Controllers\WorkshopReportController@index');
-$router->get('reports/workshops/print', 'App\Controllers\WorkshopReportController@printReportPage');
-$router->get('reports/workshop-dashboard/print', 'App\Controllers\WorkshopReportController@printReportPage');
 
 // --- التحليل الاستراتيجي للأداء ---
-$router->get('analysis', 'App\Controllers\AnalysisController@index');
-$router->get('analysis/report', 'App\Controllers\AnalysisController@report');
-$router->get('analysis/employee/:id', 'App\Controllers\AnalysisController@showIndividualReport');
-$router->get('analysis/export', 'App\Controllers\AnalysisController@export');
-$router->get('analysis/print', 'App\Controllers\AnalysisController@printView');
-$router->post('analysis/exportPdfWithCharts', 'App\Controllers\AnalysisController@exportPdfWithCharts');
-$router->get('analysis/print/level', 'App\Controllers\AnalysisController@printViewLevel');
-$router->get('analysis/export/excel', 'App\Controllers\AnalysisController@exportExcel');
-$router->get('analysis/export/excel-employees', 'App\Controllers\AnalysisController@exportExcelEmployees');
 
 /*
 |==========================================================================
@@ -343,17 +303,8 @@ $router->get('api/templates/by-scope/:scope', 'App\Controllers\ApiController@get
 $router->get('api/to-hijri', 'App\Controllers\ApiController@toHijri');
 
 // --- API خاصة بالتقارير ---
-$router->get('api/report', 'App\Controllers\TrainingReportController@getReportData');
-$router->get('api/reports/departments-by-branch/:branch_id', 'App\Controllers\TrainingReportController@getDepartmentsByBranch');
-$router->get('api/reports/courses-by-department/:department_id', 'App\Controllers\TrainingReportController@getCoursesByDepartment');
-$router->get('api/reports/workshops-by-branch/:branch_id', 'App\Controllers\WorkshopReportController@getDepartmentsByBranch');
-$router->get('api/reports/workshops-by-department/:department_id', 'App\Controllers\WorkshopReportController@getWorkshopsByDepartment');
 
 // --- API خاصة بالتحليل ---
-$router->get('analysis/dashboard', 'App\Controllers\AnalysisController@dashboard');
-$router->get('analysis/insights', 'App\Controllers\AnalysisController@insights');
-$router->get('analysis/export/optimized', 'App\Controllers\AnalysisController@optimizedExport');
-$router->post('analysis/cache/clear', 'App\Controllers\AnalysisController@clearCache');
 
 /*
 |==========================================================================
@@ -368,31 +319,13 @@ $router->post('settings/rating/save', 'App\Controllers\SettingsController@saveRa
 | أرشيف الدورات والورش
 |==========================================================================
 */
-$router->get('archive/courses/branches', 'App\Controllers\ArchiveCoursesController@branches');
-$router->get('archive/courses/branches/:bid/departments', 'App\Controllers\ArchiveCoursesController@departments');
-$router->get('archive/courses/departments/:did/years', 'App\Controllers\ArchiveCoursesController@years');
-$router->get('archive/courses/records/:did/:year', 'App\Controllers\ArchiveCoursesController@records');
-$router->get('archive/courses/show/:id', 'App\Controllers\ArchiveCoursesController@show');
 
-$router->get('archive/workshops/branches', 'App\Controllers\ArchiveWorkshopsController@branches');
-$router->get('archive/workshops/branches/:bid/departments', 'App\Controllers\ArchiveWorkshopsController@departments');
-$router->get('archive/workshops/departments/:did/years', 'App\Controllers\ArchiveWorkshopsController@years');
-$router->get('archive/workshops/records/:did/:year', 'App\Controllers\ArchiveWorkshopsController@records');
-$router->get('archive/workshops/show/:id', 'App\Controllers\ArchiveWorkshopsController@show');
 
 /*
 |==========================================================================
 | التقارير الإدارية (جديد)
 |==========================================================================
 */
-$router->get('admin/reports', 'App\Controllers\AdminReportController@index');
-$router->get('admin/reports/create', 'App\Controllers\AdminReportController@create');
-$router->post('admin/reports/store', 'App\Controllers\AdminReportController@store');
-$router->get('admin/reports/show/:id', 'App\Controllers\AdminReportController@show');
-$router->get('admin/reports/edit/:id', 'App\Controllers\AdminReportController@edit');
-$router->post('admin/reports/update/:id', 'App\Controllers\AdminReportController@update');
-$router->get('admin/reports/print/:id', 'App\Controllers\AdminReportController@print');
-$router->get('admin/reports/archive', 'App\Controllers\AdminReportController@archive');
 
 /*
 |==========================================================================
