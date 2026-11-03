@@ -279,6 +279,20 @@ abstract class TestCase
         }
     }
 
+    protected function assertNotFalse(mixed $value, string $message = ''): void
+    {
+        if ($value === false) {
+            $this->fail(($message !== '' ? $message . ' — ' : '') . 'متوقع قيمة غير false.');
+        }
+    }
+
+    protected function assertStringStartsWith(string $needle, string $haystack, string $message = ''): void
+    {
+        if (!str_starts_with($haystack, $needle)) {
+            $this->fail(($message !== '' ? $message . ' — ' : '') . "الناتج لا يبدأ بالنص '$needle'.");
+        }
+    }
+
     protected function assertStringNotContainsString(string $needle, string $haystack, string $message = ''): void
     {
         if (str_contains($haystack, $needle)) {
