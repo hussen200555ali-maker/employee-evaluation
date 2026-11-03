@@ -89,6 +89,10 @@ $typeLabels = [
 
         <section class="tab-pane fade" id="profile-reports" role="tabpanel" aria-labelledby="profile-reports-tab" tabindex="0">
             <p class="text-muted">المتوسطات على سلم التقدير الخماسي، وتُحسب من التقييمات المعتمدة أو المكتملة المرتبطة مباشرة بالموظف.</p>
+            <form method="post" action="<?= APP_URL ?>/employees/profile/<?= (int)$employee->id ?>/reports" class="mb-4">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <button type="submit" class="btn btn-primary">إنشاء التقرير وحفظ نسخة ثابتة</button>
+            </form>
             <div class="row g-3 mb-4">
                 <?php foreach ($typeLabels as $type => $label): ?>
                     <?php $summary = $report['averages'][$type]; ?>
@@ -127,6 +131,35 @@ $typeLabels = [
                                     <td><?= (int)$year['evaluation_count'] ?></td>
                                     <td><?= $year['average'] === null ? '—' : number_format($year['average'], 2) . ($report['grading_scale_max_value'] === null ? '' : ' / ' . number_format($report['grading_scale_max_value'], 2)) ?></td>
                                     <td><?= $valueOrDash($year['grade_label']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header fw-bold">سجل التقارير المحفوظة</div>
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead><tr><th>رقم التقرير</th><th>تاريخ الإنشاء</th><th>أنشأه</th><th>التقرير والتصدير</th></tr></thead>
+                        <tbody>
+                        <?php if ($reportSnapshots === []): ?>
+                            <tr><td colspan="4" class="text-center text-muted py-4">لم تُحفظ تقارير لهذا الموظف بعد.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($reportSnapshots as $savedReport): ?>
+                                <?php $reportUrl = APP_URL . '/employees/profile/' . (int)$employee->id . '/reports/' . (int)$savedReport->id; ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($savedReport->report_number, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($savedReport->created_at, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($savedReport->created_by_username, ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary" href="<?= $reportUrl ?>">عرض</a>
+                                        <a class="btn btn-sm btn-outline-secondary" href="<?= $reportUrl ?>/export/pdf">PDF</a>
+                                        <a class="btn btn-sm btn-outline-secondary" href="<?= $reportUrl ?>/export/xlsx">Excel</a>
+                                        <a class="btn btn-sm btn-outline-secondary" href="<?= $reportUrl ?>/export/docx">Word</a>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

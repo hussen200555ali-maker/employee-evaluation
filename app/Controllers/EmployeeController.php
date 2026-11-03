@@ -13,6 +13,7 @@ use App\Core\Audit;
 use App\Core\Flash;
 use App\Models\Evaluation;
 use App\Services\EmployeeReportService;
+use App\Services\ReportSnapshotService;
 
 /**
  * EmployeeController
@@ -102,6 +103,8 @@ class EmployeeController extends Controller {
             'pageTitle' => 'ملف الموظف: ' . $employee->full_name,
             'employee' => $employee,
             'report' => (new EmployeeReportService())->getProfileReport((int)$employee->id),
+            'reportSnapshots' => (new ReportSnapshotService())->listForEmployee((int)$employee->id),
+            'csrfToken' => Auth::generateCsrfToken(),
         ]);
     }
 
