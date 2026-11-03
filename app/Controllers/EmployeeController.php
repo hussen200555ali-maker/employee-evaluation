@@ -12,6 +12,7 @@ use App\Models\Department;
 use App\Core\Audit;
 use App\Core\Flash;
 use App\Models\Evaluation;
+use App\Services\EmployeeReportService;
 
 /**
  * EmployeeController
@@ -86,6 +87,23 @@ class EmployeeController extends Controller {
     
     $this->view('employees/show', $data);
 }
+
+
+    public function profile($id): void {
+        Auth::enforce('employees.profile');
+
+        $employee = (new Employee())->findById((int)$id);
+        if (!$employee) {
+            (new ErrorController())->notFound();
+            return;
+        }
+
+        $this->view('employees/profile', [
+            'pageTitle' => 'ملف الموظف: ' . $employee->full_name,
+            'employee' => $employee,
+            'report' => (new EmployeeReportService())->getProfileReport((int)$employee->id),
+        ]);
+    }
 
 
     /**

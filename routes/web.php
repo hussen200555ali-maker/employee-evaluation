@@ -59,6 +59,7 @@ $router->post('departments/delete', 'App\Controllers\DepartmentController@destro
 $router->get('employees', 'App\Controllers\EmployeeController@index');
 $router->get('employees/create', 'App\Controllers\EmployeeController@create');
 $router->post('employees', 'App\Controllers\EmployeeController@store');
+$router->get('employees/profile/:id', 'App\Controllers\EmployeeController@profile');
 $router->get('employees/:id', 'App\Controllers\EmployeeController@show');
 $router->get('employees/:id/edit', 'App\Controllers\EmployeeController@edit');
 $router->post('employees/update', 'App\Controllers\EmployeeController@update');
