@@ -40,9 +40,14 @@ $reportUrl = APP_URL . '/employees/profile/' . $employeeId . '/reports/' . (int)
         <dl class="row card-body mb-0">
             <dt class="col-sm-3">الاسم الكامل</dt><dd class="col-sm-9"><?= $valueOrDash($employee['full_name'] ?? '') ?></dd>
             <dt class="col-sm-3">الرقم الوظيفي</dt><dd class="col-sm-9"><?= $valueOrDash($employee['emp_code'] ?? '') ?></dd>
+            <dt class="col-sm-3">البريد الإلكتروني</dt><dd class="col-sm-9"><?= $valueOrDash($employee['email'] ?? '') ?></dd>
+            <dt class="col-sm-3">الهاتف</dt><dd class="col-sm-9"><?= $valueOrDash($employee['phone'] ?? '') ?></dd>
             <dt class="col-sm-3">القسم</dt><dd class="col-sm-9"><?= $valueOrDash($employee['department_name'] ?? '') ?></dd>
             <dt class="col-sm-3">الفرع</dt><dd class="col-sm-9"><?= $valueOrDash($employee['branch_name'] ?? '') ?></dd>
             <dt class="col-sm-3">المنصب</dt><dd class="col-sm-9"><?= $valueOrDash($employee['position_title'] ?? '') ?></dd>
+            <dt class="col-sm-3">المدير المباشر</dt><dd class="col-sm-9"><?= $valueOrDash($employee['manager_name'] ?? '') ?></dd>
+            <dt class="col-sm-3">تاريخ الالتحاق</dt><dd class="col-sm-9"><?= $valueOrDash($employee['hire_date'] ?? '') ?></dd>
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9"><?= $valueOrDash($employee['status'] ?? '') ?></dd>
         </dl>
     </div>
 
@@ -52,7 +57,7 @@ $reportUrl = APP_URL . '/employees/profile/' . $employeeId . '/reports/' . (int)
             <div class="col-sm-6 col-xl">
                 <div class="card h-100"><div class="card-body">
                     <div class="small text-muted"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></div>
-                    <div class="h4 my-2"><?= $summary['average'] === null ? '—' : number_format((float)$summary['average'], 2) ?></div>
+                    <div class="h4 my-2"><?= $summary['average'] === null ? '—' : number_format((float)$summary['average'], 2) . ' / 100' ?></div>
                     <div><?= $valueOrDash($summary['grade_label']) ?></div>
                 </div></div>
             </div>

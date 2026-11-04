@@ -16,14 +16,14 @@ class AveragesEngineTest extends TestCase
     {
         $scale = $this->mockScale();
         $records = [
-            $this->mockRecord('2025-01-15', 5.0),
-            $this->mockRecord('2025-06-20', 4.0),
-            $this->mockRecord('2025-09-10', 3.0),
+            $this->mockRecord('2025-01-15', 95.0),
+            $this->mockRecord('2025-06-20', 85.0),
+            $this->mockRecord('2025-09-10', 75.0),
         ];
         $summary = $this->engine->summarize($records, $scale);
         $this->assertSame(3, $summary['evaluation_count']);
         $this->assertSame(3, $summary['scored_count']);
-        $this->assertEquals(4.0, $summary['average']);
+        $this->assertEquals(85.0, $summary['average']);
         $this->assertSame('جيد جداً', $summary['grade_label']);
     }
 
@@ -49,19 +49,19 @@ class AveragesEngineTest extends TestCase
     {
         $scale = $this->mockScale();
         $records = [
-            $this->mockRecord('2024-04-10', 5.0),
-            $this->mockRecord('2026-02-20', 3.0),
+            $this->mockRecord('2024-04-10', 95.0),
+            $this->mockRecord('2026-02-20', 75.0),
         ];
         $yearly = $this->engine->summarizeByYear($records, $scale);
         $this->assertSame(3, count($yearly));
         $this->assertSame(2024, $yearly[0]['year']);
-        $this->assertEquals(5.0, $yearly[0]['average']);
+        $this->assertEquals(95.0, $yearly[0]['average']);
         $this->assertSame('ممتاز', $yearly[0]['grade_label']);
         $this->assertSame(2025, $yearly[1]['year']);
         $this->assertSame(0, $yearly[1]['evaluation_count']);
         $this->assertNull($yearly[1]['average']);
         $this->assertSame(2026, $yearly[2]['year']);
-        $this->assertEquals(3.0, $yearly[2]['average']);
+        $this->assertEquals(75.0, $yearly[2]['average']);
         $this->assertSame('جيد', $yearly[2]['grade_label']);
     }
 
@@ -76,11 +76,12 @@ class AveragesEngineTest extends TestCase
         ];
     }
 
-    private function mockRecord(string $date, ?float $gradeValue): object
+    private function mockRecord(string $date, ?float $score): object
     {
         return (object)[
             'evaluation_date' => $date,
-            'grade_value'     => $gradeValue,
+            'final_score'     => $score,
+            'grade_value'     => null,
         ];
     }
 }

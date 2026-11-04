@@ -35,23 +35,23 @@ class EmployeeReportServiceTest extends TestCase
 
             $this->assertSame(4, count($report['records']));
             $this->assertEquals(5.0, $report['grading_scale_max_value']);
-            $this->assertEquals(5.0, $report['averages']['annual']['average']);
+            $this->assertEquals(95.0, $report['averages']['annual']['average']);
             $this->assertSame('ممتاز', $report['averages']['annual']['grade_label']);
-            $this->assertEquals(4.0, $report['averages']['course']['average']);
-            $this->assertEquals(3.0, $report['averages']['workshop']['average']);
-            $this->assertEquals(4.0, $report['averages']['periodic']['average']);
-            $this->assertEquals(4.0, $report['averages']['overall']['average']);
+            $this->assertEquals(85.0, $report['averages']['course']['average']);
+            $this->assertEquals(75.0, $report['averages']['workshop']['average']);
+            $this->assertNull($report['averages']['periodic']['average']);
+            $this->assertEquals(85.0, $report['averages']['overall']['average']);
             $this->assertSame('جيد جدًا', $report['averages']['overall']['grade_label']);
 
             $this->assertSame(3, count($report['yearly']));
             $this->assertSame(2023, $report['yearly'][0]['year']);
-            $this->assertEquals(4.5, $report['yearly'][0]['average']);
+            $this->assertEquals(90.0, $report['yearly'][0]['average']);
             $this->assertSame(2024, $report['yearly'][1]['year']);
             $this->assertSame(0, $report['yearly'][1]['evaluation_count']);
             $this->assertNull($report['yearly'][1]['average']);
             $this->assertNull($report['yearly'][1]['grade_label']);
             $this->assertSame(2025, $report['yearly'][2]['year']);
-            $this->assertEquals(3.5, $report['yearly'][2]['average']);
+            $this->assertEquals(75.0, $report['yearly'][2]['average']);
         } finally {
             $db->rollBack();
         }

@@ -293,12 +293,44 @@ class Evaluation extends Model {
      * @return bool
      */
     public function updateScoreAndStatus($evaluationId, $score, $status) {
-        $sql = "UPDATE evaluations SET final_score = :score, status = :status, updated_at = NOW() WHERE id = :id";
-        $this->db->query($sql);
+        $gradeLabel = null;
+        $gradeValue = null;
+        if ($score !== null) {
+            foreach ($this->getActiveScale() as $grade) {
+                if ((float)$score >= (float)$grade->min_value && (float)$score <= (float)$grade->max_value) {
+                    $gradeLabel = (string)$grade->grade_label;
+                    $gradeValue = (float)$grade->numeric_value;
+                    break;
+                }
+            }
+        }
+
+        $this->db->query(
+            'UPDATE evaluations
+             SET final_score = :score,
+                 final_grade_label = :grade_label,
+                 final_grade_value = :grade_value,
+                 status = :status,
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
         $this->db->bind(':score', $score);
+        $this->db->bind(':grade_label', $gradeLabel);
+        $this->db->bind(':grade_value', $gradeValue);
         $this->db->bind(':status', $status);
         $this->db->bind(':id', $evaluationId);
         return $this->db->execute();
+    }
+
+    private function getActiveScale(): array {
+        $this->db->query(
+            'SELECT grade_label, min_value, max_value, numeric_value
+             FROM grading_scales
+             WHERE scale_name = :scale_name AND is_active = 1
+             ORDER BY sort_order, min_value'
+        );
+        $this->db->bind(':scale_name', 'السلم الخماسي');
+        return $this->db->fetchAll() ?: [];
     }
 
     public function updateScoreGradeAndStatus(

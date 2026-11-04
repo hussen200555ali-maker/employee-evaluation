@@ -40,7 +40,7 @@ class EmployeeReportServiceEmpCodeTest extends TestCase
             $this->assertSame('annual', $report['records'][0]->evaluation_type);
             $this->assertEquals(90.0, (float)$report['records'][0]->final_score);
             $this->assertSame(1, $report['averages']['annual']['evaluation_count']);
-            $this->assertEquals(5.0, $report['averages']['annual']['average']);
+            $this->assertEquals(90.0, $report['averages']['annual']['average']);
         } finally { $db->rollBack(); }
     }
 

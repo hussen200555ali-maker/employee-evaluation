@@ -68,6 +68,7 @@ class EmployeeReportService
             'grading_scale_max_value' => $scale === []
                 ? null
                 : max(array_map(static fn(object $grade): float => (float)$grade->numeric_value, $scale)),
+            'average_max_value' => 100,
         ];
     }
 

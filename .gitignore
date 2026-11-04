@@ -9,6 +9,10 @@
 /.opencode/
 /.vscode/
 /config/database.php
+/setup/employee_evaluation_mvc.sql
+/database/employee_evaluation_mvc.sql
+/backups/*
+!/backups/.htaccess
 
 # SQL: الجذر فقط يُهمَل — الترحيلات تبقى متعقَّبة
 /*.sql

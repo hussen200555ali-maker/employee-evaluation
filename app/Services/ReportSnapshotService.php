@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Core\Database;
+use App\Core\Audit;
 use JsonException;
 use RuntimeException;
 use Throwable;
@@ -32,11 +33,14 @@ final class ReportSnapshotService
         try {
             $this->db->query(
                 'SELECT e.id, e.emp_code, e.full_name, p.title AS position_title,
-                        d.name AS department_name, b.name AS branch_name
+                        d.name AS department_name, b.name AS branch_name,
+                        e.personal_email, e.phone, e.join_date, e.is_active,
+                        manager.full_name AS manager_name
                  FROM employees e
                  LEFT JOIN positions p ON p.id = e.position_id
                  LEFT JOIN departments d ON d.id = e.department_id
                  LEFT JOIN branches b ON b.id = e.branch_id
+                 LEFT JOIN employees manager ON manager.id = e.manager_id
                  WHERE e.id = :employee_id'
             );
             $this->db->bind(':employee_id', $employeeId);
@@ -66,6 +70,11 @@ final class ReportSnapshotService
                     'position_title' => $employee->position_title,
                     'department_name' => $employee->department_name,
                     'branch_name' => $employee->branch_name,
+                    'email' => $employee->personal_email,
+                    'phone' => $employee->phone,
+                    'manager_name' => $employee->manager_name,
+                    'hire_date' => $employee->join_date,
+                    'status' => (int)$employee->is_active === 1 ? 'نشط' : 'غير نشط',
                 ],
                 'report' => $this->reportService->getProfileReport($employeeId),
             ];
@@ -102,6 +111,11 @@ final class ReportSnapshotService
             if ($snapshot === null) {
                 throw new RuntimeException('تعذر استرجاع نسخة التقرير بعد حفظها.');
             }
+
+            Audit::log('REPORT_ISSUED', $snapshotId, 'report_snapshots', [
+                'report_number' => $reportNumber,
+                'employee_id' => $employeeId,
+            ]);
 
             if ($ownsTransaction) {
                 $this->db->commit();

@@ -63,6 +63,17 @@ final class ReportExportService
         $sheet->setCellValue("A{$row}", 'الاسم');
         $this->setText($sheet, "B{$row}", $employee['full_name'] ?? '');
         $row++;
+        foreach ([
+            'البريد الإلكتروني' => $employee['email'] ?? '',
+            'الهاتف' => $employee['phone'] ?? '',
+            'المدير المباشر' => $employee['manager_name'] ?? '',
+            'تاريخ الالتحاق' => $employee['hire_date'] ?? '',
+            'الحالة' => $employee['status'] ?? '',
+        ] as $label => $value) {
+            $sheet->setCellValue("A{$row}", $label);
+            $this->setText($sheet, "B{$row}", $value);
+            $row++;
+        }
         $sheet->setCellValue("A{$row}", 'الرقم الوظيفي');
         $this->setText($sheet, "B{$row}", $employee['emp_code'] ?? '');
         $row++;
@@ -148,7 +159,18 @@ final class ReportExportService
         $section->addText('تاريخ الإنشاء: ' . $snapshot->created_at, [], ['alignment' => Jc::END]);
 
         $employee = $data['employee'];
-        foreach (['الاسم' => $employee['full_name'] ?? '', 'الرقم الوظيفي' => $employee['emp_code'] ?? '', 'القسم' => $employee['department_name'] ?? '', 'الفرع' => $employee['branch_name'] ?? ''] as $label => $value) {
+        foreach ([
+            'الاسم' => $employee['full_name'] ?? '',
+            'الرقم الوظيفي' => $employee['emp_code'] ?? '',
+            'البريد الإلكتروني' => $employee['email'] ?? '',
+            'الهاتف' => $employee['phone'] ?? '',
+            'القسم' => $employee['department_name'] ?? '',
+            'الفرع' => $employee['branch_name'] ?? '',
+            'المنصب' => $employee['position_title'] ?? '',
+            'المدير المباشر' => $employee['manager_name'] ?? '',
+            'تاريخ الالتحاق' => $employee['hire_date'] ?? '',
+            'الحالة' => $employee['status'] ?? '',
+        ] as $label => $value) {
             $section->addText($label . ': ' . $value, [], ['alignment' => Jc::END]);
         }
 
@@ -197,6 +219,9 @@ final class ReportExportService
         $html .= '<h1>تقرير تقييم الموظف</h1><p>الاسم: ' . $escape($employee['full_name'] ?? '') . '</p>';
         $html .= '<p>رقم التقرير: ' . $escape($snapshot->report_number) . ' | تاريخ الإنشاء: ' . $escape($snapshot->created_at) . '</p>';
         $html .= '<p>الرقم الوظيفي: ' . $escape($employee['emp_code'] ?? '') . ' | القسم: ' . $escape($employee['department_name'] ?? '') . ' | الفرع: ' . $escape($employee['branch_name'] ?? '') . '</p>';
+        $html .= '<p>البريد الإلكتروني: ' . $escape($employee['email'] ?? '') . ' | الهاتف: ' . $escape($employee['phone'] ?? '') . '</p>';
+        $html .= '<p>المنصب: ' . $escape($employee['position_title'] ?? '') . ' | المدير المباشر: ' . $escape($employee['manager_name'] ?? '') . '</p>';
+        $html .= '<p>تاريخ الالتحاق: ' . $escape($employee['hire_date'] ?? '') . ' | الحالة: ' . $escape($employee['status'] ?? '') . '</p>';
         $html .= '<h2>المتوسطات</h2><table><thead><tr><th>المؤشر</th><th>المتوسط</th><th>التقدير</th></tr></thead><tbody>';
         $labels = ['overall' => 'المتوسط العام', 'annual' => 'التقييم السنوي', 'periodic' => 'التقييم الدوري', 'course' => 'تقييمات الدورات', 'workshop' => 'تقييمات الورش'];
         foreach ($labels as $key => $label) {

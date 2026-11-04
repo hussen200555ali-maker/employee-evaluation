@@ -190,6 +190,19 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
             </li>
             <?php endif; ?>
 
+            <?php if (Auth::userHasPermission('employees.profile')): ?>
+            <li class="sidebar-category <?php echo ($__isActive('/reports/create') || $__isActive('/reports/archive')) ? 'open' : ''; ?>">
+                <button type="button" class="sidebar-category-toggle" aria-expanded="false">
+                    <span class="sidebar-category-label"><i class="fas fa-file-alt sidebar-cat-ico"></i> التقارير</span>
+                    <i class="fas fa-chevron-down sidebar-caret"></i>
+                </button>
+                <ul class="sidebar-category-body">
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/reports/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/reports/create"><i class="fas fa-file-signature fa-fw me-2"></i> إنشاء تقرير موظف</a></li>
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/reports/archive') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/reports/archive"><i class="fas fa-archive fa-fw me-2"></i> سجل التقارير</a></li>
+                </ul>
+            </li>
+            <?php endif; ?>
+
             <!-- ================= الإدارة والنظام (L1) ================= -->
             <?php if (Auth::isAdmin() || Auth::userHasPermission('templates.manage') || Auth::userHasPermission('settings.manage') || Auth::userHasPermission('backup.manage') || Auth::userHasPermission('grading_scales.manage') || Auth::userHasPermission('users.view') || Auth::userHasPermission('roles.manage')): ?>
             <li class="sidebar-category <?php echo ($__isActive('/templates') || $__isActive('/builder') || $__isActive('/settings') || $__isActive('/grading-scales') || $__isActive('/backup') || $__isActive('/admin/users') || $__isActive('/admin/roles')) ? 'open' : ''; ?>">

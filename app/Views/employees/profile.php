@@ -88,7 +88,7 @@ $typeLabels = [
         </section>
 
         <section class="tab-pane fade" id="profile-reports" role="tabpanel" aria-labelledby="profile-reports-tab" tabindex="0">
-            <p class="text-muted">المتوسطات على سلم التقدير الخماسي، وتُحسب من التقييمات المعتمدة أو المكتملة المرتبطة مباشرة بالموظف.</p>
+            <p class="text-muted">المتوسطات من 100، وتُحسب من الدرجات الرقمية للتقييمات المعتمدة أو المكتملة المرتبطة مباشرة بالموظف. التقييمات الوصفية بلا درجة رقمية لا تدخل في المتوسط.</p>
             <form method="post" action="<?= APP_URL ?>/employees/profile/<?= (int)$employee->id ?>/reports" class="mb-4">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                 <button type="submit" class="btn btn-primary">إنشاء التقرير وحفظ نسخة ثابتة</button>
@@ -100,7 +100,7 @@ $typeLabels = [
                         <div class="card h-100">
                             <div class="card-body">
                                 <div class="small text-muted"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></div>
-                                <div class="h4 my-2"><?= $summary['average'] === null ? '—' : number_format($summary['average'], 2) . ($report['grading_scale_max_value'] === null ? '' : ' / ' . number_format($report['grading_scale_max_value'], 2)) ?></div>
+                                <div class="h4 my-2"><?= $summary['average'] === null ? '—' : number_format($summary['average'], 2) . ' / 100' ?></div>
                                 <div class="small"><?= $valueOrDash($summary['grade_label']) ?></div>
                                 <div class="small text-muted mt-2"><?= (int)$summary['scored_count'] ?> من <?= (int)$summary['evaluation_count'] ?> تقييم</div>
                             </div>
@@ -129,7 +129,7 @@ $typeLabels = [
                                 <tr>
                                     <td><?= (int)$year['year'] ?></td>
                                     <td><?= (int)$year['evaluation_count'] ?></td>
-                                    <td><?= $year['average'] === null ? '—' : number_format($year['average'], 2) . ($report['grading_scale_max_value'] === null ? '' : ' / ' . number_format($report['grading_scale_max_value'], 2)) ?></td>
+                                    <td><?= $year['average'] === null ? '—' : number_format($year['average'], 2) . ' / 100' ?></td>
                                     <td><?= $valueOrDash($year['grade_label']) ?></td>
                                 </tr>
                             <?php endforeach; ?>

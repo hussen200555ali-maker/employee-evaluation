@@ -7,8 +7,9 @@ final class AveragesEngine
     {
         $values = [];
         foreach ($records as $record) {
-            if ($record->grade_value !== null) {
-                $values[] = (float)$record->grade_value;
+            $score = $record->final_score ?? null;
+            if ($score !== null) {
+                $values[] = (float)$score;
             }
         }
         $average = $values === [] ? null : round(array_sum($values) / count($values), 2);
@@ -16,7 +17,7 @@ final class AveragesEngine
             'evaluation_count' => count($records),
             'scored_count'     => count($values),
             'average'          => $average,
-            'grade_label'      => $average === null ? null : $this->nearestGradeLabel($average, $scale),
+            'grade_label'      => $average === null ? null : $this->gradeLabelForScore($average, $scale),
         ];
     }
 

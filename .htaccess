@@ -1,3 +1,15 @@
+<IfModule mod_authz_core.c>
+    <FilesMatch "(?i)\.(sql|sql\.gz)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "(?i)\.(sql|sql\.gz)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
     # ÊİÚíá ãÍÑß ÅÚÇÏÉ ÇáßÊÇÈÉ
     RewriteEngine On

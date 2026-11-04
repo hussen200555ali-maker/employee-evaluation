@@ -102,6 +102,8 @@ $router->post('admin/roles/update-permission', 'App\Controllers\Admin\RoleContro
 $router->get('grading-scales', 'App\Controllers\GradingScaleController@index');
 $router->post('grading-scales', 'App\Controllers\GradingScaleController@store');
 $router->post('grading-scales/delete', 'App\Controllers\GradingScaleController@destroy');
+$router->get('reports/create', 'App\Controllers\ReportsController@create');
+$router->get('reports/archive', 'App\Controllers\ReportsController@archive');
 
 /*
 |==========================================================================
