@@ -27,8 +27,40 @@ final class ReportExportService
 
     private function renderPdf(object $snapshot): string
     {
-        $mpdf = new Mpdf(['mode' => 'utf-8', 'format' => 'A4', 'default_font' => 'dejavusans', 'tempDir' => sys_get_temp_dir()]);
+        $brand = $this->getBrand();
+        $fontDir = dirname($brand['font']['regular']);
+        if (!is_file($brand['font']['regular']) || !is_file($brand['font']['bold'])) {
+            throw new \RuntimeException('ملفات خط Cairo المطلوبة لتصدير PDF غير موجودة.');
+        }
+
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'default_font' => $brand['font']['family'],
+            'fontDir' => [$fontDir],
+            'fontdata' => [
+                $brand['font']['family'] => [
+                    'R' => basename($brand['font']['regular']),
+                    'B' => basename($brand['font']['bold']),
+                ],
+            ],
+            'tempDir' => sys_get_temp_dir(),
+            'margin_top' => 35,
+            'margin_bottom' => 25,
+            'margin_header' => 10,
+            'margin_footer' => 10,
+        ]);
         $mpdf->SetDirectionality('rtl');
+        $mpdf->SetTitle('مسند تقييم — ' . $snapshot->report_number);
+        $mpdf->SetHTMLFooter(
+            '<div style="font-family:cairo;font-size:8px;color:' . $brand['colors']['gray']
+            . ';border-top:1px solid ' . $brand['colors']['accent'] . ';padding-top:3px;">'
+            . '<table style="width:100%;border:0"><tr>'
+            . '<td style="text-align:right;color:' . $brand['colors']['accent'] . ';border:0;">'
+            . htmlspecialchars($brand['confidential'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '</td><td style="text-align:left;border:0;">صفحة {PAGENO} من {nbpg}</td>'
+            . '</tr></table></div>'
+        );
         $mpdf->WriteHTML($this->buildHtml($snapshot));
         return $mpdf->Output('', 'S');
     }
@@ -107,12 +139,18 @@ final class ReportExportService
 
         // Records
         $row++;
-        foreach (['التاريخ', 'النوع', 'القالب', 'الدرجة', 'التقدير'] as $column => $heading) {
+        foreach (['التاريخ', 'النوع', 'القالب', 'الدرجة / 100', 'التقدير'] as $column => $heading) {
             $sheet->setCellValue([$column + 1, $row], $heading);
         }
         $row++;
         foreach ($report['records'] as $record) {
-            $values = [['text', $record['evaluation_date'] ?? ''], ['text', $record['evaluation_type_label'] ?? ''], ['text', $record['template_name'] ?? ''], ['number', $record['grade_value']], ['text', $record['grade_label'] ?? '']];
+            $values = [
+                ['text', $record['evaluation_date'] ?? ''],
+                ['text', $record['evaluation_type_label'] ?? ''],
+                ['text', $record['template_name'] ?? ''],
+                ['number', $this->getRecordScore($record)],
+                ['text', $record['grade_label'] ?? ''],
+            ];
             foreach ($values as $column => [$type, $value]) {
                 $coordinate = [$column + 1, $row];
                 if ($type === 'text') { $sheet->setCellValueExplicit($coordinate, (string)$value, DataType::TYPE_STRING); }
@@ -141,24 +179,61 @@ final class ReportExportService
     private function renderDocx(object $snapshot): string
     {
         $data = $snapshot->snapshot_data;
+        $brand = $this->getBrand();
         $word = new PhpWord();
-        $word->setDefaultFontName('Arial');
+        $word->setDefaultFontName('Cairo');
         $word->setDefaultFontSize(11);
         $section = $word->addSection();
+        $footer = $section->addFooter();
+        $footer->addText(
+            $brand['confidential'] . '  |  ' . $brand['footer_text'],
+            ['name' => 'Cairo', 'size' => 8, 'color' => ltrim($brand['colors']['gray'], '#')],
+            ['alignment' => Jc::CENTER]
+        );
 
-        // Logo
+        $employee = $data['employee'];
         $logoPath = $this->getLogoPath();
         if ($logoPath !== null) {
-            $section->addImage($logoPath, ['alignment' => Jc::CENTER, 'height' => 60]);
-        } else {
-            $section->addText('شعار الشركة', ['bold' => true, 'size' => 14], ['alignment' => Jc::CENTER]);
+            $section->addImage($logoPath, ['alignment' => Jc::CENTER, 'height' => 70]);
         }
+        $section->addText(
+            $brand['company']['name'],
+            ['name' => 'Cairo', 'bold' => true, 'size' => 18, 'color' => ltrim($brand['colors']['primary'], '#')],
+            ['alignment' => Jc::CENTER]
+        );
+        $section->addText(
+            $brand['company']['tagline'],
+            ['name' => 'Cairo', 'size' => 14, 'color' => ltrim($brand['colors']['accent'], '#')],
+            ['alignment' => Jc::CENTER]
+        );
+        $section->addTextBreak(2);
+        $section->addText(
+            'مسند تقييم أداء الموظف',
+            ['name' => 'Cairo', 'bold' => true, 'size' => 24, 'color' => ltrim($brand['colors']['primary'], '#')],
+            ['alignment' => Jc::CENTER]
+        );
+        $section->addText(
+            $employee['full_name'] ?? '',
+            ['name' => 'Cairo', 'bold' => true, 'size' => 20],
+            ['alignment' => Jc::CENTER]
+        );
+        $section->addText(
+            'رقم المسند: ' . $snapshot->report_number,
+            ['name' => 'Cairo', 'size' => 12],
+            ['alignment' => Jc::CENTER]
+        );
+        $section->addText(
+            $brand['confidential'],
+            ['name' => 'Cairo', 'bold' => true, 'size' => 10, 'color' => ltrim($brand['colors']['accent'], '#')],
+            ['alignment' => Jc::CENTER]
+        );
+        $section->addPageBreak();
 
+        // Document body
         $section->addText('تقرير تقييم الموظف', ['bold' => true, 'size' => 18], ['alignment' => Jc::END]);
         $section->addText('رقم التقرير: ' . $snapshot->report_number, [], ['alignment' => Jc::END]);
         $section->addText('تاريخ الإنشاء: ' . $snapshot->created_at, [], ['alignment' => Jc::END]);
 
-        $employee = $data['employee'];
         foreach ([
             'الاسم' => $employee['full_name'] ?? '',
             'الرقم الوظيفي' => $employee['emp_code'] ?? '',
@@ -205,47 +280,141 @@ final class ReportExportService
     {
         $data = $snapshot->snapshot_data;
         $escape = static fn($value): string => htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $employee = $data['employee'];
-        $html = '<html lang="ar"><meta charset="UTF-8"><style>body{font-family:dejavusans;direction:rtl}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #888;padding:6px;text-align:right}h1{font-size:20px}.logo{text-align:center;margin-bottom:12px}.sig-table td{height:40px;text-align:center}</style><body>';
+        $brand = $this->getBrand();
+        $employee = $data['employee'] ?? [];
+        $report = $data['report'] ?? [];
+        $averages = $report['averages'] ?? [];
+        $records = $report['records'] ?? [];
+        $colors = $brand['colors'];
+        $html = '<!doctype html><html lang="ar" dir="rtl"><meta charset="UTF-8"><style>'
+            . '*{font-family:cairo;margin:0;padding:0;box-sizing:border-box}'
+            . 'body{direction:rtl;color:#333;font-size:11px;line-height:1.6}'
+            . '.cover{background:' . $colors['primary'] . ';color:' . $colors['accent']
+            . ';padding:38px 30px;text-align:center;height:225mm;page-break-after:always}'
+            . '.cover .logo{margin:0 auto 20px}.cover .logo img{max-height:58px;max-width:180px}'
+            . '.cover h1{color:' . $colors['accent'] . ';font-size:26px;margin:20px 0 8px}'
+            . '.cover .tagline{font-size:14px}.cover .emp-name{color:' . $colors['white']
+            . ';font-size:22px;margin:34px 0 8px}.cover .emp-meta{color:' . $colors['white'] . ';font-size:12px}'
+            . '.cover .report-number{border-top:1px solid ' . $colors['accent'] . ';margin:28px auto 0;padding-top:12px;width:70%}'
+            . '.cover .confidential{border:1px solid ' . $colors['accent'] . ';color:' . $colors['accent']
+            . ';padding:8px 20px;display:inline-block;margin-top:35px;font-size:10px}'
+            . '.section-title{background:' . $colors['primary'] . ';color:' . $colors['accent']
+            . ';padding:6px 12px;font-weight:bold;font-size:13px;margin:20px 0 8px}'
+            . 'table{width:100%;border-collapse:collapse;margin:8px 0 14px}'
+            . 'table.data th{background:' . $colors['primary'] . ';color:' . $colors['accent']
+            . ';padding:6px;text-align:right;border:1px solid ' . $colors['primary'] . '}'
+            . 'table.data td{border:1px solid ' . $colors['gray_light'] . ';padding:6px;text-align:right}'
+            . 'table.data tr:nth-child(even){background:' . $colors['light'] . '}'
+            . '.employee-grid td{width:50%;border:1px solid ' . $colors['gray_light'] . ';padding:7px}'
+            . '.field-label{color:' . $colors['gray'] . ';font-size:9px}.avg-cards td{width:20%;text-align:center;padding:9px 4px;border:1px solid ' . $colors['gray_light'] . '}'
+            . '.avg-card-title{color:' . $colors['gray'] . ';font-size:9px}.avg-card-value{font-size:15px;font-weight:bold;color:' . $colors['primary'] . '}'
+            . '.avg-card.highlight{background:' . $colors['primary'] . ';color:' . $colors['white'] . ';border-color:' . $colors['accent'] . '}'
+            . '.avg-card.highlight .avg-card-value,.avg-card.highlight .avg-card-title{color:' . $colors['accent'] . '}'
+            . '.sig-table th{background:' . $colors['light'] . ';color:' . $colors['primary'] . ';border:1px solid ' . $colors['accent'] . ';padding:8px}'
+            . '.sig-table td{height:38px;text-align:center;border:1px solid ' . $colors['gray_light'] . ';padding:6px}'
+            . '.empty-state{text-align:center;color:' . $colors['gray'] . ';padding:16px}'
+            . '.page-reference{display:none}</style><body>';
 
-        // Logo
         $logoPath = $this->getLogoPath();
-        if ($logoPath !== null) {
-            $html .= '<div class="logo"><img src="' . $escape($logoPath) . '" height="80"></div>';
-        } else {
-            $html .= '<div class="logo" style="font-size:16px;color:#888;">شعار الشركة</div>';
-        }
+        $html .= '<div class="cover"><div class="logo">';
+        $html .= $logoPath === null
+            ? '<span>' . $escape($brand['company']['name']) . '</span>'
+            : '<img src="' . $escape($logoPath) . '" alt="' . $escape($brand['company']['name']) . '">';
+        $html .= '</div><div class="tagline">' . $escape($brand['company']['name']) . '</div>'
+            . '<h1>' . $escape($brand['company']['tagline']) . '</h1>'
+            . '<div class="emp-name">' . $escape($employee['full_name'] ?? '') . '</div>'
+            . '<div class="emp-meta">' . $escape($employee['emp_code'] ?? '')
+            . ' &nbsp;|&nbsp; ' . $escape($employee['department_name'] ?? '') . '</div>'
+            . '<div class="report-number">رقم المسند: ' . $escape($snapshot->report_number)
+            . '<br>تاريخ الإصدار: ' . $escape($snapshot->created_at) . '</div>'
+            . '<div class="confidential">' . $escape($brand['confidential']) . '</div></div>';
 
-        $html .= '<h1>تقرير تقييم الموظف</h1><p>الاسم: ' . $escape($employee['full_name'] ?? '') . '</p>';
-        $html .= '<p>رقم التقرير: ' . $escape($snapshot->report_number) . ' | تاريخ الإنشاء: ' . $escape($snapshot->created_at) . '</p>';
-        $html .= '<p>الرقم الوظيفي: ' . $escape($employee['emp_code'] ?? '') . ' | القسم: ' . $escape($employee['department_name'] ?? '') . ' | الفرع: ' . $escape($employee['branch_name'] ?? '') . '</p>';
-        $html .= '<p>البريد الإلكتروني: ' . $escape($employee['email'] ?? '') . ' | الهاتف: ' . $escape($employee['phone'] ?? '') . '</p>';
-        $html .= '<p>المنصب: ' . $escape($employee['position_title'] ?? '') . ' | المدير المباشر: ' . $escape($employee['manager_name'] ?? '') . '</p>';
-        $html .= '<p>تاريخ الالتحاق: ' . $escape($employee['hire_date'] ?? '') . ' | الحالة: ' . $escape($employee['status'] ?? '') . '</p>';
-        $html .= '<h2>المتوسطات</h2><table><thead><tr><th>المؤشر</th><th>المتوسط</th><th>التقدير</th></tr></thead><tbody>';
-        $labels = ['overall' => 'المتوسط العام', 'annual' => 'التقييم السنوي', 'periodic' => 'التقييم الدوري', 'course' => 'تقييمات الدورات', 'workshop' => 'تقييمات الورش'];
-        foreach ($labels as $key => $label) {
-            $summary = $data['report']['averages'][$key];
-            $html .= '<tr><td>' . $label . '</td><td>' . $escape($summary['average'] ?? '—') . '</td><td>' . $escape($summary['grade_label'] ?? '') . '</td></tr>';
-        }
-        $html .= '</tbody></table><h2>التقييمات</h2><table><thead><tr><th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة</th><th>التقدير</th></tr></thead><tbody>';
-        foreach ($data['report']['records'] as $record) {
-            $html .= '<tr><td>' . $escape($record['evaluation_date'] ?? '') . '</td><td>' . $escape($record['evaluation_type_label'] ?? '') . '</td><td>' . $escape($record['template_name'] ?? '') . '</td><td>' . $escape($record['grade_value'] ?? '—') . '</td><td>' . $escape($record['grade_label'] ?? '') . '</td></tr>';
+        $html .= '<h2 class="section-title">بيانات الموظف</h2><table class="employee-grid"><tbody>';
+        $employeeFields = [
+            'الاسم' => $employee['full_name'] ?? '',
+            'الرقم الوظيفي' => $employee['emp_code'] ?? '',
+            'القسم' => $employee['department_name'] ?? '',
+            'الفرع' => $employee['branch_name'] ?? '',
+            'المسمى الوظيفي' => $employee['position_title'] ?? '',
+            'المدير المباشر' => $employee['manager_name'] ?? '',
+            'البريد الإلكتروني' => $employee['email'] ?? '',
+            'الهاتف' => $employee['phone'] ?? '',
+            'تاريخ الالتحاق' => $employee['hire_date'] ?? '',
+            'الحالة' => $employee['status'] ?? '',
+        ];
+        foreach (array_chunk($employeeFields, 2, true) as $rowFields) {
+            $html .= '<tr>';
+            foreach ($rowFields as $label => $value) {
+                $html .= '<td><span class="field-label">' . $escape($label) . '</span><br>' . $escape($value) . '</td>';
+            }
+            if (count($rowFields) === 1) {
+                $html .= '<td></td>';
+            }
+            $html .= '</tr>';
         }
         $html .= '</tbody></table>';
 
-        // Signatures
-        $html .= '<h2>التوقيعات</h2><table class="sig-table"><thead><tr><th>الموظف</th><th>المدير المباشر</th><th>مدير الموارد البشرية</th></tr></thead><tbody>';
+        $labels = [
+            'overall' => 'المتوسط العام',
+            'annual' => 'التقييم السنوي',
+            'periodic' => 'التقييم الدوري',
+            'course' => 'تقييمات الدورات',
+            'workshop' => 'تقييمات الورش',
+        ];
+        $html .= '<h2 class="section-title">ملخص الأداء</h2><table class="avg-cards"><tbody><tr>';
+        foreach ($labels as $key => $label) {
+            $summary = $averages[$key] ?? [];
+            $average = $summary['average'] ?? null;
+            $highlight = $key === 'overall' ? ' highlight' : '';
+            $html .= '<td class="avg-card' . $highlight . '"><div class="avg-card-title">' . $escape($label)
+                . '</div><div class="avg-card-value">' . ($average === null ? '—' : $escape(number_format((float)$average, 2) . ' / 100'))
+                . '</div><div>' . $escape($summary['grade_label'] ?? '') . '</div></td>';
+        }
+        $html .= '</tr></tbody></table>';
+
+        $html .= '<h2 class="section-title">سجل التقييمات</h2><table class="data"><thead><tr>'
+            . '<th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة / 100</th><th>التقدير</th>'
+            . '</tr></thead><tbody>';
+        if ($records === []) {
+            $html .= '<tr><td class="empty-state" colspan="5">لا توجد تقييمات مسجلة.</td></tr>';
+        }
+        foreach ($records as $record) {
+            $score = $this->getRecordScore($record);
+            $scoreText = $score === null ? '—' : number_format((float)$score, 2);
+            $html .= '<tr><td>' . $escape($record['evaluation_date'] ?? '')
+                . '</td><td>' . $escape($record['evaluation_type_label'] ?? '')
+                . '</td><td>' . $escape($record['template_name'] ?? '')
+                . '</td><td>' . $escape($scoreText)
+                . '</td><td>' . $escape($record['grade_label'] ?? '') . '</td></tr>';
+        }
+        $html .= '</tbody></table>';
+
+        $html .= '<h2 class="section-title">التوقيعات</h2><table class="sig-table"><thead><tr>'
+            . '<th>الموظف</th><th>المدير المباشر</th><th>مدير الموارد البشرية</th></tr></thead><tbody>';
         foreach (['الاسم: ___________', 'التوقيع: ___________', 'التاريخ: ____/____/____'] as $line) {
             $html .= '<tr><td>' . $line . '</td><td>' . $line . '</td><td>' . $line . '</td></tr>';
         }
-        return $html . '</tbody></table></body></html>';
+        return $html . '</tbody></table><div class="page-reference">صفحة {PAGENO} من {nbpg}</div>'
+            . '<p style="text-align:center;color:' . $escape($colors['gray']) . ';font-size:8px;margin-top:16px;">'
+            . $escape($brand['footer_text']) . '</p></body></html>';
+    }
+
+    private function getBrand(): array
+    {
+        return require dirname(__DIR__) . '/Views/reports/styles/brand.php';
+    }
+
+    private function getRecordScore(array $record): mixed
+    {
+        return array_key_exists('final_score', $record)
+            ? $record['final_score']
+            : ($record['grade_value'] ?? null);
     }
 
     private function getLogoPath(): ?string
     {
-        $path = dirname(__DIR__, 2) . '/public/assets/images/logo.png';
-        return file_exists($path) ? $path : null;
+        $path = $this->getBrand()['logo'];
+        return is_file($path) ? $path : null;
     }
 
     private function captureOutput(callable $writer): string
