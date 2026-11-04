@@ -53,13 +53,19 @@ class ReportEnterpriseDesignTest extends TestCase
         $method = new \ReflectionMethod($service, 'buildHtml');
         $html = $method->invoke($service, $this->snapshot);
 
-        $this->assertStringContainsString('class="cover"', $html, 'Must have cover page.');
+        // الترويسة الرسمية: ثلاثة أعمدة بلا شعار أو اسم شركة أو اسم نظام.
+        $this->assertStringContainsString('masthead', $html, 'Must have enterprise masthead.');
+        $this->assertStringContainsString('mh-dates', $html, 'Must have dates column.');
+        $this->assertStringContainsString('mh-title', $html, 'Must have title column.');
+        $this->assertStringContainsString('mh-ref', $html, 'Must have reference column.');
+        $this->assertStringContainsString('gold-rule', $html, 'Must have gold divider rule.');
+        $this->assertStringContainsString('بسم الله الرحمن الرحيم', $html, 'Must contain basmala.');
+        $this->assertStringContainsString('تقرير الموظف', $html, 'Must use official document term.');
         $this->assertStringContainsString('سرّي', $html, 'Must have confidential marking.');
         $this->assertStringContainsString('صفحة', $html, 'Must reference page numbering.');
-        $this->assertStringContainsString('مسند', $html, 'Must use official document term.');
         $this->assertStringContainsString('#0c2823', $html, 'Must use primary brand color.');
         $this->assertStringContainsString('#c8943f', $html, 'Must use accent brand color.');
-        $this->assertStringContainsString('dejavusans', $html, 'Must use the Arabic-shaping font.');
+        $this->assertStringContainsString('cairo', $html, 'Must use the Arabic-shaping font (Cairo).');
 
         $pdf = $service->render('pdf', $this->snapshot);
         $this->assertStringStartsWith('%PDF-', $pdf['content']);
@@ -71,7 +77,7 @@ class ReportEnterpriseDesignTest extends TestCase
         $result = (new ReportExportService())->render('docx', $this->snapshot);
         $this->assertStringStartsWith('PK', $result['content']);
         $xml = $this->extractZipEntry($result['content'], 'word/document.xml');
-        $this->assertStringContainsString('مسند', $xml);
+        $this->assertStringContainsString('تقرير الموظف', $xml, 'Must use official document term.');
         $this->assertStringContainsString('التوقيعات', $xml);
     }
 

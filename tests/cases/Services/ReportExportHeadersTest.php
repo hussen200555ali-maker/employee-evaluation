@@ -40,8 +40,10 @@ class ReportExportHeadersTest extends TestCase
         $service = new ReportExportService();
         $ref = new \ReflectionMethod($service, 'buildHtml');
         $html = $ref->invoke($service, $this->snapshot);
-        $hasLogo = strpos($html, '<img') !== false || strpos($html, 'شعار الشركة') !== false;
-        $this->assertTrue($hasLogo, 'PDF HTML must contain logo.');
+        // السياسة الجديدة: لا شعار ولا اسم شركة ولا اسم نظام في الترويسة.
+        $this->assertStringContainsString('masthead', $html, 'PDF HTML must contain enterprise masthead.');
+        $this->assertStringContainsString('بسم الله الرحمن الرحيم', $html, 'Must contain basmala.');
+        $this->assertStringContainsString('تقرير الموظف', $html, 'Must use official document term.');
         $this->assertStringContainsString('الموظف', $html);
         $this->assertStringContainsString('المدير المباشر', $html);
         $this->assertStringContainsString('مدير الموارد البشرية', $html);

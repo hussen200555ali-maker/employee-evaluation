@@ -47,23 +47,23 @@ final class ReportExportService
                 ],
             ],
             'tempDir' => sys_get_temp_dir(),
-            'margin_top' => 35,
-            'margin_bottom' => 25,
-            'margin_header' => 10,
-            'margin_footer' => 10,
+            'margin_top' => 14,
+            'margin_bottom' => 26,
+            'margin_header' => 8,
+            'margin_footer' => 9,
+            'margin_left' => 14,
+            'margin_right' => 14,
         ]);
         $mpdf->SetDirectionality('rtl');
-        $mpdf->SetTitle('مسند تقييم — ' . $snapshot->report_number);
-        $mpdf->SetHTMLFooter(
-            '<div style="font-family:' . $brand['font']['family'] . ';font-size:8px;color:' . $brand['colors']['gray']
-            . ';border-top:1px solid ' . $brand['colors']['accent'] . ';padding-top:3px;">'
-            . '<table style="width:100%;border:0"><tr>'
-            . '<td style="text-align:right;color:' . $brand['colors']['accent'] . ';border:0;">'
-            . htmlspecialchars($brand['confidential'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '</td><td style="text-align:left;border:0;">صفحة {PAGENO} من {nbpg}</td>'
-            . '</tr></table></div>'
-        );
-        $mpdf->WriteHTML($this->buildHtml($snapshot));
+        $mpdf->SetTitle('تقرير الموظف — ' . $snapshot->report_number);
+        $mpdf->SetAuthor('نظام تقييم أداء الموظفين');
+        $mpdf->SetCreator('نظام تقييم أداء الموظفين');
+
+        // التذييل يُثبَّت قبل كتابة أول صفحة ليظهر على جميع الصفحات بما فيها الأولى.
+        $mpdf->SetHTMLFooter($this->buildFooterHtml($brand));
+
+        $mpdf->WriteHTML($this->wrapDocument($this->buildStyles($brand), $this->buildHtml($snapshot)));
+
         return $mpdf->Output('', 'S');
     }
 
@@ -147,11 +147,11 @@ final class ReportExportService
         $row++;
         foreach ($report['records'] as $record) {
             $values = [
-                ['text', $record['evaluation_date'] ?? ''],
-                ['text', $record['evaluation_type_label'] ?? ''],
-                ['text', $record['template_name'] ?? ''],
+                ['text', $this->recordValue($record, 'evaluation_date')],
+                ['text', $this->recordValue($record, 'evaluation_type_label')],
+                ['text', $this->recordValue($record, 'template_name')],
                 ['number', $this->getRecordScore($record)],
-                ['text', $record['grade_label'] ?? ''],
+                ['text', $this->recordValue($record, 'grade_label')],
             ];
             foreach ($values as $column => [$type, $value]) {
                 $coordinate = [$column + 1, $row];
@@ -180,237 +180,672 @@ final class ReportExportService
 
     private function renderDocx(object $snapshot): string
     {
-        $data = $snapshot->snapshot_data;
         $brand = $this->getBrand();
         $word = new PhpWord();
-        $word->setDefaultFontName('Cairo');
-        $word->setDefaultFontSize(11);
-        $section = $word->addSection();
-        $footer = $section->addFooter();
-        $footer->addText(
-            $brand['confidential'] . '  |  ' . $brand['footer_text'],
-            ['name' => $brand['font']['family'], 'size' => 8, 'color' => ltrim($brand['colors']['gray'], '#')],
-            ['alignment' => Jc::CENTER]
-        );
+        $word->setDefaultFontName($brand['font']['word_family']);
+        $word->setDefaultFontSize(10);
 
-        $employee = $data['employee'];
-        $logoPath = $this->getLogoPath();
-        if ($logoPath !== null) {
-            $section->addImage($logoPath, ['alignment' => Jc::CENTER, 'height' => 70]);
-        }
-        $section->addText(
-            $brand['company']['name'],
-            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 18, 'color' => ltrim($brand['colors']['primary'], '#')],
-            ['alignment' => Jc::CENTER]
-        );
-        $section->addText(
-            $brand['company']['tagline'],
-            ['name' => $brand['font']['family'], 'size' => 14, 'color' => ltrim($brand['colors']['accent'], '#')],
-            ['alignment' => Jc::CENTER]
-        );
-        $section->addTextBreak(2);
-        $section->addText(
-            'مسند تقييم أداء الموظف',
-            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 24, 'color' => ltrim($brand['colors']['primary'], '#')],
-            ['alignment' => Jc::CENTER]
-        );
-        $section->addText(
-            $employee['full_name'] ?? '',
-            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 20],
-            ['alignment' => Jc::CENTER]
-        );
-        $section->addText(
-            'رقم المسند: ' . $snapshot->report_number,
-            ['name' => $brand['font']['family'], 'size' => 12],
-            ['alignment' => Jc::CENTER]
-        );
-        $section->addText(
-            $brand['confidential'],
-            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 10, 'color' => ltrim($brand['colors']['accent'], '#')],
-            ['alignment' => Jc::CENTER]
-        );
-        $section->addPageBreak();
+        $section = $word->addSection([
+            'marginTop' => 900,
+            'marginBottom' => 900,
+            'marginLeft' => 900,
+            'marginRight' => 900,
+            'footerHeight' => 500,
+        ]);
 
-        // Document body
-        $section->addText('تقرير تقييم الموظف', ['bold' => true, 'size' => 18], ['alignment' => Jc::END]);
-        $section->addText('رقم التقرير: ' . $snapshot->report_number, [], ['alignment' => Jc::END]);
-        $section->addText('تاريخ الإنشاء: ' . $snapshot->created_at, [], ['alignment' => Jc::END]);
+        $this->addDocxFooter($section, $brand);
+        $this->addDocxHeader($section, $snapshot, $brand);
 
-        foreach ([
-            'الاسم' => $employee['full_name'] ?? '',
-            'الرقم الوظيفي' => $employee['emp_code'] ?? '',
-            'البريد الإلكتروني' => $employee['email'] ?? '',
-            'الهاتف' => $employee['phone'] ?? '',
-            'القسم' => $employee['department_name'] ?? '',
-            'الفرع' => $employee['branch_name'] ?? '',
-            'المنصب' => $employee['position_title'] ?? '',
-            'المدير المباشر' => $employee['manager_name'] ?? '',
-            'تاريخ الالتحاق' => $employee['hire_date'] ?? '',
-            'الحالة' => $employee['status'] ?? '',
-        ] as $label => $value) {
-            $section->addText($label . ': ' . $value, [], ['alignment' => Jc::END]);
+        $data = $snapshot->snapshot_data;
+        $employee = $data['employee'] ?? [];
+        $report = $data['report'] ?? [];
+        $records = $report['records'] ?? [];
+        $averages = $report['averages'] ?? [];
+
+        $this->addDocxEmployeeBox($section, $employee);
+
+        $rendered = false;
+        foreach ($this->groupRecords($records) as $bucket) {
+            if ($bucket['records'] === []) {
+                continue;
+            }
+            $rendered = true;
+            $summary = $this->summarizeRecords($bucket['records'], $bucket['summary']);
+            $this->addDocxSection($section, $bucket['title'], $bucket['records'], $summary);
         }
 
-        // Averages table
-        $table = $section->addTable(['borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 80]);
-        $table->addRow();
-        foreach (['المؤشر', 'المتوسط', 'التقدير'] as $heading) { $table->addCell(2600)->addText($heading, ['bold' => true], ['alignment' => Jc::END]); }
-        $labels = ['overall' => 'المتوسط العام', 'annual' => 'التقييم السنوي', 'periodic' => 'التقييم الدوري', 'course' => 'تقييمات الدورات', 'workshop' => 'تقييمات الورش'];
-        foreach ($labels as $key => $label) {
-            $table->addRow();
-            $summary = $data['report']['averages'][$key];
-            $table->addCell(2600)->addText($label, [], ['alignment' => Jc::END]);
-            $table->addCell(1800)->addText($summary['average'] === null ? '—' : (string)$summary['average']);
-            $table->addCell(2600)->addText($summary['grade_label'] ?? '', [], ['alignment' => Jc::END]);
+        if (!$rendered) {
+            $section->addTextBreak(1);
+            $emptyTable = $section->addTable([
+                'width' => 100, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => 'c8943f', 'cellMargin' => 120,
+            ]);
+            $emptyTable->addRow();
+            $emptyTable->addCell(10100, ['bgColor' => 'fdfbf6', 'valign' => 'center'])
+                ->addText(
+                    'لا توجد تقييمات مسجلة لهذا الموظف حتى الآن.',
+                    $this->docxFont(false, 11, $brand['colors']['gray']),
+                    ['alignment' => Jc::CENTER, 'bidi' => true]
+                );
         }
 
-        // Signatures table
-        $section->addTextBreak(2);
-        $section->addText('التوقيعات', ['bold' => true, 'size' => 14], ['alignment' => Jc::END]);
-        $sigTable = $section->addTable(['borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 80]);
-        $sigTable->addRow();
-        foreach (['الموظف', 'المدير المباشر', 'مدير الموارد البشرية'] as $role) { $sigTable->addCell(3000)->addText($role, ['bold' => true], ['alignment' => Jc::CENTER]); }
-        foreach (['الاسم: ___________', 'التوقيع: ___________', 'التاريخ: ____/____/____'] as $line) {
-            $sigTable->addRow();
-            for ($i = 0; $i < 3; $i++) { $sigTable->addCell(3000)->addText($line, [], ['alignment' => Jc::END]); }
-        }
+        $this->addDocxSignatures($section, $brand);
 
         return $this->captureOutput(static function () use ($word): void { IOFactory::createWriter($word, 'Word2007')->save('php://output'); });
     }
 
+    /**
+     * يُستخدم في الاختبارات ولمعاينة HTML الكامل دون كتابة ملفات.
+     */
     protected function buildHtml(object $snapshot): string
     {
-        $data = $snapshot->snapshot_data;
-        $escape = static fn($value): string => htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $brand = $this->getBrand();
+        return $this->wrapDocument(
+            $this->buildStyles($brand),
+            $this->buildHeaderHtml($snapshot, $brand) . $this->buildContentHtml($snapshot, $brand)
+        );
+    }
+
+    private function wrapDocument(string $styles, string $body): string
+    {
+        return '<!doctype html><html lang="ar" dir="rtl"><meta charset="UTF-8">'
+            . $styles . '<body>' . $body . '</body></html>';
+    }
+
+    private function buildStyles(array $brand): string
+    {
+        $colors = $brand['colors'];
+
+        return '<style>'
+            . '*{font-family:' . $brand['font']['family'] . ';margin:0;padding:0;box-sizing:border-box}'
+            . 'body{direction:rtl;color:#333;font-size:9.5pt;line-height:1.55}'
+            // الترويسة الرسمية: ثلاثة أعمدة بلا شعار أو اسم شركة.
+            . '.masthead{margin:0 0 5mm}'
+            . '.masthead-table{width:100%;border-collapse:collapse}'
+            . '.masthead-table td{border:0;padding:0;vertical-align:middle}'
+            . '.mh-dates{width:30%;text-align:right;font-size:8.5pt;color:#444;line-height:1.7}'
+            . '.mh-dates .lbl{color:' . $colors['gray'] . '}'
+            . '.mh-title{width:40%;text-align:center}'
+            . '.basmala{font-size:11pt;color:' . $colors['primary'] . ';margin-bottom:1.5mm}'
+            . '.doc-title{font-size:16pt;font-weight:bold;color:' . $colors['primary'] . ';line-height:1.35}'
+            . '.doc-employee{font-size:22pt;font-weight:bold;color:#000;line-height:1.3;margin-top:1.5mm}'
+            . '.mh-ref{width:30%;text-align:left;font-size:8.5pt;color:#444}'
+            . '.mh-ref .ref-label{color:' . $colors['gray'] . ';margin-bottom:0.5mm}'
+            . '.mh-ref .ref-value{font-size:13pt;font-weight:bold;color:' . $colors['primary'] . ';letter-spacing:0.4px}'
+            . '.gold-rule{border-top:2.2px solid ' . $colors['accent'] . ';margin:3mm 0 0;font-size:0;line-height:0}'
+            // صندوق بيانات الموظف
+            . '.employee-box{background:' . $colors['canvas'] . ';border:1px solid ' . $colors['border']
+            . ';border-right:3px solid ' . $colors['accent'] . ';padding:2.5mm 3mm;margin:4mm 0 1mm}'
+            . '.employee-box-title{font-size:11pt;font-weight:bold;color:' . $colors['primary'] . ';text-align:right;margin-bottom:1.5mm}'
+            . '.employee-grid{width:100%;border-collapse:collapse}'
+            . '.employee-grid td{border:0;padding:1mm 1.5mm;text-align:right;vertical-align:top}'
+            . '.employee-grid td.lbl{width:16%;color:' . $colors['gray'] . ';font-size:8.5pt}'
+            . '.employee-grid td.val{width:34%;color:' . $colors['ink'] . ';font-size:9.5pt;font-weight:bold}'
+            // الأقسام والجداول
+            . '.section{page-break-inside:avoid;margin-top:4mm}'
+            . '.section-title{background:' . $colors['primary'] . ';color:' . $colors['white']
+            . ';font-size:11pt;font-weight:bold;padding:2mm 3mm;border-right:3px solid ' . $colors['accent'] . '}'
+            . 'table.data{width:100%;border-collapse:collapse;font-size:9pt}'
+            . 'table.data th{background:' . $colors['primary'] . ';color:' . $colors['white']
+            . ';border:1px solid ' . $colors['primary'] . ';padding:1.8mm 2mm;text-align:right;font-weight:bold;font-size:9pt}'
+            . 'table.data td{border:1px solid ' . $colors['border'] . ';padding:1.6mm 2mm;text-align:right;color:#222}'
+            . 'table.data tr.alt td{background:' . $colors['zebra'] . '}'
+            . 'table.data td.col-idx,table.data th.col-idx{width:6%;text-align:center}'
+            . 'table.data td.col-date,table.data th.col-date{width:16%;text-align:center;white-space:nowrap}'
+            . 'table.data td.col-score,table.data th.col-score{width:16%;text-align:center}'
+            . 'table.data td.col-grade,table.data th.col-grade{width:18%;text-align:center}'
+            . 'table.data tr.gold-row td{background:' . $colors['accent'] . ';color:' . $colors['primary']
+            . ';font-weight:bold;border:1px solid ' . $colors['accent'] . ';font-size:9.5pt}'
+            // حالات الفراغ والتوقيعات
+            . '.confidential-mark{font-size:7.5pt;color:' . $colors['gray'] . ';text-align:center;margin-top:3mm;border-top:0.8px solid ' . $colors['border'] . ';padding-top:1.5mm}'
+            . '.empty-state{margin:6mm 0;border:1px dashed ' . $colors['accent'] . ';background:#fdfbf6;'
+            . 'color:' . $colors['gray'] . ';text-align:center;padding:8mm 3mm;font-size:11pt}'
+            . '.sig-block{page-break-inside:avoid;margin-top:7mm}'
+            . 'table.sig-table{width:100%;border-collapse:collapse;margin-top:2mm}'
+            . 'table.sig-table th{background:' . $colors['light'] . ';color:' . $colors['primary']
+            . ';border:1px solid ' . $colors['accent'] . ';padding:2mm;text-align:center;font-size:9.5pt}'
+            . 'table.sig-table td{border:1px solid ' . $colors['border'] . ';height:10mm;text-align:center;'
+            . 'color:#555;font-size:8.5pt;padding:1.5mm}'
+            . '</style>';
+    }
+
+    private function buildHeaderHtml(object $snapshot, array $brand): string
+    {
+        $employee = $snapshot->snapshot_data['employee'] ?? [];
+        $dates = $this->getDocumentDates($snapshot->created_at ?? '');
+        $identity = $this->getEmployeeIdentity($employee);
+
+        return '<div class="masthead"><table class="masthead-table"><tr>'
+            . '<td class="mh-dates">'
+            . '<div><span class="lbl">التاريخ الميلادي:</span> ' . self::esc($dates['gregorian']) . '</div>'
+            . '<div><span class="lbl">الموافق (الهجري):</span> ' . self::esc($dates['hijri']) . '</div>'
+            . '<div><span class="lbl">اليوم:</span> ' . self::esc($dates['day']) . '</div>'
+            . '</td>'
+            . '<td class="mh-title">'
+            . '<div class="basmala">بسم الله الرحمن الرحيم</div>'
+            . '<div class="doc-title">تقرير الموظف</div>'
+            . '<div class="doc-employee">' . self::esc($identity) . '</div>'
+            . '</td>'
+            . '<td class="mh-ref">'
+            . '<div class="ref-label">المرجع:</div>'
+            . '<div class="ref-value">' . self::esc($snapshot->report_number ?? '') . '</div>'
+            . '</td>'
+            . '</tr></table><div class="gold-rule"></div></div>';
+    }
+
+    private function buildContentHtml(object $snapshot, array $brand): string
+    {
+        $data = $snapshot->snapshot_data;
         $employee = $data['employee'] ?? [];
         $report = $data['report'] ?? [];
-        $averages = $report['averages'] ?? [];
         $records = $report['records'] ?? [];
-        $colors = $brand['colors'];
-        $html = '<!doctype html><html lang="ar" dir="rtl"><meta charset="UTF-8"><style>'
-            . '*{font-family:' . $brand['font']['family'] . ';margin:0;padding:0;box-sizing:border-box}'
-            . 'body{direction:rtl;color:#333;font-size:11px;line-height:1.6}'
-            . '.cover{background:' . $colors['primary'] . ';color:' . $colors['accent']
-            . ';padding:38px 30px;text-align:center;height:225mm;page-break-after:always}'
-            . '.cover .logo{margin:0 auto 20px}.cover .logo img{max-height:58px;max-width:180px}'
-            . '.cover h1{color:' . $colors['accent'] . ';font-size:26px;margin:20px 0 8px}'
-            . '.cover .tagline{font-size:14px}.cover .emp-name{color:' . $colors['white']
-            . ';font-size:22px;margin:34px 0 8px}.cover .emp-meta{color:' . $colors['white'] . ';font-size:12px}'
-            . '.cover .report-number{border-top:1px solid ' . $colors['accent'] . ';margin:28px auto 0;padding-top:12px;width:70%}'
-            . '.cover .confidential{border:1px solid ' . $colors['accent'] . ';color:' . $colors['accent']
-            . ';padding:8px 20px;display:inline-block;margin-top:35px;font-size:10px}'
-            . '.section-title{background:' . $colors['primary'] . ';color:' . $colors['accent']
-            . ';padding:6px 12px;font-weight:bold;font-size:13px;margin:20px 0 8px}'
-            . 'table{width:100%;border-collapse:collapse;margin:8px 0 14px}'
-            . 'table.data th{background:' . $colors['primary'] . ';color:' . $colors['accent']
-            . ';padding:6px;text-align:right;border:1px solid ' . $colors['primary'] . '}'
-            . 'table.data td{border:1px solid ' . $colors['gray_light'] . ';padding:6px;text-align:right}'
-            . 'table.data tr:nth-child(even){background:' . $colors['light'] . '}'
-            . '.employee-grid td{width:50%;border:1px solid ' . $colors['gray_light'] . ';padding:7px}'
-            . '.field-label{color:' . $colors['gray'] . ';font-size:9px}.avg-cards td{width:20%;text-align:center;padding:9px 4px;border:1px solid ' . $colors['gray_light'] . '}'
-            . '.avg-card-title{color:' . $colors['gray'] . ';font-size:9px}.avg-card-value{font-size:15px;font-weight:bold;color:' . $colors['primary'] . '}'
-            . '.avg-card.highlight{background:' . $colors['primary'] . ';color:' . $colors['white'] . ';border-color:' . $colors['accent'] . '}'
-            . '.avg-card.highlight .avg-card-value,.avg-card.highlight .avg-card-title{color:' . $colors['accent'] . '}'
-            . '.sig-table th{background:' . $colors['light'] . ';color:' . $colors['primary'] . ';border:1px solid ' . $colors['accent'] . ';padding:8px}'
-            . '.sig-table td{height:38px;text-align:center;border:1px solid ' . $colors['gray_light'] . ';padding:6px}'
-            . '.empty-state{text-align:center;color:' . $colors['gray'] . ';padding:16px}'
-            . '.page-reference{display:none}</style><body>';
+        $averages = $report['averages'] ?? [];
 
-        $logoPath = $this->getLogoPath();
-        $html .= '<div class="cover"><div class="logo">';
-        $html .= $logoPath === null
-            ? '<span>' . $escape($brand['company']['name']) . '</span>'
-            : '<img src="' . $escape($logoPath) . '" alt="' . $escape($brand['company']['name']) . '">';
-        $html .= '</div><div class="tagline">' . $escape($brand['company']['name']) . '</div>'
-            . '<h1>' . $escape($brand['company']['tagline']) . '</h1>'
-            . '<div class="emp-name">' . $escape($employee['full_name'] ?? '') . '</div>'
-            . '<div class="emp-meta">' . $escape($employee['emp_code'] ?? '')
-            . ' &nbsp;|&nbsp; ' . $escape($employee['department_name'] ?? '') . '</div>'
-            . '<div class="report-number">رقم المسند: ' . $escape($snapshot->report_number)
-            . '<br>تاريخ الإصدار: ' . $escape($snapshot->created_at) . '</div>'
-            . '<div class="confidential">' . $escape($brand['confidential']) . '</div></div>';
+        $html = $this->buildEmployeeBoxHtml($employee);
 
-        $html .= '<h2 class="section-title">بيانات الموظف</h2><table class="employee-grid"><tbody>';
-        $employeeFields = [
+        $rendered = false;
+        foreach ($this->groupRecords($records) as $bucket) {
+            if ($bucket['records'] === []) {
+                continue;
+            }
+            $rendered = true;
+            $summary = $this->summarizeRecords($bucket['records'], $bucket['summary']);
+            $html .= $this->buildSectionHtml($bucket['title'], $bucket['records'], $summary);
+        }
+
+        if (!$rendered) {
+            $html .= '<div class="empty-state">لا توجد تقييمات مسجلة لهذا الموظف حتى الآن.</div>';
+        }
+
+        $html .= $this->buildSignaturesHtml();
+        $html .= '<div class="confidential-mark">سرّي — للاستخدام الداخلي فقط | صفحة</div>';
+
+        return $html;
+    }
+
+    private function buildEmployeeBoxHtml(array $employee): string
+    {
+        $fields = [
             'الاسم' => $employee['full_name'] ?? '',
             'الرقم الوظيفي' => $employee['emp_code'] ?? '',
-            'القسم' => $employee['department_name'] ?? '',
             'الفرع' => $employee['branch_name'] ?? '',
-            'المسمى الوظيفي' => $employee['position_title'] ?? '',
-            'المدير المباشر' => $employee['manager_name'] ?? '',
-            'البريد الإلكتروني' => $employee['email'] ?? '',
-            'الهاتف' => $employee['phone'] ?? '',
-            'تاريخ الالتحاق' => $employee['hire_date'] ?? '',
-            'الحالة' => $employee['status'] ?? '',
+            'القسم' => $employee['department_name'] ?? '',
         ];
-        foreach (array_chunk($employeeFields, 2, true) as $rowFields) {
+
+        $html = '<div class="employee-box"><div class="employee-box-title">بيانات الموظف</div>'
+            . '<table class="employee-grid"><tbody>';
+        foreach (array_chunk($fields, 2, true) as $rowFields) {
             $html .= '<tr>';
             foreach ($rowFields as $label => $value) {
-                $html .= '<td><span class="field-label">' . $escape($label) . '</span><br>' . $escape($value) . '</td>';
-            }
-            if (count($rowFields) === 1) {
-                $html .= '<td></td>';
+                $display = trim((string)$value) !== '' ? (string)$value : '—';
+                $html .= '<td class="lbl">' . self::esc($label) . '</td>'
+                    . '<td class="val">' . self::esc($display) . '</td>';
             }
             $html .= '</tr>';
         }
-        $html .= '</tbody></table>';
+        return $html . '</tbody></table></div>';
+    }
 
-        $labels = [
-            'overall' => 'المتوسط العام',
-            'annual' => 'التقييم السنوي',
-            'periodic' => 'التقييم الدوري',
-            'course' => 'تقييمات الدورات',
-            'workshop' => 'تقييمات الورش',
+    /**
+     * @return array<string, array{title:string, records:array, summary:?array}>
+     */
+    private function groupRecords(array $records): array
+    {
+        $groups = [
+            'course' => ['title' => 'الدورات التدريبية', 'records' => [], 'summary' => null],
+            'workshop' => ['title' => 'الورش', 'records' => [], 'summary' => null],
+            'annual' => ['title' => 'التقييمات السنوية', 'records' => [], 'summary' => null],
+            'descriptive' => ['title' => 'التقييمات الوصفية', 'records' => [], 'summary' => null],
         ];
-        $html .= '<h2 class="section-title">ملخص الأداء</h2><table class="avg-cards"><tbody><tr>';
-        foreach ($labels as $key => $label) {
-            $summary = $averages[$key] ?? [];
-            $average = $summary['average'] ?? null;
-            $highlight = $key === 'overall' ? ' highlight' : '';
-            $html .= '<td class="avg-card' . $highlight . '"><div class="avg-card-title">' . $escape($label)
-                . '</div><div class="avg-card-value">' . ($average === null ? '—' : $escape(number_format((float)$average, 2) . ' / 100'))
-                . '</div><div>' . $escape($summary['grade_label'] ?? '') . '</div></td>';
-        }
-        $html .= '</tr></tbody></table>';
 
-        $html .= '<h2 class="section-title">سجل التقييمات</h2><table class="data"><thead><tr>'
-            . '<th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة / 100</th><th>التقدير</th>'
-            . '</tr></thead><tbody>';
-        if ($records === []) {
-            $html .= '<tr><td class="empty-state" colspan="5">لا توجد تقييمات مسجلة.</td></tr>';
-        }
         foreach ($records as $record) {
-            $score = $this->getRecordScore($record);
-            $scoreText = $score === null ? '—' : number_format((float)$score, 2);
-            $html .= '<tr><td>' . $escape($record['evaluation_date'] ?? '')
-                . '</td><td>' . $escape($record['evaluation_type_label'] ?? '')
-                . '</td><td>' . $escape($record['template_name'] ?? '')
-                . '</td><td>' . $escape($scoreText)
-                . '</td><td>' . $escape($record['grade_label'] ?? '') . '</td></tr>';
+            $type = (string)$this->recordValue($record, 'evaluation_type', '');
+            if ($this->getRecordScore($record) === null) {
+                $groups['descriptive']['records'][] = $record;
+                continue;
+            }
+            if ($type === 'course') {
+                $groups['course']['records'][] = $record;
+            } elseif ($type === 'workshop') {
+                $groups['workshop']['records'][] = $record;
+            } else {
+                $groups['annual']['records'][] = $record;
+            }
         }
-        $html .= '</tbody></table>';
 
-        $html .= '<h2 class="section-title">التوقيعات</h2><table class="sig-table"><thead><tr>'
-            . '<th>الموظف</th><th>المدير المباشر</th><th>مدير الموارد البشرية</th></tr></thead><tbody>';
+        return $groups;
+    }
+
+    private function buildSectionHtml(string $title, array $records, array $summary): string
+    {
+        $html = '<div class="section"><div class="section-title">' . self::esc($title) . '</div>'
+            . '<table class="data"><thead><tr>'
+            . '<th class="col-idx">#</th>'
+            . '<th class="col-date">التاريخ</th>'
+            . '<th>البيان</th>'
+            . '<th class="col-score">الدرجة / 100</th>'
+            . '<th class="col-grade">التقدير</th>'
+            . '</tr></thead><tbody>';
+
+        foreach (array_values($records) as $index => $record) {
+            $score = $this->getRecordScore($record);
+            $altClass = $index % 2 === 1 ? ' class="alt"' : '';
+            $html .= '<tr' . $altClass . '>'
+                . '<td class="col-idx">' . ($index + 1) . '</td>'
+                . '<td class="col-date">' . self::esc($this->formatDate($this->recordValue($record, 'evaluation_date'))) . '</td>'
+                . '<td>' . self::esc($this->recordValue($record, 'template_name', '—')) . '</td>'
+                . '<td class="col-score">' . ($score === null ? '—' : self::esc(number_format((float)$score, 2))) . '</td>'
+                . '<td class="col-grade">' . self::esc($this->recordValue($record, 'grade_label', '—')) . '</td>'
+                . '</tr>';
+        }
+
+        $html .= '<tr class="gold-row">'
+            . '<td colspan="3">التقدير العام</td>'
+            . '<td class="col-score">' . ($summary['average'] === null ? '—' : self::esc(number_format((float)$summary['average'], 2))) . '</td>'
+            . '<td class="col-grade">' . self::esc($summary['grade_label'] ?? '—') . '</td>'
+            . '</tr>';
+
+        return $html . '</tbody></table></div>';
+    }
+
+    private function buildSignaturesHtml(): string
+    {
+        $html = '<div class="sig-block"><div class="section-title">التوقيعات</div>'
+            . '<table class="sig-table"><thead><tr>'
+            . '<th>الموظف</th><th>المدير المباشر</th><th>مدير الموارد البشرية</th>'
+            . '</tr></thead><tbody>';
         foreach (['الاسم: ___________', 'التوقيع: ___________', 'التاريخ: ____/____/____'] as $line) {
             $html .= '<tr><td>' . $line . '</td><td>' . $line . '</td><td>' . $line . '</td></tr>';
         }
-        return $html . '</tbody></table><div class="page-reference">صفحة {PAGENO} من {nbpg}</div>'
-            . '<p style="text-align:center;color:' . $escape($colors['gray']) . ';font-size:8px;margin-top:16px;">'
-            . $escape($brand['footer_text']) . '</p></body></html>';
+        return $html . '</tbody></table></div>';
+    }
+
+    private function buildFooterHtml(array $brand): string
+    {
+        $printDate = date('Y/m/d');
+
+        return '<div style="font-family:' . $brand['font']['family'] . ';font-size:7.5pt;color:' . $brand['colors']['gray']
+            . ';border-top:0.8px solid ' . $brand['colors']['accent'] . ';padding-top:1.5mm;">'
+            . '<table style="width:100%;border:0;direction:ltr"><tr>'
+            . '<td style="width:36%;text-align:left;border:0;">تاريخ الطباعة: ' . self::esc($printDate) . '</td>'
+            . '<td style="width:28%;text-align:center;border:0;">صفحة {PAGENO} من {nbpg}</td>'
+            . '<td style="width:36%;text-align:right;border:0;color:' . $brand['colors']['accent'] . ';">'
+            . self::esc($brand['confidential']) . '</td>'
+            . '</tr></table></div>';
+    }
+
+    // ------------------------------------------------------------------
+    // Word (DOCX)
+    // ------------------------------------------------------------------
+
+    private function addDocxHeader($section, object $snapshot, array $brand): void
+    {
+        $employee = $snapshot->snapshot_data['employee'] ?? [];
+        $dates = $this->getDocumentDates($snapshot->created_at ?? '');
+        $identity = $this->getEmployeeIdentity($employee);
+
+        $table = $section->addTable([
+            'width' => 100,
+            'unit' => 'pct',
+            'borderSize' => 0,
+            'cellMargin' => 30,
+            'bidiVisual' => true,
+        ]);
+        $table->addRow();
+
+        $refCell = $table->addCell(29, ['unit' => 'pct', 'valign' => 'center', 'borderSize' => 0]);
+        $refCell->addText('المرجع:', $this->docxFont(false, 8.5, $brand['colors']['gray']), $this->docxParagraph(Jc::RIGHT, 0));
+        $refCell->addText((string)($snapshot->report_number ?? ''), $this->docxFont(true, 13, $brand['colors']['primary']), $this->docxParagraph(Jc::RIGHT, 0));
+
+        $titleCell = $table->addCell(42, ['unit' => 'pct', 'valign' => 'center', 'borderSize' => 0]);
+        $titleCell->addText('بسم الله الرحمن الرحيم', $this->docxFont(false, 11, $brand['colors']['primary']), $this->docxParagraph(Jc::CENTER, 0));
+        $titleCell->addText('تقرير الموظف', $this->docxFont(true, 16, $brand['colors']['primary']), $this->docxParagraph(Jc::CENTER, 0));
+        $titleCell->addText($identity, $this->docxFont(true, 22, '#000000'), $this->docxParagraph(Jc::CENTER, 0));
+
+        $datesCell = $table->addCell(29, ['unit' => 'pct', 'valign' => 'center', 'borderSize' => 0]);
+        foreach ([
+            'التاريخ الميلادي' => $dates['gregorian'],
+            'الموافق (الهجري)' => $dates['hijri'],
+            'اليوم' => $dates['day'],
+        ] as $label => $value) {
+            $datesCell->addText($label . ': ' . $value, $this->docxFont(false, 8.5, '#444444'), $this->docxParagraph(Jc::LEFT, 0));
+        }
+
+        // الخط الذهبي الفاصل.
+        $section->addText('', [], [
+            'borderBottomSize' => 18,
+            'borderBottomColor' => ltrim($brand['colors']['accent'], '#'),
+            'spaceBefore' => 40,
+            'spaceAfter' => 120,
+        ]);
+    }
+
+    private function addDocxEmployeeBox($section, array $employee): void
+    {
+        $fields = [
+            ['الاسم', $employee['full_name'] ?? ''],
+            ['الرقم الوظيفي', $employee['emp_code'] ?? ''],
+            ['الفرع', $employee['branch_name'] ?? ''],
+            ['القسم', $employee['department_name'] ?? ''],
+        ];
+
+        $table = $section->addTable([
+            'width' => 100,
+            'unit' => 'pct',
+            'borderSize' => 4,
+            'borderColor' => 'e2ded4',
+            'cellMargin' => 60,
+            'bidiVisual' => true,
+        ]);
+        $table->addRow();
+        $table->addCell(10100, ['bgColor' => 'f5f5f5', 'gridSpan' => 4])->addText(
+            'بيانات الموظف',
+            $this->docxFont(true, 11, '#0c2823'),
+            $this->docxParagraph(Jc::RIGHT, 0)
+        );
+        foreach (array_chunk($fields, 2) as $pair) {
+            $table->addRow();
+            foreach ($pair as [$label, $value]) {
+                $table->addCell(1400, ['bgColor' => 'f5f5f5'])->addText(
+                    $label,
+                    $this->docxFont(false, 8.5, '#6c757d'),
+                    $this->docxParagraph(Jc::RIGHT, 0)
+                );
+                $table->addCell(3650, ['bgColor' => 'f5f5f5'])->addText(
+                    trim((string)$value) !== '' ? (string)$value : '—',
+                    $this->docxFont(true, 10, '#1a1a1a'),
+                    $this->docxParagraph(Jc::RIGHT, 0)
+                );
+            }
+        }
+    }
+
+    private function addDocxSection($section, string $title, array $records, array $summary): void
+    {
+        $section->addTextBreak(1);
+
+        $heading = $section->addTable([
+            'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'cellMargin' => 50, 'bidiVisual' => true,
+        ]);
+        $heading->addRow();
+        $heading->addCell(10100, ['bgColor' => '0c2823'])->addText(
+            $title,
+            $this->docxFont(true, 11, '#ffffff'),
+            $this->docxParagraph(Jc::RIGHT, 0)
+        );
+
+        $widths = [700, 1800, 3900, 1800, 1900];
+        $table = $section->addTable([
+            'width' => 100,
+            'unit' => 'pct',
+            'borderSize' => 4,
+            'borderColor' => 'e2ded4',
+            'cellMargin' => 50,
+            'bidiVisual' => true,
+        ]);
+        $table->addRow();
+        foreach (['#', 'التاريخ', 'البيان', 'الدرجة / 100', 'التقدير'] as $index => $headingText) {
+            $table->addCell($widths[$index], ['bgColor' => '0c2823'])->addText(
+                $headingText,
+                $this->docxFont(true, 9, '#ffffff'),
+                $this->docxParagraph($index === 0 || $index >= 3 ? Jc::CENTER : Jc::RIGHT, 0)
+            );
+        }
+
+        foreach (array_values($records) as $index => $record) {
+            $score = $this->getRecordScore($record);
+            $rowStyle = $index % 2 === 1 ? ['bgColor' => 'faf8f3'] : [];
+            $table->addRow();
+            $table->addCell($widths[0], $rowStyle)->addText((string)($index + 1), $this->docxFont(false, 9), $this->docxParagraph(Jc::CENTER, 0));
+            $table->addCell($widths[1], $rowStyle)->addText(
+                $this->formatDate($this->recordValue($record, 'evaluation_date')),
+                $this->docxFont(false, 9),
+                $this->docxParagraph(Jc::CENTER, 0)
+            );
+            $table->addCell($widths[2], $rowStyle)->addText(
+                (string)$this->recordValue($record, 'template_name', '—'),
+                $this->docxFont(false, 9),
+                $this->docxParagraph(Jc::RIGHT, 0)
+            );
+            $table->addCell($widths[3], $rowStyle)->addText(
+                $score === null ? '—' : number_format((float)$score, 2),
+                $this->docxFont(false, 9),
+                $this->docxParagraph(Jc::CENTER, 0)
+            );
+            $table->addCell($widths[4], $rowStyle)->addText(
+                (string)$this->recordValue($record, 'grade_label', '—'),
+                $this->docxFont(false, 9),
+                $this->docxParagraph(Jc::CENTER, 0)
+            );
+        }
+
+        $goldRow = ['bgColor' => 'c8943f'];
+        $table->addRow();
+        $table->addCell(6400, $goldRow + ['gridSpan' => 3])->addText(
+            'التقدير العام',
+            $this->docxFont(true, 9.5, '#0c2823'),
+            $this->docxParagraph(Jc::RIGHT, 0)
+        );
+        $table->addCell($widths[3], $goldRow)->addText(
+            $summary['average'] === null ? '—' : number_format((float)$summary['average'], 2),
+            $this->docxFont(true, 9.5, '#0c2823'),
+            $this->docxParagraph(Jc::CENTER, 0)
+        );
+        $table->addCell($widths[4], $goldRow)->addText(
+            (string)($summary['grade_label'] ?? '—'),
+            $this->docxFont(true, 9.5, '#0c2823'),
+            $this->docxParagraph(Jc::CENTER, 0)
+        );
+    }
+
+    private function addDocxSignatures($section, array $brand): void
+    {
+        $section->addTextBreak(2);
+
+        $heading = $section->addTable([
+            'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'cellMargin' => 50, 'bidiVisual' => true,
+        ]);
+        $heading->addRow();
+        $heading->addCell(10100, ['bgColor' => '0c2823'])->addText(
+            'التوقيعات',
+            $this->docxFont(true, 11, '#ffffff'),
+            $this->docxParagraph(Jc::RIGHT, 0)
+        );
+
+        $table = $section->addTable([
+            'width' => 100, 'unit' => 'pct', 'borderSize' => 4, 'borderColor' => 'c8943f', 'cellMargin' => 60, 'bidiVisual' => true,
+        ]);
+        $table->addRow();
+        foreach (['الموظف', 'المدير المباشر', 'مدير الموارد البشرية'] as $role) {
+            $table->addCell(3366, ['bgColor' => 'f5f0e8'])->addText(
+                $role,
+                $this->docxFont(true, 9.5, $brand['colors']['primary']),
+                $this->docxParagraph(Jc::CENTER, 0)
+            );
+        }
+        foreach (['الاسم: ___________', 'التوقيع: ___________', 'التاريخ: ____/____/____'] as $line) {
+            $table->addRow(500);
+            for ($i = 0; $i < 3; $i++) {
+                $table->addCell(3366)->addText($line, $this->docxFont(false, 8.5, '#555555'), $this->docxParagraph(Jc::CENTER, 0));
+            }
+        }
+    }
+
+    private function addDocxFooter($section, array $brand): void
+    {
+        $footer = $section->addFooter();
+        $table = $footer->addTable([
+            'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'bidiVisual' => true,
+        ]);
+        $table->addRow();
+        $table->addCell(36, ['unit' => 'pct'])->addPreserveText(
+            $brand['confidential'],
+            $this->docxFont(false, 8, $brand['colors']['gray']),
+            $this->docxParagraph(Jc::RIGHT, 0)
+        );
+        $table->addCell(28, ['unit' => 'pct'])->addPreserveText(
+            'صفحة {PAGE} من {NUMPAGES}',
+            $this->docxFont(false, 8, $brand['colors']['gray']),
+            $this->docxParagraph(Jc::CENTER, 0)
+        );
+        $table->addCell(36, ['unit' => 'pct'])->addPreserveText(
+            'تاريخ الطباعة: ' . date('Y/m/d'),
+            $this->docxFont(false, 8, $brand['colors']['gray']),
+            $this->docxParagraph(Jc::LEFT, 0)
+        );
+    }
+
+    private function docxFont(bool $bold = false, float $size = 10, ?string $color = null): array
+    {
+        $style = ['name' => 'Cairo', 'size' => $size];
+        if ($bold) {
+            $style['bold'] = true;
+        }
+        if ($color !== null && $color !== '') {
+            $style['color'] = ltrim($color, '#');
+        }
+        return $style;
+    }
+
+    private function docxParagraph(string $alignment, int $spaceAfter = 80): array
+    {
+        return ['alignment' => $alignment, 'bidi' => true, 'spaceAfter' => $spaceAfter];
+    }
+
+    // ------------------------------------------------------------------
+    // Shared helpers
+    // ------------------------------------------------------------------
+
+    private function getEmployeeIdentity(array $employee): string
+    {
+        $name = trim((string)($employee['full_name'] ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+        $code = trim((string)($employee['emp_code'] ?? ''));
+        return $code !== '' ? $code : '—';
+    }
+
+    /**
+     * @return array{gregorian:string, hijri:string, day:string}
+     */
+    private function getDocumentDates(mixed $createdAt): array
+    {
+        $timestamp = strtotime((string)$createdAt) ?: time();
+        $timezone = date_default_timezone_get();
+        $hijri = '';
+        $day = '';
+
+        if (class_exists(\IntlDateFormatter::class)) {
+            try {
+                $hijriFormatter = new \IntlDateFormatter(
+                    'en_US@calendar=islamic-umalqura',
+                    \IntlDateFormatter::FULL,
+                    \IntlDateFormatter::NONE,
+                    $timezone,
+                    \IntlDateFormatter::TRADITIONAL,
+                    'yyyy/MM/dd'
+                );
+                $hijri = (string)$hijriFormatter->format($timestamp);
+
+                $dayFormatter = new \IntlDateFormatter(
+                    'ar_SA',
+                    \IntlDateFormatter::FULL,
+                    \IntlDateFormatter::NONE,
+                    $timezone,
+                    \IntlDateFormatter::GREGORIAN,
+                    'EEEE'
+                );
+                $day = (string)$dayFormatter->format($timestamp);
+            } catch (\Throwable $exception) {
+                $hijri = '';
+                $day = '';
+            }
+        }
+
+        return [
+            'gregorian' => date('Y/m/d', $timestamp),
+            'hijri' => $hijri !== '' ? $hijri : '—',
+            'day' => $day !== '' ? $day : '—',
+        ];
+    }
+
+    private function summarizeRecords(array $records, ?array $summary): array
+    {
+        $average = ($summary !== null && ($summary['average'] ?? null) !== null) ? (float)$summary['average'] : null;
+        $grade = $summary['grade_label'] ?? null;
+
+        $scores = [];
+        foreach ($records as $record) {
+            $score = $this->getRecordScore($record);
+            if ($score !== null && is_numeric($score)) {
+                $scores[] = (float)$score;
+            }
+        }
+        if ($average === null && $scores !== []) {
+            $average = array_sum($scores) / count($scores);
+        }
+        if ($grade === null || $grade === '') {
+            $grade = null;
+            foreach ($records as $record) {
+                $candidate = $this->recordValue($record, 'grade_label');
+                if ($candidate !== null && $candidate !== '') {
+                    $grade = (string)$candidate;
+                    break;
+                }
+            }
+        }
+
+        return ['average' => $average, 'grade_label' => $grade];
+    }
+
+    private function formatDate(mixed $value): string
+    {
+        $value = trim((string)($value ?? ''));
+        if ($value === '') {
+            return '—';
+        }
+        $timestamp = strtotime($value);
+        return $timestamp !== false ? date('Y/m/d', $timestamp) : $value;
+    }
+
+    private function recordValue(mixed $record, string $key, mixed $default = null): mixed
+    {
+        if (is_array($record)) {
+            return array_key_exists($key, $record) ? $record[$key] : $default;
+        }
+        if (is_object($record)) {
+            return property_exists($record, $key) ? $record->{$key} : $default;
+        }
+        return $default;
+    }
+
+    private function recordHasKey(mixed $record, string $key): bool
+    {
+        if (is_array($record)) {
+            return array_key_exists($key, $record);
+        }
+        if (is_object($record)) {
+            return property_exists($record, $key);
+        }
+        return false;
+    }
+
+    private function getRecordScore(mixed $record): mixed
+    {
+        if ($this->recordHasKey($record, 'final_score')) {
+            return $this->recordValue($record, 'final_score');
+        }
+        return $this->recordValue($record, 'grade_value');
+    }
+
+    private static function esc(mixed $value): string
+    {
+        return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     private function getBrand(): array
     {
         return require dirname(__DIR__) . '/Views/reports/styles/brand.php';
-    }
-
-    private function getRecordScore(array $record): mixed
-    {
-        return array_key_exists('final_score', $record)
-            ? $record['final_score']
-            : ($record['grade_value'] ?? null);
     }
 
     private function getLogoPath(): ?string
