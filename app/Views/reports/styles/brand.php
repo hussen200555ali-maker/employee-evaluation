@@ -11,9 +11,9 @@ return [
         'success' => '#0d5e52',
     ],
     'font' => [
-        'family' => 'cairo',
-        'regular' => dirname(__DIR__, 4) . '/public/fonts/Cairo-Regular.ttf',
-        'bold' => dirname(__DIR__, 4) . '/public/fonts/Cairo-Bold.ttf',
+        'family' => 'dejavusans',
+        'regular' => dirname(__DIR__, 4) . '/vendor/mpdf/mpdf/ttfonts/DejaVuSans.ttf',
+        'bold' => dirname(__DIR__, 4) . '/vendor/mpdf/mpdf/ttfonts/DejaVuSans-Bold.ttf',
     ],
     'logo' => dirname(__DIR__, 4) . '/public/assets/images/logo.png',
     'company' => [

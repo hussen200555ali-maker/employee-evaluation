@@ -59,7 +59,7 @@ class ReportEnterpriseDesignTest extends TestCase
         $this->assertStringContainsString('مسند', $html, 'Must use official document term.');
         $this->assertStringContainsString('#0c2823', $html, 'Must use primary brand color.');
         $this->assertStringContainsString('#c8943f', $html, 'Must use accent brand color.');
-        $this->assertStringContainsString('cairo', $html, 'Must use Cairo font.');
+        $this->assertStringContainsString('dejavusans', $html, 'Must use the Arabic-shaping font.');
 
         $pdf = $service->render('pdf', $this->snapshot);
         $this->assertStringStartsWith('%PDF-', $pdf['content']);

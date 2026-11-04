@@ -30,7 +30,7 @@ final class ReportExportService
         $brand = $this->getBrand();
         $fontDir = dirname($brand['font']['regular']);
         if (!is_file($brand['font']['regular']) || !is_file($brand['font']['bold'])) {
-            throw new \RuntimeException('ملفات خط Cairo المطلوبة لتصدير PDF غير موجودة.');
+            throw new \RuntimeException('ملفات الخط العربي المطلوبة لتصدير PDF غير موجودة.');
         }
 
         $mpdf = new Mpdf([
@@ -42,6 +42,8 @@ final class ReportExportService
                 $brand['font']['family'] => [
                     'R' => basename($brand['font']['regular']),
                     'B' => basename($brand['font']['bold']),
+                    'useOTL' => 0xFF,
+                    'useKashida' => 75,
                 ],
             ],
             'tempDir' => sys_get_temp_dir(),
@@ -53,7 +55,7 @@ final class ReportExportService
         $mpdf->SetDirectionality('rtl');
         $mpdf->SetTitle('مسند تقييم — ' . $snapshot->report_number);
         $mpdf->SetHTMLFooter(
-            '<div style="font-family:cairo;font-size:8px;color:' . $brand['colors']['gray']
+            '<div style="font-family:' . $brand['font']['family'] . ';font-size:8px;color:' . $brand['colors']['gray']
             . ';border-top:1px solid ' . $brand['colors']['accent'] . ';padding-top:3px;">'
             . '<table style="width:100%;border:0"><tr>'
             . '<td style="text-align:right;color:' . $brand['colors']['accent'] . ';border:0;">'
@@ -187,7 +189,7 @@ final class ReportExportService
         $footer = $section->addFooter();
         $footer->addText(
             $brand['confidential'] . '  |  ' . $brand['footer_text'],
-            ['name' => 'Cairo', 'size' => 8, 'color' => ltrim($brand['colors']['gray'], '#')],
+            ['name' => $brand['font']['family'], 'size' => 8, 'color' => ltrim($brand['colors']['gray'], '#')],
             ['alignment' => Jc::CENTER]
         );
 
@@ -198,33 +200,33 @@ final class ReportExportService
         }
         $section->addText(
             $brand['company']['name'],
-            ['name' => 'Cairo', 'bold' => true, 'size' => 18, 'color' => ltrim($brand['colors']['primary'], '#')],
+            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 18, 'color' => ltrim($brand['colors']['primary'], '#')],
             ['alignment' => Jc::CENTER]
         );
         $section->addText(
             $brand['company']['tagline'],
-            ['name' => 'Cairo', 'size' => 14, 'color' => ltrim($brand['colors']['accent'], '#')],
+            ['name' => $brand['font']['family'], 'size' => 14, 'color' => ltrim($brand['colors']['accent'], '#')],
             ['alignment' => Jc::CENTER]
         );
         $section->addTextBreak(2);
         $section->addText(
             'مسند تقييم أداء الموظف',
-            ['name' => 'Cairo', 'bold' => true, 'size' => 24, 'color' => ltrim($brand['colors']['primary'], '#')],
+            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 24, 'color' => ltrim($brand['colors']['primary'], '#')],
             ['alignment' => Jc::CENTER]
         );
         $section->addText(
             $employee['full_name'] ?? '',
-            ['name' => 'Cairo', 'bold' => true, 'size' => 20],
+            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 20],
             ['alignment' => Jc::CENTER]
         );
         $section->addText(
             'رقم المسند: ' . $snapshot->report_number,
-            ['name' => 'Cairo', 'size' => 12],
+            ['name' => $brand['font']['family'], 'size' => 12],
             ['alignment' => Jc::CENTER]
         );
         $section->addText(
             $brand['confidential'],
-            ['name' => 'Cairo', 'bold' => true, 'size' => 10, 'color' => ltrim($brand['colors']['accent'], '#')],
+            ['name' => $brand['font']['family'], 'bold' => true, 'size' => 10, 'color' => ltrim($brand['colors']['accent'], '#')],
             ['alignment' => Jc::CENTER]
         );
         $section->addPageBreak();
@@ -287,7 +289,7 @@ final class ReportExportService
         $records = $report['records'] ?? [];
         $colors = $brand['colors'];
         $html = '<!doctype html><html lang="ar" dir="rtl"><meta charset="UTF-8"><style>'
-            . '*{font-family:cairo;margin:0;padding:0;box-sizing:border-box}'
+            . '*{font-family:' . $brand['font']['family'] . ';margin:0;padding:0;box-sizing:border-box}'
             . 'body{direction:rtl;color:#333;font-size:11px;line-height:1.6}'
             . '.cover{background:' . $colors['primary'] . ';color:' . $colors['accent']
             . ';padding:38px 30px;text-align:center;height:225mm;page-break-after:always}'
