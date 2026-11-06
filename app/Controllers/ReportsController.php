@@ -31,6 +31,7 @@ final class ReportsController extends Controller
         $results   = [];
 
         $branches = (new Branch())->getAll();
+        $departments = $branchId > 0 ? (new Department())->findByBranch($branchId) : [];
 
         if ($search !== '' || $branchId > 0 || $deptId > 0) {
             $results = $this->searchEmployees($search, $branchId, $deptId);
@@ -42,6 +43,7 @@ final class ReportsController extends Controller
             'branchId'    => $branchId,
             'deptId'      => $deptId,
             'branches'    => $branches,
+            'departments' => $departments,
             'results'     => $results,
             'csrfToken'   => Auth::generateCsrfToken(),
         ]);
@@ -86,7 +88,12 @@ final class ReportsController extends Controller
     public function generate(): void
     {
         Auth::enforce('employees.profile');
-        Auth::validateCsrfToken($_POST['_csrf'] ?? '');
+        // الحقل القياسي في التطبيق هو _token، ونتسامح مع _csrf و csrf_token أيضاً.
+        $csrfToken = $_POST['_csrf'] ?? $_POST['_token'] ?? $_POST['csrf_token'] ?? '';
+        if (!Auth::validateCsrfToken($csrfToken)) {
+            Flash::set('انتهت صلاحية الجلسة أو الرمز الأمني غير صالح. أعد المحاولة.', 'error');
+            $this->redirect('/reports/create');
+        }
 
         $employeeId = (int)($_POST['employee_id'] ?? 0);
         if ($employeeId < 1) {
@@ -113,14 +120,14 @@ final class ReportsController extends Controller
     {
         Auth::enforce('employees.profile');
 
-        $reportService = new EmployeeReportService();
-        $report = $reportService->getProfileReport($employeeId);
-
         $employee = (new Employee())->findById($employeeId);
         if (!$employee) {
             Flash::set('الموظف غير موجود.', 'error');
             $this->redirect('/reports/create');
         }
+
+        $reportService = new EmployeeReportService();
+        $report = $reportService->getProfileReport($employeeId);
 
         // Build a transient snapshot (not saved to DB)
         $snapshot = (object)[
@@ -178,7 +185,14 @@ final class ReportsController extends Controller
             return;
         }
 
-        $snapshot->snapshot_data = json_decode($snapshot->snapshot_json, true);
+        try {
+            $snapshot->snapshot_data = json_decode($snapshot->snapshot_json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            http_response_code(500);
+            echo 'تعذر قراءة بيانات التقرير.';
+            return;
+        }
+        unset($snapshot->snapshot_json);
 
         $exportService = new ReportExportService();
         $result = $exportService->render($format, $snapshot);
@@ -247,21 +261,45 @@ final class ReportsController extends Controller
 
         $types = [];
         foreach ($records as $r) {
-            $type = $r['evaluation_type'] ?? $r['evaluation_type_label'] ?? 'غير محدد';
+            // سجلات التقييم تُرجع كائنات stdClass وليست مصفوفات.
+            $type = $r->evaluation_type ?? $r->evaluation_type_label ?? 'غير محدد';
             $types[$type] = ($types[$type] ?? 0) + 1;
         }
 
+        // صيغ الجمع العربية الصحيحة لكل نوع تقييم.
+        $forms = [
+            'annual'   => ['one' => 'تقييم سنوي', 'two' => 'تقييمان سنويان', 'few' => 'تقييمات سنوية', 'many' => 'تقييماً سنوياً'],
+            'periodic' => ['one' => 'تقييم دوري', 'two' => 'تقييمان دوريان', 'few' => 'تقييمات دورية', 'many' => 'تقييماً دورياً'],
+            'course'   => ['one' => 'دورة', 'two' => 'دورتان', 'few' => 'دورات', 'many' => 'دورة'],
+            'workshop' => ['one' => 'ورشة', 'two' => 'ورشتان', 'few' => 'ورش', 'many' => 'ورشة'],
+        ];
+
+        $formatCount = static function (int $count, array $form): string {
+            if ($count === 1) {
+                return $form['one'];
+            }
+            if ($count === 2) {
+                return $form['two'];
+            }
+            return $count . ' ' . ($count <= 10 ? $form['few'] : $form['many']);
+        };
+
         $parts = [];
         foreach ($types as $type => $count) {
-            $labels = [
-                'annual' => 'تقييم سنوي', 'periodic' => 'تقييم دوري',
-                'course' => 'دورة', 'workshop' => 'ورشة',
-            ];
-            $label = $labels[$type] ?? $type;
-            $parts[] = $count > 1 ? $count . ' ' . $label . 'ات' : $label;
+            $parts[] = isset($forms[$type])
+                ? $formatCount($count, $forms[$type])
+                : ($count > 1 ? $count . ' ' . $type : (string)$type);
         }
 
-        return count($records) . ' تقييمات: ' . implode(' + ', $parts);
+        $total = count($records);
+        $totalLabel = match (true) {
+            $total === 1 => 'تقييم واحد',
+            $total === 2 => 'تقييمان',
+            $total <= 10 => $total . ' تقييمات',
+            default => $total . ' تقييماً',
+        };
+
+        return $totalLabel . ': ' . implode(' + ', $parts);
     }
 
     private function searchSnapshots(string $search, int $branchId, int $year, int $page, int $perPage): array
@@ -269,43 +307,47 @@ final class ReportsController extends Controller
         $db = Database::getInstance();
         $offset = ($page - 1) * $perPage;
 
+        $where = ' WHERE 1=1';
+        $params = [];
+
+        if ($search !== '') {
+            $where .= " AND (rs.report_number LIKE :search
+                        OR JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) LIKE :search2
+                        OR JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')) LIKE :search3)";
+            $params[':search']  = '%' . $search . '%';
+            $params[':search2'] = '%' . $search . '%';
+            $params[':search3'] = '%' . $search . '%';
+        }
+        if ($branchId > 0) {
+            // التقرير يخزّن اسم الفرع وقت الإصدار، لذا نطابق الاسم مع الفرع المطلوب.
+            $where .= " AND JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name'))
+                        = (SELECT b.name FROM branches b WHERE b.id = :branch_id)";
+            $params[':branch_id'] = $branchId;
+        }
+        if ($year > 0) {
+            $where .= ' AND YEAR(rs.created_at) = :year';
+            $params[':year'] = $year;
+        }
+
+        // Count
+        $db->query('SELECT COUNT(*) FROM report_snapshots rs' . $where);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        $totalCount = (int)$db->fetchColumn();
+
+        // Data
         $sql = "SELECT rs.id, rs.report_number, rs.employee_id, rs.created_at,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) AS full_name,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')) AS emp_code,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name')) AS branch_name,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.created_by.username')) AS created_by
-                FROM report_snapshots rs
-                WHERE 1=1";
-        $params = [];
-
-        if ($search !== '') {
-            $sql .= " AND (rs.report_number LIKE :search
-                        OR JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name') LIKE :search2
-                        OR JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code') LIKE :search3)";
-            $params[':search']  = '%' . $search . '%';
-            $params[':search2'] = '%' . $search . '%';
-            $params[':search3'] = '%' . $search . '%';
-        }
-        if ($year > 0) {
-            $sql .= ' AND YEAR(rs.created_at) = :year';
-            $params[':year'] = $year;
-        }
-
-        // Count
-        $countSql = str_replace('SELECT rs.id, rs.report_number, rs.employee_id, rs.created_at,
-                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, \'$.employee.full_name\')) AS full_name,
-                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, \'$.employee.emp_code\')) AS emp_code,
-                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, \'$.employee.branch_name\')) AS branch_name,
-                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, \'$.created_by.username\')) AS created_by',
-            'SELECT COUNT(*)', $sql);
-        $db->query($countSql);
-        foreach ($params as $k => $v) { $db->bind($k, $v); }
-        $totalCount = (int)$db->fetchColumn();
-
-        // Data
-        $sql .= ' ORDER BY rs.id DESC LIMIT :limit OFFSET :offset';
+                FROM report_snapshots rs" . $where
+            . ' ORDER BY rs.id DESC LIMIT :limit OFFSET :offset';
         $db->query($sql);
-        foreach ($params as $k => $v) { $db->bind($k, $v); }
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
         $db->bind(':limit', $perPage);
         $db->bind(':offset', $offset);
 

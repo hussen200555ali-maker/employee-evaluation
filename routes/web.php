@@ -104,9 +104,9 @@ $router->post('grading-scales', 'App\Controllers\GradingScaleController@store');
 $router->post('grading-scales/delete', 'App\Controllers\GradingScaleController@destroy');
 $router->get('reports/create', 'App\Controllers\ReportsController@create');
 $router->get('reports/archive', 'App\Controllers\ReportsController@archive');
-\$router->post('reports/generate', 'App\Controllers\ReportsController@generate');
-\$router->get('reports/print/:id', 'App\Controllers\ReportsController@printOnly');
-\$router->get('reports/export/:id/:format', 'App\Controllers\ReportsController@export');
+$router->post('reports/generate', 'App\Controllers\ReportsController@generate');
+$router->get('reports/print/:id', 'App\Controllers\ReportsController@printOnly');
+$router->get('reports/export/:id/:format', 'App\Controllers\ReportsController@export');
 
 /*
 |==========================================================================

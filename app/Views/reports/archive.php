@@ -1,5 +1,10 @@
 <?php
 require_once APP_ROOT . '/app/Views/layouts/header.php';
+
+$queryBase = ['q' => $search ?? '', 'branch_id' => $branchId ?? 0, 'year' => $year ?? 0];
+$pageUrl = static function (int $targetPage) use ($queryBase): string {
+    return APP_URL . '/reports/archive?' . http_build_query(array_merge($queryBase, ['page' => $targetPage]));
+};
 ?>
 <style>
 .archive-filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
@@ -15,13 +20,13 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 .archive-table tbody tr:hover { background:rgba(200,148,63,0.05); }
 .rpt-num { font-weight:700; color:#0c2823; }
 .actions-cell { position:relative; display:flex; gap:6px; }
-.btn-view { background:#0c2823; color:#c8943f; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; text-decoration:none; }
-.btn-export-dd { background:#f5f0e8; color:#0c2823; border:1px solid #ddd; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; }
-.export-menu { display:none; position:absolute; top:100%; left:0; background:#fff; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); min-width:140px; z-index:100; padding:4px; margin-top:2px; }
+.btn-view { background:#0c2823; color:#c8943f; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; text-decoration:none; white-space:nowrap; }
+.btn-export-dd { background:#f5f0e8; color:#0c2823; border:1px solid #ddd; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; font-family:'Cairo'; white-space:nowrap; }
+.export-menu { display:none; position:absolute; top:100%; left:0; background:#fff; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); min-width:150px; z-index:100; padding:4px; margin-top:2px; }
 .export-menu.show { display:block; }
 .export-menu a { display:flex; align-items:center; gap:6px; padding:8px 12px; font-size:11px; color:#333; text-decoration:none; border-radius:6px; }
 .export-menu a:hover { background:#f5f0e8; }
-.pagination { display:flex; justify-content:center; gap:4px; padding:16px 0; }
+.pagination { display:flex; justify-content:center; gap:4px; padding:16px 0; flex-wrap:wrap; }
 .pagination a { width:34px; height:34px; border-radius:8px; border:1px solid #ddd; background:#fff; color:#6c757d; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; text-decoration:none; }
 .pagination a.active { background:#0c2823; color:#c8943f; border-color:#0c2823; }
 .pagination a:hover { border-color:#c8943f; color:#0c2823; }
@@ -30,8 +35,8 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 .empty-state .icon { font-size:42px; color:#ddd; margin-bottom:12px; }
 .empty-state .text { font-size:14px; color:#999; font-weight:600; }
 .empty-state .hint { font-size:11px; color:#ccc; margin-top:6px; }
-.stats-row { display:flex; gap:12px; margin-bottom:20px; }
-.stat-box { background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; flex:1; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.03); }
+.stats-row { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.stat-box { background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; flex:1; min-width:140px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.03); }
 .stat-box .val { font-size:24px; font-weight:900; color:#0c2823; }
 .stat-box .lbl { font-size:11px; color:#999; margin-top:2px; }
 .stat-box.hl { background:#0c2823; border-color:#c8943f; }
@@ -40,31 +45,33 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 </style>
 
 <div class="container-fluid">
-    <h2><?= htmlspecialchars($pageTitle ?? '') ?></h2>
+    <h2><?= htmlspecialchars($pageTitle ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
     <hr>
 
     <!-- Stats -->
     <div class="stats-row">
-        <div class="stat-box hl"><div class="val"><?= $totalCount ?? 0 ?></div><div class="lbl">إجمالي التقارير</div></div>
+        <div class="stat-box hl"><div class="val"><?= (int)($totalCount ?? 0) ?></div><div class="lbl">إجمالي التقارير</div></div>
         <div class="stat-box"><div class="val"><?= count($snapshots ?? []) ?></div><div class="lbl">في هذه الصفحة</div></div>
-        <div class="stat-box"><div class="val"><?= $totalPages ?? 1 ?></div><div class="lbl">عدد الصفحات</div></div>
+        <div class="stat-box"><div class="val"><?= (int)($totalPages ?? 0) ?></div><div class="lbl">عدد الصفحات</div></div>
     </div>
 
     <!-- Filters + Search -->
-    <form method="GET" action="/reports/archive" class="archive-filter-bar">
-        <select name="branch_id">
+    <form method="GET" action="<?= APP_URL ?>/reports/archive" class="archive-filter-bar">
+        <select name="branch_id" aria-label="الفرع">
             <option value="0">كل الفروع</option>
             <?php foreach ($branches ?? [] as $b): ?>
-                <option value="<?= (int)$b->id ?>" <?= ($branchId ?? 0) === (int)$b->id ? 'selected' : '' ?>><?= htmlspecialchars($b->name) ?></option>
+                <option value="<?= (int)$b->id ?>" <?= ($branchId ?? 0) === (int)$b->id ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($b->name, ENT_QUOTES, 'UTF-8') ?>
+                </option>
             <?php endforeach; ?>
         </select>
-        <select name="year">
+        <select name="year" aria-label="السنة">
             <option value="0">كل السنوات</option>
             <?php foreach ($years ?? [] as $y): ?>
-                <option value="<?= $y ?>" <?= ($year ?? 0) === $y ? 'selected' : '' ?>><?= $y ?></option>
+                <option value="<?= (int)$y ?>" <?= ($year ?? 0) === (int)$y ? 'selected' : '' ?>><?= (int)$y ?></option>
             <?php endforeach; ?>
         </select>
-        <input type="text" name="q" value="<?= htmlspecialchars($search ?? '') ?>" placeholder="بحث برقم المرجع، اسم الموظف، أو الرقم الوظيفي...">
+        <input type="text" name="q" value="<?= htmlspecialchars($search ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="بحث برقم المرجع، اسم الموظف، أو الرقم الوظيفي...">
         <button type="submit" class="btn-go">🔍 بحث</button>
     </form>
 
@@ -85,27 +92,27 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
             <?php if (!empty($snapshots)): ?>
                 <?php foreach ($snapshots as $snap): ?>
                     <tr>
-                        <td class="rpt-num"><?= htmlspecialchars($snap->report_number) ?></td>
-                        <td><?= htmlspecialchars($snap->full_name) ?></td>
-                        <td><?= htmlspecialchars($snap->emp_code) ?></td>
-                        <td><?= htmlspecialchars($snap->branch_name ?? '') ?></td>
-                        <td><?= htmlspecialchars($snap->created_at) ?></td>
-                        <td><?= htmlspecialchars($snap->created_by ?? '') ?></td>
+                        <td class="rpt-num"><?= htmlspecialchars($snap->report_number, ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($snap->full_name ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($snap->emp_code ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($snap->branch_name ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($snap->created_at ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                        <td><?= htmlspecialchars($snap->created_by ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
                             <div class="actions-cell">
-                                <a href="/employees/profile/<?= (int)$snap->employee_id ?>/reports/<?= (int)$snap->id ?>" class="btn-view">👁 عرض</a>
-                                <button class="btn-export-dd" onclick="toggleExport(<?= (int)$snap->id ?>)">⬇ تصدير ▾</button>
+                                <a href="<?= APP_URL ?>/employees/profile/<?= (int)$snap->employee_id ?>/reports/<?= (int)$snap->id ?>" class="btn-view">👁 عرض</a>
+                                <button type="button" class="btn-export-dd" data-menu-id="export-<?= (int)$snap->id ?>">⬇ تصدير ▾</button>
                                 <div class="export-menu" id="export-<?= (int)$snap->id ?>">
-                                    <a href="/reports/export/<?= (int)$snap->id ?>/pdf">📄 تصدير PDF</a>
-                                    <a href="/reports/export/<?= (int)$snap->id ?>/xlsx">📊 تصدير Excel</a>
-                                    <a href="/reports/export/<?= (int)$snap->id ?>/docx">📝 تصدير Word</a>
+                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/pdf">📄 تصدير PDF</a>
+                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/xlsx">📊 تصدير Excel</a>
+                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/docx">📝 تصدير Word</a>
                                 </div>
                             </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr class="empty-state">
+                <tr>
                     <td colspan="7">
                         <div class="empty-state">
                             <div class="icon">📋</div>
@@ -119,42 +126,52 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
     </table>
 
     <!-- Pagination -->
-    <?php if (($totalPages ?? 1) > 1): ?>
+    <?php if (($totalPages ?? 0) > 1): ?>
     <div class="pagination">
         <?php if (($page ?? 1) > 1): ?>
-            <a class="nav" href="?q=<?= urlencode($search ?? '') ?>&branch_id=<?= $branchId ?? 0 ?>&year=<?= $year ?? 0 ?>&page=<?= ($page ?? 1) - 1 ?>">‹ السابق</a>
+            <a class="nav" href="<?= htmlspecialchars($pageUrl(($page ?? 1) - 1), ENT_QUOTES, 'UTF-8') ?>">‹ السابق</a>
         <?php endif; ?>
-        <?php for ($i = 1; $i <= min($totalPages ?? 1, 10); $i++): ?>
-            <a class="<?= ($page ?? 1) === $i ? 'active' : '' ?>" href="?q=<?= urlencode($search ?? '') ?>&branch_id=<?= $branchId ?? 0 ?>&year=<?= $year ?? 0 ?>&page=<?= $i ?>"><?= $i ?></a>
+        <?php for ($i = 1; $i <= min((int)$totalPages, 10); $i++): ?>
+            <a class="<?= ($page ?? 1) === $i ? 'active' : '' ?>" href="<?= htmlspecialchars($pageUrl($i), ENT_QUOTES, 'UTF-8') ?>"><?= $i ?></a>
         <?php endfor; ?>
-        <?php if (($totalPages ?? 1) > 10): ?>
+        <?php if ((int)$totalPages > 10): ?>
             <span style="color:#999; padding:0 4px;">…</span>
-            <a href="?page=<?= $totalPages ?>"><?= $totalPages ?></a>
+            <a href="<?= htmlspecialchars($pageUrl((int)$totalPages), ENT_QUOTES, 'UTF-8') ?>"><?= (int)$totalPages ?></a>
         <?php endif; ?>
         <?php if (($page ?? 1) < ($totalPages ?? 1)): ?>
-            <a class="nav" href="?q=<?= urlencode($search ?? '') ?>&branch_id=<?= $branchId ?? 0 ?>&year=<?= $year ?? 0 ?>&page=<?= ($page ?? 1) + 1 ?>">التالي ›</a>
+            <a class="nav" href="<?= htmlspecialchars($pageUrl(($page ?? 1) + 1), ENT_QUOTES, 'UTF-8') ?>">التالي ›</a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
 
 <script>
-// Toggle export dropdown
-function toggleExport(id) {
-    // Close all other menus
-    document.querySelectorAll('.export-menu').forEach(function(m) {
-        if (m.id !== 'export-' + id) m.classList.remove('show');
+(function () {
+    // Toggle export dropdowns.
+    document.querySelectorAll('.btn-export-dd').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.stopPropagation();
+            var menuId = button.dataset.menuId;
+            document.querySelectorAll('.export-menu').forEach(function (menu) {
+                if (menu.id !== menuId) {
+                    menu.classList.remove('show');
+                }
+            });
+            var menu = document.getElementById(menuId);
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        });
     });
-    // Toggle the clicked one
-    var menu = document.getElementById('export-' + id);
-    menu.classList.toggle('show');
-}
-// Close dropdowns when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.actions-cell')) {
-        document.querySelectorAll('.export-menu').forEach(function(m) { m.classList.remove('show'); });
-    }
-});
+
+    document.addEventListener('click', function (event) {
+        if (!event.target.closest('.actions-cell')) {
+            document.querySelectorAll('.export-menu').forEach(function (menu) {
+                menu.classList.remove('show');
+            });
+        }
+    });
+})();
 </script>
 
 <?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; ?>
