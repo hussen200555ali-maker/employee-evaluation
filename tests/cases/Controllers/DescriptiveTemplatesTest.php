@@ -24,6 +24,29 @@ class DescriptiveTemplatesTest extends TestCase
     }
 
     /**
+     * CD-023: إعداد جلسة مدير بصلاحية templates.manage.
+     * ضروري لأن BuilderController::__construct يستدعي Auth::enforce('templates.manage')
+     * الذي يُنفّذ exit() عند غياب الجلسة — مما يقتل مشغّل الاختبارات.
+     */
+    private function loginAsTemplateManager(): int
+    {
+        $db = Database::getInstance();
+        $db->query('SELECT id FROM users ORDER BY id LIMIT 1');
+        $userId = (int)$db->fetchColumn();
+        $this->assertTrue($userId > 0, 'مطلوب مستخدم أساسي في قاعدة البيانات لاختبارات الباني.');
+
+        $_SESSION['user_id']          = $userId;
+        $_SESSION['user_roles']       = ['Admin'];
+        $_SESSION['user_permissions'] = ['templates.manage'];
+        $_SESSION['user_object']      = (object)[
+            'id'        => $userId,
+            'username'  => 'cd023-test',
+            'full_name' => 'مختبر CD-023',
+        ];
+        return $userId;
+    }
+
+    /**
      * استدعاء ميثود خاصة عبر الانعكاس (reflection).
      */
     private function invokeValidateWeights(BuilderController $ctrl, array $structure, string $mode): ?string
@@ -81,9 +104,9 @@ class DescriptiveTemplatesTest extends TestCase
         $employeeId = (int)$pdo->lastInsertId();
 
         $pdo->prepare('INSERT INTO evaluations (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id, employee_name, employee_code, entity_type, entity_id, created_at)
-                       VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :emp, NOW())')
+                       VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :entity, NOW())')
             ->execute([
-                'tpl' => $templateId, 'emp' => $employeeId,
+                'tpl' => $templateId, 'emp' => $employeeId, 'entity' => $employeeId,
                 'ename' => 'موظف CD023 رقمي', 'ecode' => $empCode,
             ]);
         $evaluationId = (int)$pdo->lastInsertId();
@@ -104,8 +127,10 @@ class DescriptiveTemplatesTest extends TestCase
     {
         $db = Database::getInstance();
         $db->beginTransaction();
+        $previousSession = $_SESSION;
 
         try {
+            $this->loginAsTemplateManager();
             // هيكل وصفي: معيار وزنه 50 (ليس 100) + قسم تقدير عام
             $structure = [
                 [
@@ -124,6 +149,7 @@ class DescriptiveTemplatesTest extends TestCase
 
             $this->assertNull($error, 'القالب الوصفي يجب ألا يطلب شرط الـ 100%. رسالة: ' . (string)$error);
         } finally {
+            $_SESSION = $previousSession;
             $db->rollBack();
         }
     }
@@ -132,8 +158,10 @@ class DescriptiveTemplatesTest extends TestCase
     {
         $db = Database::getInstance();
         $db->beginTransaction();
+        $previousSession = $_SESSION;
 
         try {
+            $this->loginAsTemplateManager();
             // هيكل وصفي بدون قسم تقدير عام
             $structure = [
                 [
@@ -152,6 +180,7 @@ class DescriptiveTemplatesTest extends TestCase
             $this->assertTrue($error !== null, 'القالب الوصفي بدون تقدير عام يجب أن يُرفض.');
             $this->assertStringContainsString('التقدير العام', (string)$error);
         } finally {
+            $_SESSION = $previousSession;
             $db->rollBack();
         }
     }
@@ -160,8 +189,10 @@ class DescriptiveTemplatesTest extends TestCase
     {
         $db = Database::getInstance();
         $db->beginTransaction();
+        $previousSession = $_SESSION;
 
         try {
+            $this->loginAsTemplateManager();
             // هيكل رقمي: معيار وزنه 50 (ليس 100) + قسم percentage
             $structure = [
                 [
@@ -180,6 +211,7 @@ class DescriptiveTemplatesTest extends TestCase
             $this->assertTrue($error !== null, 'القالب الرقمي يجب أن يُطبّق شرط الـ 100%.');
             $this->assertStringContainsString('100%', (string)$error);
         } finally {
+            $_SESSION = $previousSession;
             $db->rollBack();
         }
     }
@@ -262,9 +294,9 @@ class DescriptiveTemplatesTest extends TestCase
             $employeeId = (int)$pdo->lastInsertId();
 
             $pdo->prepare('INSERT INTO evaluations (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id, employee_name, employee_code, entity_type, entity_id, created_at)
-                           VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :emp, NOW())')
+                           VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :entity, NOW())')
                 ->execute([
-                    'tpl' => $templateId, 'emp' => $employeeId,
+                    'tpl' => $templateId, 'emp' => $employeeId, 'entity' => $employeeId,
                     'ename' => 'موظف CD023 وصفي', 'ecode' => $empCode,
                 ]);
             $evaluationId = (int)$pdo->lastInsertId();
