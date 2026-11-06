@@ -20,6 +20,35 @@ $employeeLabel = in_array($dashboard['persona'], ['admin', 'hr'], true) ? 'ال�
         <div class="dashboard-orbit" aria-hidden="true"><span></span><span></span><span></span><i class="fas fa-chart-line"></i></div>
     </section>
 
+    <?php
+    $incompleteProfiles = $dashboard['incomplete_profiles'] ?? [];
+    $incompleteCount = is_countable($incompleteProfiles) ? count($incompleteProfiles) : 0;
+    $showIncompleteWidget = $incompleteCount > 0 && !empty($permissions['evaluations.create']);
+    ?>
+    <?php if ($showIncompleteWidget): ?>
+    <section class="cd022-incomplete-alert" aria-label="ملفات غير مكتملة" role="status">
+        <div class="cd022-incomplete-alert__body">
+            <span class="cd022-incomplete-alert__icon"><i class="fas fa-user-clock"></i></span>
+            <div class="cd022-incomplete-alert__text">
+                <strong><?= $incompleteCount ?> ملف موظف غير مكتمل</strong>
+                <span>تمت إضافتهم عبر التقييم الجماعي ويحتاجون استكمال بياناتهم الوظيفية:</span>
+                <ul class="cd022-incomplete-list">
+                    <?php foreach ($incompleteProfiles as $emp): ?>
+                        <li>
+                            <span class="cd022-incomplete-list__name"><?= htmlspecialchars($emp['full_name']) ?></span>
+                            <span class="cd022-incomplete-list__code"><?= htmlspecialchars($emp['emp_code'] ?? '') ?></span>
+                            <?php if (!empty($emp['department_name'])): ?><span class="cd022-incomplete-list__dept"><?= htmlspecialchars($emp['department_name']) ?></span><?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <a class="btn btn-primary cd022-incomplete-alert__cta" href="<?= APP_URL ?>/evaluations/bulk-create">
+                <i class="fas fa-layer-group ms-1"></i> فتح التقييم الجماعي
+            </a>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <section class="metric-grid" aria-label="مؤشرات الأداء">
         <article class="metric-tile"><span class="metric-tile__icon metric-tile__icon--teal"><i class="fas fa-clipboard-check"></i></span><div><small>إجمالي التقييمات</small><strong><?= (int)$dashboard['summary']['evaluations'] ?></strong><em><?= htmlspecialchars($dashboard['scope_label']) ?></em></div></article>
         <article class="metric-tile"><span class="metric-tile__icon metric-tile__icon--gold"><i class="fas fa-hourglass-half"></i></span><div><small>مهام مفتوحة</small><strong><?= (int)$dashboard['summary']['open'] ?></strong><em>تتطلب متابعة</em></div></article>

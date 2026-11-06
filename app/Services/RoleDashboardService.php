@@ -45,6 +45,9 @@ final class RoleDashboardService
         $tasksStatement->execute($params);
         $tasks = $tasksStatement->fetchAll(PDO::FETCH_ASSOC);
 
+        // CD-022: incomplete employee profiles (quick-added via bulk evaluation)
+        $incompleteProfiles = $this->incompleteProfiles($persona, $employeeId);
+
         return [
             'persona' => $persona,
             'persona_label' => $this->personaLabel($persona),
@@ -65,7 +68,57 @@ final class RoleDashboardService
             ],
             'recent' => $recent,
             'tasks' => $tasks,
+            'incomplete_profiles' => $incompleteProfiles,
         ];
+    }
+
+    /**
+     * CD-022: Employees whose profile_status = 'incomplete' (created via quick-add).
+     * Returns up to 5 records for admin/hr (whole org) or manager (own team).
+     * Defensive: returns [] if the profile_status column is not present yet.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function incompleteProfiles(string $persona, int $employeeId): array
+    {
+        if (!in_array($persona, ['admin', 'hr', 'manager'], true)) {
+            return [];
+        }
+
+        $pdo = $this->database->getPdo();
+        try {
+            if ($persona === 'manager') {
+                $statement = $pdo->prepare(
+                    'SELECT e.id, e.emp_code, e.full_name,
+                            b.name AS branch_name, d.name AS department_name
+                     FROM employees e
+                     LEFT JOIN branches b ON b.id = e.branch_id
+                     LEFT JOIN departments d ON d.id = e.department_id
+                     WHERE e.is_active = 1
+                       AND e.profile_status = "incomplete"
+                       AND e.manager_id = :employee_id
+                     ORDER BY e.created_at DESC
+                     LIMIT 5'
+                );
+                $statement->execute(['employee_id' => $employeeId]);
+            } else {
+                $statement = $pdo->query(
+                    'SELECT e.id, e.emp_code, e.full_name,
+                            b.name AS branch_name, d.name AS department_name
+                     FROM employees e
+                     LEFT JOIN branches b ON b.id = e.branch_id
+                     LEFT JOIN departments d ON d.id = e.department_id
+                     WHERE e.is_active = 1
+                       AND e.profile_status = "incomplete"
+                     ORDER BY e.created_at DESC
+                     LIMIT 5'
+                );
+            }
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            // profile_status column missing (migration not applied yet) — fail soft.
+            return [];
+        }
     }
 
     private function resolvePersona(int $employeeId, array $permissions, array $roles): string
