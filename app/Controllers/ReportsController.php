@@ -30,6 +30,11 @@ final class ReportsController extends Controller
         $deptId    = (int)($_GET['department_id'] ?? 0);
         $results   = [];
 
+        // فلتر القسم مرتبط بالفرع: بلا فرع محدد يُتجاهل أي قسم قادم من رابط قديم.
+        if ($branchId <= 0) {
+            $deptId = 0;
+        }
+
         $branches = (new Branch())->getAll();
         $departments = $branchId > 0 ? (new Department())->findByBranch($branchId) : [];
 

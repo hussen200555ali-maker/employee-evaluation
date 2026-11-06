@@ -7,6 +7,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
     padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-family:'Cairo'; font-size:13px;
 }
 .report-search-bar input { flex:1; min-width:200px; }
+.report-search-bar select[hidden] { display:none !important; }
 .report-search-bar .btn-search { background:#0c2823; color:#c8943f; border:none; padding:10px 24px; border-radius:8px; cursor:pointer; font-weight:700; }
 .emp-result-card {
     background:#fff; border:1px solid #e8e8e8; border-radius:12px; padding:16px 20px; margin-bottom:12px;
@@ -54,7 +55,8 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                 </option>
             <?php endforeach; ?>
         </select>
-        <select name="department_id" id="deptFilter" aria-label="القسم">
+        <?php // لا معنى لفلتر القسم قبل اختيار فرع محدد: يظهر فقط عند تحديد فرع. ?>
+        <select name="department_id" id="deptFilter" aria-label="القسم" <?= ($branchId ?? 0) > 0 ? '' : 'hidden disabled' ?>>
             <option value="0">كل الأقسام</option>
             <?php foreach ($departments ?? [] as $d): ?>
                 <option value="<?= (int)$d->id ?>" <?= ($deptId ?? 0) === (int)$d->id ? 'selected' : '' ?>>
@@ -133,17 +135,31 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 <script>
 (function () {
     var APP_URL = <?= json_encode(APP_URL, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-    var selectedDepartment = <?= (int)($deptId ?? 0) ?>;
     var branchFilter = document.getElementById('branchFilter');
     var deptFilter = document.getElementById('deptFilter');
+
+    // إظهار/إخفاء فلتر الأقسام مع تصفيره عند الإخفاء حتى لا يُرسَل فلتر مخفي.
+    function setDeptVisible(visible) {
+        deptFilter.hidden = !visible;
+        deptFilter.disabled = !visible;
+        if (!visible) {
+            deptFilter.innerHTML = '<option value="0">كل الأقسام</option>';
+            deptFilter.value = '0';
+        }
+    }
 
     // Cascading dropdowns: when branch changes, fetch departments via AJAX.
     branchFilter.addEventListener('change', function () {
         var branchId = this.value;
         deptFilter.innerHTML = '<option value="0">كل الأقسام</option>';
+
+        // «كل الفروع» ← البحث يشمل كل الفروع وأقسامها، بلا فلتر أقسام ظاهر.
         if (branchId <= 0) {
+            setDeptVisible(false);
             return;
         }
+
+        setDeptVisible(true);
         fetch(APP_URL + '/api/departments/by-branch/' + encodeURIComponent(branchId), {
             headers: { 'Accept': 'application/json' }
         })
@@ -155,14 +171,14 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                     var option = document.createElement('option');
                     option.value = department.id;
                     option.textContent = department.name;
-                    if (String(department.id) === String(selectedDepartment)) {
-                        option.selected = true;
-                    }
                     deptFilter.appendChild(option);
                 });
             })
             .catch(function () {});
     });
+
+    // مزامنة الحالة الأولية مع الفرع المحدد في الرابط.
+    setDeptVisible(branchFilter.value > 0);
 
     // Modal: read employee data from data-* attributes (safe with quotes).
     document.querySelectorAll('.btn-issue').forEach(function (button) {
