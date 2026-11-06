@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التقييم الجماعي — نظام تقييم الموظفين</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#0c2823;--accent:#c8943f;--light:#f5f0e8;--gray:#6c757d;--gray-light:#e8e8e8;--white:#fff;--success:#0d5e52;--success-light:#e8f5f0;--danger:#8b2222;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.06)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif}
+body{background:#f8f9fa;color:#333}
+.topbar{background:var(--primary);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--accent)}
+.topbar .brand{display:flex;align-items:center;gap:12px}
+.topbar .brand .logo{width:36px;height:36px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--primary);font-weight:900}
+.topbar .brand .name{color:var(--accent);font-size:13px;font-weight:700}
+.topbar .brand .name span{display:block;color:rgba(255,255,255,0.4);font-size:9px}
+.topbar .user-area{color:rgba(255,255,255,0.6);font-size:11px}
+.setup-bar{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:20px auto;max-width:1100px}
+.setup-bar h2{font-size:17px;color:var(--primary);margin-bottom:16px}
+.setup-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:16px;align-items:end}
+.setup-grid .field label{display:block;font-size:11px;color:var(--gray);margin-bottom:4px;font-weight:600}
+.setup-grid .field select,.setup-grid .field input{width:100%;padding:10px 14px;border:1px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:'Cairo')}
+.setup-grid .field .lock-badge{font-size:9px;color:var(--gray);margin-top:4px}
+.quick-add-section{margin:0 auto 20px;max-width:1100px;display:flex;gap:12px;align-items:center}
+.quick-add-section .search-input{flex:1;padding:12px 18px;border:2px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:'Cairo'}
+.quick-add-section .btn-add{padding:12px 20px;background:var(--primary);color:var(--accent);border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.cards-container{max-width:1100px;margin:0 auto 80px}
+.emp-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;border:1px solid var(--gray-light)}
+.emp-card.saved{background:var(--success-light);border-color:var(--success)}
+.emp-card .card-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-light);background:var(--light)}
+.emp-card.saved .card-header{background:var(--success-light);border-bottom-color:var(--success)}
+.emp-card .card-header .emp-info{display:flex;align-items:center;gap:12px}
+.emp-card .card-header .avatar{width:42px;height:42px;border-radius:50%;background:var(--primary);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+.emp-card.saved .card-header .avatar{background:var(--success);color:var(--white)}
+.emp-card .card-header .emp-name{font-size:14px;font-weight:700;color:var(--primary)}
+.emp-card .card-header .emp-meta{font-size:11px;color:var(--gray)}
+.emp-card .card-header .saved-badge{background:var(--success);color:var(--white);padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
+.emp-card .card-body{padding:16px 20px}
+.criteria-section{margin-bottom:14px}
+.criteria-section .criteria-title{font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--gray-light)}
+.criteria-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+.criteria-row .criteria-label{font-size:12px;color:#333;flex:1}
+.scale-group{display:flex;gap:4px}
+.scale-btn{width:32px;height:32px;border:1px solid var(--gray-light);border-radius:6px;background:var(--white);font-size:13px;font-weight:600;cursor:pointer;font-family:'Cairo';color:var(--gray)}
+.scale-btn:hover{border-color:var(--accent);color:var(--primary)}
+.scale-btn.selected{background:var(--primary);color:var(--accent);border-color:var(--primary)}
+.emp-card.saved .scale-btn{cursor:not-allowed;opacity:0.5}
+.emp-card.saved .scale-btn.selected{opacity:1}
+.desc-textarea{width:100%;padding:10px 14px;border:1px solid var(--gray-light);border-radius:8px;font-size:12px;font-family:'Cairo';min-height:60px;resize:vertical}
+.desc-textarea:focus{outline:none;border-color:var(--accent)}
+.emp-card.saved .desc-textarea{background:#f0f0f0;color:var(--gray)}
+.grade-select{padding:8px 14px;border:1px solid var(--gray-light);border-radius:8px;font-size:12px;font-family:'Cairo');background:var(--white)}
+.notes-row{margin-top:12px;padding-top:10px;border-top:1px solid var(--gray-light)}
+.notes-row label{font-size:11px;color:var(--gray);display:block;margin-bottom:4px}
+.notes-row textarea{width:100%;padding:8px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:11px;font-family:'Cairo';min-height:36px;resize:vertical}
+.emp-card.saved .notes-row textarea{background:#f0f0f0;color:var(--gray)}
+.card-actions{padding:12px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--gray-light)}
+.btn-save-one{background:var(--primary);color:var(--accent);border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Cairo')}
+.btn-add-next{background:var(--white);color:var(--primary);border:1px solid var(--gray-light);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Cairo')}
+.emp-card.saved .btn-save-one{display:none}
+.quick-add-inline{background:var(--light);padding:16px 20px;border:2px dashed var(--accent)}
+.quick-add-inline h4{font-size:13px;color:var(--primary);margin-bottom:12px}
+.quick-add-inline .inline-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end}
+.quick-add-inline .inline-grid input{padding:9px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:'Cairo')}
+.quick-add-inline .inline-grid .btn-inline-add{background:var(--accent);color:var(--primary);border:none;padding:9px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+.quick-add-inline .inline-grid .btn-inline-cancel{background:transparent;color:var(--gray);border:none;padding:9px 12px;font-size:12px;cursor:pointer}
+.global-actions{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--accent);padding:16px 24px;display:flex;justify-content:center;align-items:center;gap:16px;box-shadow:0 -4px 12px rgba(0,0,0,0.08);z-index:100}
+.global-actions .summary{font-size:12px;color:var(--gray)}
+.global-actions .summary strong{color:var(--primary)}
+.global-actions .btn-save-all{background:var(--primary);color:var(--accent);border:none;padding:14px 40px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Cairo');box-shadow:0 2px 8px rgba(12,40,35,0.3)}
+.scenario-label{max-width:1100px;margin:20px auto 8px;font-size:13px;color:var(--accent);font-weight:700;background:rgba(200,148,63,0.08);padding:6px 14px;border-radius:6px;border:1px solid rgba(200,148,63,0.15)}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="brand"><div class="logo">ت</div><div class="name">نظام تقييم الموظفين<span>Employee Performance Evaluation</span></div></div><div class="user-area">مدير الفريق · آخر دخول: 2026-11-06</div></div>
+
+<div class="setup-bar"><h2>📋 إعداد التقييم الجماعي</h2><div class="setup-grid">
+<div class="field"><label>قالب التقييم</label><select><option>تقييم أداء سنوي (قيمي 1-5)</option><option>تقييم وصفي للدورات</option></select><div class="lock-badge">🔒 يُقفل بعد إدخال أول تقييم</div></div>
+<div class="field"><label>التاريخ الموحد</label><input type="date" value="2026-11-06"></div>
+<div class="field"><label>اسم المقيّم</label><input type="text" value="سلمان فهد المطيري"></div>
+<div class="field"><label>صفة المقيّم</label><input type="text" value="مدير قسم المبيعات"></div>
+</div></div>
+
+<div class="quick-add-section"><input type="text" class="search-input" placeholder="🔍 بحث وإضافة موظف (الاسم أو الرقم الوظيفي)..."><button class="btn-add">＋ إضافة موظف جديد</button></div>
+
+<div class="scenario-label">📸 السيناريو 1: القالب القيمي (حقول رقمية 1-5)</div>
+<div class="cards-container">
+<div class="emp-card"><div class="card-header"><div class="emp-info"><div class="avatar">أ</div><div><div class="emp-name">أحمد محمد العمري</div><div class="emp-meta">EMP-UAT-01 · المبيعات · الرياض</div></div></div></div>
+<div class="card-body">
+<div class="criteria-section"><div class="criteria-title">معيار: الإنتاجية (وزن 50%)</div>
+<div class="criteria-row"><div class="criteria-label">تحقيق الأهداف</div><div class="scale-group"><button class="scale-btn">1</button><button class="scale-btn">2</button><button class="scale-btn">3</button><button class="scale-btn">4</button><button class="scale-btn selected">5</button></div></div>
+<div class="criteria-row"><div class="criteria-label">جودة العمل</div><div class="scale-group"><button class="scale-btn">1</button><button class="scale-btn">2</button><button class="scale-btn selected">3</button><button class="scale-btn">4</button><button class="scale-btn">5</button></div></div></div>
+<div class="criteria-section"><div class="criteria-title">معيار: الالتزام (وزن 50%)</div>
+<div class="criteria-row"><div class="criteria-label">الحضور والانضباط</div><div class="scale-group"><button class="scale-btn">1</button><button class="scale-btn">2</button><button class="scale-btn">3</button><button class="scale-btn selected">4</button><button class="scale-btn">5</button></div></div></div>
+<div class="notes-row"><label>ملاحظات المقيّم</label><textarea>موظف ممتاز في تحقيق الأهداف، يحتاج لتحسين جودة العمل.</textarea></div>
+</div>
+<div class="card-actions"><button class="btn-add-next">＋ إضافة موظف آخر</button><button class="btn-save-one">💾 حفظ فردي</button></div></div>
+
+<div class="emp-card saved"><div class="card-header"><div class="emp-info"><div class="avatar">ف</div><div><div class="emp-name">فاطمة علي الزهراني</div><div class="emp-meta">EMP-UAT-02 · التسويق · جدة</div></div></div><div class="saved-badge">✓ تم الحفظ</div></div>
+<div class="card-body">
+<div class="criteria-section"><div class="criteria-title">معيار: الإنتاجية (وزن 50%)</div>
+<div class="criteria-row"><div class="criteria-label">تحقيق الأهداف</div><div class="scale-group"><button class="scale-btn" disabled>1</button><button class="scale-btn" disabled>2</button><button class="scale-btn" disabled>3</button><button class="scale-btn selected" disabled>4</button><button class="scale-btn" disabled>5</button></div></div>
+<div class="criteria-row"><div class="criteria-label">جودة العمل</div><div class="scale-group"><button class="scale-btn" disabled>1</button><button class="scale-btn" disabled>2</button><button class="scale-btn selected" disabled>4</button><button class="scale-btn" disabled>3</button><button class="scale-btn" disabled>5</button></div></div></div>
+<div class="criteria-section"><div class="criteria-title">معيار: الالتزام (وزن 50%)</div>
+<div class="criteria-row"><div class="criteria-label">الحضور والانضباط</div><div class="scale-group"><button class="scale-btn" disabled>1</button><button class="scale-btn" disabled>2</button><button class="scale-btn" disabled>3</button><button class="scale-btn selected" disabled>5</button><button class="scale-btn" disabled>4</button></div></div></div>
+<div class="notes-row"><label>ملاحظات المقيّم</label><textarea readonly>أداء جيد جداً، ملتزمة وحرصة على تطوير العمل.</textarea></div>
+</div><div class="card-actions"><button class="btn-add-next">＋ إضافة موظف آخر</button></div></div>
+</div>
+
+<div class="scenario-label">📸 السيناريو 2: القالب الوصفي (حقول نصية)</div>
+<div class="cards-container">
+<div class="emp-card"><div class="card-header"><div class="emp-info"><div class="avatar">خ</div><div><div class="emp-name">خالد سعد الغامدي</div><div class="emp-meta">EMP-UAT-03 · تقنية المعلومات · الرياض</div></div></div></div>
+<div class="card-body">
+<div class="criteria-section"><div class="criteria-title">قسم: المهارات التقنية</div>
+<div style="margin-bottom:6px;font-size:12px;">وصف مستوى المهارات التقنية:</div>
+<textarea class="desc-textarea">يتمتع خالد بمهارات تقنية ممتازة في تحليل النظم، ويتقن استخدام أدوات تطوير الويب بكفاءة عالية.</textarea></div>
+<div class="criteria-section"><div class="criteria-title">قسم: العمل الجماعي</div>
+<div style="margin-bottom:6px;font-size:12px;">وصف القدرة على العمل الجماعي:</div>
+<textarea class="desc-textarea">متعاون مع زملائه ويشارك بخبراته. يحتاج إلى تحسين مهارات التواصل.</textarea></div>
+<div class="criteria-section"><div class="criteria-title">التقدير العام (يدوي)</div>
+<div class="criteria-row"><div class="criteria-label">اختر التقدير:</div><select class="grade-select"><option>— اختر —</option><option selected>ممتاز</option><option>جيد جداً</option><option>جيد</option></select></div></div>
+<div class="notes-row"><label>ملاحظات المقيّم</label><textarea>موظف واعد، ينصح بتدريبه على مهارات التواصل.</textarea></div>
+</div><div class="card-actions"><button class="btn-add-next">＋ إضافة موظف آخر</button><button class="btn-save-one">💾 حفظ فردي</button></div></div>
+</div>
+
+<div class="scenario-label">📸 السيناريو 3: الإضافة السريعة (Inline Form مفتوح)</div>
+<div class="cards-container">
+<div class="emp-card"><div class="quick-add-inline"><h4>＋ إضافة موظف جديد</h4>
+<div class="inline-grid">
+<input type="text" placeholder="الاسم الكامل" value="نورة عبدالله القحطاني">
+<input type="text" placeholder="الرقم الوظيفي" value="EMP-UAT-04">
+<select style="padding:9px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:'Cairo')"><option>الرياض</option><option>جدة</option></select>
+<select style="padding:9px 12px;border:1px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:'Cairo')"><option>المبيعات</option><option>التسويق</option></select>
+<div style="display:flex;gap:6px;"><button class="btn-inline-add">✓ إضافة</button><button class="btn-inline-cancel">✕</button></div>
+</div></div></div>
+</div>
+
+<div class="global-actions"><div class="summary"><strong>3</strong> موظفين · <strong>1</strong> محفوظ · <strong>2</strong> بانتظار الحفظ</div><button class="btn-save-all">💾 حفظ الجميع</button></div>
+
+<script>
+document.querySelectorAll('.scale-btn').forEach(function(b){if(b.disabled)return;b.addEventListener('click',function(){this.parentElement.querySelectorAll('.scale-btn').forEach(function(s){s.classList.remove('selected')});this.classList.add('selected')})});
+document.querySelectorAll('.btn-save-one').forEach(function(b){b.addEventListener('click',function(){var c=this.closest('.emp-card');c.classList.add('saved');c.querySelectorAll('.scale-btn,.desc-textarea,.grade-select,textarea').forEach(function(e){e.disabled=true;e.readOnly=true});this.style.display='none';var h=c.querySelector('.card-header');if(!h.querySelector('.saved-badge')){var b=document.createElement('div');b.className='saved-badge';b.innerHTML='✓ تم الحفظ';h.appendChild(b)}var t=document.querySelectorAll('.emp-card').length,s=document.querySelectorAll('.emp-card.saved').length;document.querySelector('.summary').innerHTML='<strong>'+t+'</strong> موظفين · <strong>'+s+'</strong> محفوظ · <strong>'+(t-s)+'</strong> بانتظار الحفظ'})});
+</script>
+</body>
+</html>
