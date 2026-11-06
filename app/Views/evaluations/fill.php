@@ -414,20 +414,74 @@ body {
                                                                data-section-id="<?= $section['id'] ?>"
                                                                value="<?php echo htmlspecialchars($savedAnswer->raw_value ?? ''); ?>">
                                                         <small class="text-muted"><i class="fas fa-cog"></i> يُملأ تلقائياً من النظام</small>
+                                                    <?php elseif ($sectionType === 'textarea'): ?>
+                                                        <?php
+                                                            // CD-023: قسم نصي — Textarea
+                                                            $textOpts = is_string($section['evaluation_options'] ?? '') ? json_decode($section['evaluation_options'], true) : ($section['evaluation_options'] ?? []);
+                                                            $maxChars = (int)($textOpts['max_chars'] ?? 1000);
+                                                            $textRequired = !empty($textOpts['required']);
+                                                            $savedText = $savedAnswer->raw_value ?? '';
+                                                        ?>
+                                                        <textarea class="form-control evaluation-input cd023-textarea"
+                                                                  name="<?php echo $fieldName; ?>[text]"
+                                                                  rows="4"
+                                                                  maxlength="<?php echo $maxChars; ?>"
+                                                                  <?php echo $textRequired ? 'required' : ''; ?>
+                                                                  data-section-type="textarea"
+                                                                  placeholder="اكتب إجابتك الوصفية هنا... (حد أقصى <?php echo $maxChars; ?> حرف)"><?php echo htmlspecialchars($savedText); ?></textarea>
+                                                        <small class="text-muted"><i class="fas fa-info-circle"></i> إجابة وصفية — لا تُحتسب في الدرجة النهائية</small>
+                                                    <?php elseif ($sectionType === 'overall_grade'): ?>
+                                                        <?php
+                                                            // CD-023: التقدير العام — قائمة منزلقة من سلم التقديرات
+                                                            $gradeOpts = is_string($section['evaluation_options'] ?? '') ? json_decode($section['evaluation_options'], true) : ($section['evaluation_options'] ?? []);
+                                                            $scaleName = $gradeOpts['scale_name'] ?? 'السلم الخماسي';
+                                                            $savedGrade = $savedAnswer->raw_value ?? '';
+                                                            // تصفية سلالم التقدير حسب scale_name
+                                                            $sectionGrades = [];
+                                                            if (!empty($gradingScales)) {
+                                                                foreach ($gradingScales as $gs) {
+                                                                    if (($gs->scale_name ?? '') === $scaleName) {
+                                                                        $sectionGrades[] = $gs;
+                                                                    }
+                                                                }
+                                                            }
+                                                        ?>
+                                                        <select class="form-select evaluation-input cd023-overall-grade"
+                                                                name="<?php echo $fieldName; ?>[grade_label]"
+                                                                data-section-type="overall_grade"
+                                                                data-scale-name="<?php echo htmlspecialchars($scaleName); ?>"
+                                                                <?php echo ($template['evaluation_mode'] ?? '') === 'descriptive' ? 'required' : ''; ?>>
+                                                            <option value="">-- اختر التقدير العام --</option>
+                                                            <?php foreach ($sectionGrades as $gs): ?>
+                                                                <option value="<?php echo htmlspecialchars($gs->grade_label); ?>" <?php echo ($savedGrade === $gs->grade_label) ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($gs->grade_label); ?> (<?php echo htmlspecialchars($gs->numeric_value); ?>)
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <small class="text-muted"><i class="fas fa-trophy" style="color:#c8943f;"></i> التقدير العام — سلم: <?php echo htmlspecialchars($scaleName); ?></small>
                                                     <?php else: ?>
                                                         <input type="text" class="form-control evaluation-input" name="<?php echo $fieldName; ?>[score]" placeholder="أدخل القيمة" value="<?php echo htmlspecialchars($savedAnswer->raw_value ?? ''); ?>">
                                                     <?php endif; ?>
                                                     
-                                                    <!-- ▼▼▼ إضافة مكان عرض نتيجة القسم ▼▼▼ -->
+                                                    <!-- ▼▼▼ إضافة مكان عرض نتيجة القسم (CD-023: يُخفى للأنواع غير المرجَّحة) ▼▼▼ -->
+                                                    <?php if (!in_array($sectionType, ['textarea', 'text', 'overall_grade', 'helper', 'formula', 'auto'], true)): ?>
                                                     <small class="section-score-display" id="section-score-<?php echo $section['id']; ?>">
                                                         الدرجة: 0.00 / <?php echo number_format((float)$section['section_weight'], 2); ?>
                                                     </small>
+                                                    <?php endif; ?>
                                                     <!-- ▲▲▲ نهاية مكان عرض النتيجة ▲▲▲ -->
                                                 </div>
+                                                <?php // CD-023: إخفاء عمود الملاحظات للأقسام النصية والتقدير العام (لا ملاحظات لها) ?>
+                                                <?php if (!in_array($sectionType, ['textarea', 'overall_grade'], true)): ?>
                                                 <div class="col-md-7">
                                                     <label class="form-label fw-bold small">الملاحظات والشواهد:</label>
                                                     <textarea class="form-control" name="<?php echo $fieldName; ?>[notes]" rows="2" placeholder="اكتب ملاحظاتك هنا..."><?php echo htmlspecialchars($savedAnswer->notes ?? ''); ?></textarea>
                                                 </div>
+                                                <?php else: ?>
+                                                <div class="col-md-7 d-flex align-items-center">
+                                                    <small class="text-muted"><i class="fas fa-info-circle"></i> لا ملاحظات لهذا النوع من الأقسام.</small>
+                                                </div>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>

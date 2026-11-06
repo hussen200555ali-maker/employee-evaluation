@@ -348,11 +348,30 @@ class EvaluationController extends Controller {
         }
 
         $manualGrade = null;
-        if (in_array($template['evaluation_mode'] ?? 'numeric', ['descriptive', 'mixed'], true)) {
-            $gradeId = filter_var($_POST['final_grade_id'] ?? null, FILTER_VALIDATE_INT);
-            $manualGrade = ($gradeId !== false && $gradeId !== null && $gradeId > 0)
-                ? (new \App\Models\GradingScale())->findActiveById($gradeId)
-                : null;
+        $mode = $template['evaluation_mode'] ?? 'numeric';
+        if (in_array($mode, ['descriptive', 'mixed'], true)) {
+            // CD-023: أولاً، ابحث عن إجابة قسم "التقدير العام" في النتائج
+            $overallGradeAnswer = $this->extractOverallGradeAnswer($template, $results);
+            if ($overallGradeAnswer !== null) {
+                $numericValue = (new \App\Models\GradingScale())->getNumericValueForLabel(
+                    $overallGradeAnswer['scale_name'],
+                    $overallGradeAnswer['grade_label']
+                );
+                if ($numericValue !== null) {
+                    $manualGrade = (object)[
+                        'grade_label'   => $overallGradeAnswer['grade_label'],
+                        'numeric_value' => $numericValue,
+                        'scale_name'    => $overallGradeAnswer['scale_name'],
+                    ];
+                }
+            }
+            // إن لم يُعثر على قسم "تقدير عام" (قالب قديم)، نعود للآلية القديمة
+            if (!$manualGrade) {
+                $gradeId = filter_var($_POST['final_grade_id'] ?? null, FILTER_VALIDATE_INT);
+                $manualGrade = ($gradeId !== false && $gradeId !== null && $gradeId > 0)
+                    ? (new \App\Models\GradingScale())->findActiveById($gradeId)
+                    : null;
+            }
             if (!$manualGrade) {
                 Flash::set('اختر تقديرًا عامًا صالحًا من سلم التقديرات النشط.', 'danger');
                 $this->redirect("/evaluations/{$evaluationId}/fill");
@@ -364,7 +383,10 @@ class EvaluationController extends Controller {
 
         if ($success) {
             $isDescriptive = ($template['evaluation_mode'] ?? 'numeric') === 'descriptive';
-            $finalScore = $isDescriptive ? null : $evaluationModel->calculateFinalScore($evaluationId);
+            // CD-023: للقوالب الوصفية، final_score = القيمة الرقمية للتقدير العام
+            $finalScore = $isDescriptive
+                ? ($manualGrade ? (float)$manualGrade->numeric_value : null)
+                : $evaluationModel->calculateFinalScore($evaluationId);
             $isUnit = in_array($evaluation->entity_type ?? 'employee', ['branch','department']);
             $nextStatus = $isUnit ? 'pending_review' : 'completed';
             if ($manualGrade) {
@@ -594,6 +616,35 @@ class EvaluationController extends Controller {
 
         // ▼▼▼ استدعاء ملف العرض الجديد الخاص بالطباعة ▼▼▼
         $this->view('evaluations/print', $data);
+    }
+
+    /**
+     * CD-023: استخراج إجابة قسم "التقدير العام" من نتائج التقييم المُرسلة.
+     * يبحث في هيكل القالب عن قسمٍ من نوع overall_grade، ثم يقرأ
+     * grade_label من $_POST['results'][criterionId][sectionId].
+     *
+     * @return array{scale_name:string,grade_label:string}|null
+     */
+    private function extractOverallGradeAnswer(array $template, array $results): ?array {
+        foreach ($template['criteria'] ?? [] as $criterion) {
+            $critId = $criterion['id'];
+            foreach ($criterion['sections'] ?? [] as $section) {
+                if (($section['evaluation_type'] ?? '') === 'overall_grade') {
+                    $sectionId = $section['id'];
+                    $answer = $results[$critId][$sectionId] ?? null;
+                    if (is_array($answer) && !empty($answer['grade_label'])) {
+                        $opts = is_string($section['evaluation_options'] ?? '')
+                            ? json_decode($section['evaluation_options'], true)
+                            : ($section['evaluation_options'] ?? []);
+                        return [
+                            'scale_name'  => $opts['scale_name'] ?? 'السلم الخماسي',
+                            'grade_label' => (string)$answer['grade_label'],
+                        ];
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /** Only the assigned evaluator may change a draft; administrators retain their established report access. */

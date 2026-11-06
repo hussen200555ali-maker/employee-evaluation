@@ -101,15 +101,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function addSection(criterionId, sectionType) {
         const criterion = formStructure.criteria.find(c => c.id === criterionId);
         if (!criterion) return;
+
+        // CD-023: "التقدير العام" لا يُسمح بإضافته أكثر من مرة في القالب
+        if (sectionType === 'overall_grade') {
+            const exists = formStructure.criteria.some(c =>
+                (c.sections || []).some(s => s.sectionType === 'overall_grade')
+            );
+            if (exists) {
+                alert('لا يُسمح بإضافة "التقدير العام" إلا مرة واحدة في القالب.');
+                return;
+            }
+        }
+
         sectionCounter++;
+        // CD-023: الأنواع غير المرجَّحة (لا وزن لها)
+        const nonWeighted = (sectionType === 'helper' || sectionType === 'textarea' || sectionType === 'text' || sectionType === 'overall_grade');
         const newSection = { 
             id: `s_${sectionCounter}`, 
             type: 'section', 
             sectionType: sectionType, 
             name: `قسم جديد (${getSectionTypeName(sectionType)})`, 
             description: '', 
-            weight: (sectionType === 'helper') ? 0 : 0, 
-            allowNotes: true, 
+            weight: 0, 
+            allowNotes: (sectionType === 'textarea' || sectionType === 'overall_grade') ? false : true, 
             notesRequired: false, 
             notesPlaceholder: 'اكتب ملاحظاتك هنا...', 
             options: (sectionType === 'grade') ? [{ label: 'جيد', value: 100 }, { label: 'متوسط', value: 64 }, { label: 'ضعيف', value: 34 }] : [], 
@@ -119,7 +133,12 @@ document.addEventListener('DOMContentLoaded', function() {
             formulaDisplay: (sectionType === 'formula') ? '' : null,
             readonly: (sectionType === 'formula' || sectionType === 'auto') ? true : false,
             autoSource: (sectionType === 'auto') ? 'employee_count' : null,
-            isHelper: (sectionType === 'helper') ? true : false
+            isHelper: (sectionType === 'helper') ? true : false,
+            // CD-023: خصائص القسم النصي
+            maxChars: (sectionType === 'textarea') ? 1000 : null,
+            required: (sectionType === 'textarea') ? false : null,
+            // CD-023: خصائص التقدير العام — سلم التقديرات المختار
+            scaleName: (sectionType === 'overall_grade') ? (gradingScaleNames[0] || 'السلم الخماسي') : null
         };
         criterion.sections.push(newSection);
         handleAutomaticWeightDistribution(criterion);
@@ -157,14 +176,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleAutomaticWeightDistribution(criterion = null) {
         if (!elements.autoDistributeToggle.checked) return;
+        // CD-023: الأنواع غير المرجَّحة تُستثنى من توزيع الأوزان
+        const nonWeightedTypes = ['helper', 'textarea', 'text', 'overall_grade'];
+        const isNonWeighted = (item) => nonWeightedTypes.indexOf(item.sectionType) !== -1;
         const list = criterion ? criterion.sections : formStructure.criteria;
         if (criterion) {
-            const nonHelpers = list.filter(s => s.sectionType !== 'helper');
-            const count = nonHelpers.length;
+            const weighted = list.filter(s => !isNonWeighted(s));
+            const count = weighted.length;
             if (count === 0) return;
             const weight = 100 / count;
-            list.forEach(item => { item.weight = (item.sectionType === 'helper') ? 0 : weight; });
+            list.forEach(item => { item.weight = isNonWeighted(item) ? 0 : weight; });
         } else {
+            // على مستوى المعايير: المعايير التي تحتوي أقساماً نصية فقط لا تُوزَّع
             const count = list.length;
             if (count === 0) return;
             const weight = 100 / count;
@@ -289,7 +312,9 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
         if (selectedElement.type === 'criterion') {
             propertiesHTML = `<div class="form-group"><label>اسم المعيار</label><input type="text" class="form-control" data-prop="name" value="${selectedElement.name || ''}"></div><div class="form-group"><label>الوزن النسبي للمعيار (%)</label><input type="number" class="form-control" data-prop="weight" value="${parseFloat(selectedElement.weight || 0).toFixed(7)}" step="any"></div><div class="form-group"><label>الوصف</label><textarea class="form-control" data-prop="description">${selectedElement.description || ''}</textarea></div>`;
         } else if (selectedElement.type === 'section') {
-            propertiesHTML = `<div class="form-group"><label>اسم القسم</label><input type="text" class="form-control" data-prop="name" value="${selectedElement.name || ''}"></div><div class="form-group"><label>نوع القسم</label><select class="form-select" data-prop="sectionType"><option value="percentage" ${selectedElement.sectionType === 'percentage' ? 'selected' : ''}>نسبة مئوية</option><option value="numeric" ${selectedElement.sectionType === 'numeric' ? 'selected' : ''}>رقمي</option><option value="grade" ${selectedElement.sectionType === 'grade' ? 'selected' : ''}>تقدير</option><option value="boolean" ${selectedElement.sectionType === 'boolean' ? 'selected' : ''}>نعم/لا</option><option value="formula" ${selectedElement.sectionType === 'formula' ? 'selected' : ''}>صيغة حسابية</option><option value="auto" ${selectedElement.sectionType === 'auto' ? 'selected' : ''}>تلقائي من النظام</option><option value="helper" ${selectedElement.sectionType === 'helper' ? 'selected' : ''}>حقل مساعد للحسابات</option></select></div>${selectedElement.sectionType !== 'helper' ? `<div class="form-group"><label>الوزن داخل المعيار (%)</label><input type="number" class="form-control" data-prop="weight" value="${parseFloat(selectedElement.weight || 0).toFixed(7)}" step="any"></div>` : `<div class="alert alert-info py-2 mb-2"><i class="fas fa-info-circle"></i> الحقل المساعد لا يُحتسب في وزن الاستمارة</div>`}`;
+            const nonWeightedTypes = ['helper', 'textarea', 'text', 'overall_grade'];
+            const isNonWeighted = nonWeightedTypes.indexOf(selectedElement.sectionType) !== -1;
+            propertiesHTML = `<div class="form-group"><label>اسم القسم</label><input type="text" class="form-control" data-prop="name" value="${selectedElement.name || ''}"></div><div class="form-group"><label>نوع القسم</label><select class="form-select" data-prop="sectionType"><option value="percentage" ${selectedElement.sectionType === 'percentage' ? 'selected' : ''}>نسبة مئوية</option><option value="numeric" ${selectedElement.sectionType === 'numeric' ? 'selected' : ''}>رقمي</option><option value="grade" ${selectedElement.sectionType === 'grade' ? 'selected' : ''}>تقدير</option><option value="boolean" ${selectedElement.sectionType === 'boolean' ? 'selected' : ''}>نعم/لا</option><option value="formula" ${selectedElement.sectionType === 'formula' ? 'selected' : ''}>صيغة حسابية</option><option value="auto" ${selectedElement.sectionType === 'auto' ? 'selected' : ''}>تلقائي من النظام</option><option value="helper" ${selectedElement.sectionType === 'helper' ? 'selected' : ''}>حقل مساعد للحسابات</option><option value="textarea" ${selectedElement.sectionType === 'textarea' ? 'selected' : ''}>قسم نصي (Textarea)</option><option value="overall_grade" ${selectedElement.sectionType === 'overall_grade' ? 'selected' : ''}>التقدير العام</option></select></div>${!isNonWeighted ? `<div class="form-group"><label>الوزن داخل المعيار (%)</label><input type="number" class="form-control" data-prop="weight" value="${parseFloat(selectedElement.weight || 0).toFixed(7)}" step="any"></div>` : `<div class="alert alert-info py-2 mb-2"><i class="fas fa-info-circle"></i> هذا النوع غير مرجَّح ولا يُحتسب في وزن الاستمارة</div>`}`;
             if (selectedElement.sectionType === 'grade') {
                 propertiesHTML += `<hr><h6><i class="fas fa-star text-warning"></i> إعدادات خيارات التقدير</h6><div id="grade-options-container">`;
                 (selectedElement.options || []).forEach((option, index) => { propertiesHTML += `<div class="input-group input-group-sm mb-2 grade-option-row"><input type="text" class="form-control option-label" placeholder="التسمية" value="${option.label || ''}" data-index="${index}"><input type="number" class="form-control option-value" placeholder="القيمة" value="${option.value || ''}" data-index="${index}"><button class="btn btn-outline-danger remove-option-btn" title="حذف" data-index="${index}"><i class="fas fa-times"></i></button></div>`; });
@@ -311,6 +336,17 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
                 propertiesHTML += `<hr><h6><i class="fas fa-cog text-muted"></i> إعدادات الحقل التلقائي</h6><div class="form-group"><label class="form-label">المصدر</label><select class="form-select" data-prop="autoSource"><option value="employee_count" ${selectedElement.autoSource === 'employee_count' ? 'selected' : ''}>عدد الموظفين</option><option value="actual_force" ${selectedElement.autoSource === 'actual_force' ? 'selected' : ''}>القوة الفعلية</option><option value="total" ${selectedElement.autoSource === 'total' ? 'selected' : ''}>المجموع الكلي</option></select></div><div class="form-check form-switch"><input class="form-check-input" type="checkbox" data-prop="readonly" checked disabled><label class="form-check-label">للقراءة فقط (تلقائي)</label></div>`;
             } else if (selectedElement.sectionType === 'helper') {
                 propertiesHTML += `<hr><h6><i class="fas fa-calculator text-primary"></i> حقل مساعد للحسابات</h6><div class="alert alert-info py-2"><small><i class="fas fa-info-circle"></i> هذا الحقل يُستخدم كمدخل لعمليات حسابية في أقسام الصيغ ولا يُحتسب في وزن الاستمارة.</small></div><div class="row g-2"><div class="col"><label class="form-label form-label-sm">القيمة الدنيا</label><input type="number" class="form-control form-control-sm" data-prop="min_value" value="${selectedElement.min_value ?? 0}"></div><div class="col"><label class="form-label form-label-sm">القيمة القصوى</label><input type="number" class="form-control form-control-sm" data-prop="max_value" value="${selectedElement.max_value ?? 999999}"></div></div>`;
+            } else if (selectedElement.sectionType === 'textarea') {
+                // CD-023: خصائص القسم النصي
+                propertiesHTML += `<hr><h6><i class="fas fa-align-right text-secondary"></i> إعدادات القسم النصي</h6><div class="form-group"><label class="form-label">الحد الأقصى للأحرف</label><input type="number" class="form-control" data-prop="maxChars" value="${selectedElement.maxChars ?? 1000}" min="1" step="1"></div><div class="form-check form-switch"><input class="form-check-input" type="checkbox" data-prop="required" ${selectedElement.required ? 'checked' : ''}><label class="form-check-label">إجباري</label></div><div class="alert alert-info py-2"><small><i class="fas fa-info-circle"></i> يُرسم كـ Textarea في شاشة التعبئة. الإجابة تُحفظ كنص ولا تؤثر على الدرجة النهائية.</small></div>`;
+            } else if (selectedElement.sectionType === 'overall_grade') {
+                // CD-023: خصائص التقدير العام — اختيار سلم التقديرات
+                let scaleOptions = '';
+                (gradingScaleNames || []).forEach(name => {
+                    scaleOptions += `<option value="${name}" ${selectedElement.scaleName === name ? 'selected' : ''}>${name}</option>`;
+                });
+                if (!scaleOptions) { scaleOptions = `<option value="السلم الخماسي" selected>السلم الخماسي</option>`; }
+                propertiesHTML += `<hr><h6><i class="fas fa-trophy" style="color:#c8943f;"></i> إعدادات التقدير العام</h6><div class="form-group"><label class="form-label">سلم التقديرات</label><select class="form-select" data-prop="scaleName">${scaleOptions}</select></div><div class="alert alert-warning py-2"><small><i class="fas fa-exclamation-triangle"></i> يُرسم في أسفل التقييم كقائمة منزلقة. يُسمح بواحد فقط لكل قالب. في القوالب الوصفية تُؤخذ قيمته كـ final_score.</small></div>`;
             }
             propertiesHTML += `<hr><h6>إعدادات الملاحظات</h6><div class="form-check form-switch"><input class="form-check-input" type="checkbox" data-prop="allowNotes" ${selectedElement.allowNotes ? 'checked' : ''}><label class="form-check-label">السماح بإضافة ملاحظات</label></div><div class="form-check form-switch" style="display: ${selectedElement.allowNotes ? 'block' : 'none'}"><input class="form-check-input" type="checkbox" data-prop="notesRequired" ${selectedElement.notesRequired ? 'checked' : ''}><label class="form-check-label">الملاحظات إجبارية</label></div>`;
         }
@@ -352,6 +388,8 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
                 const optionsJson = JSON.stringify(section.options || []);
                 html += `<input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][options]" value='${encodeURIComponent(optionsJson)}'>`;
                 html += `<input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][allow_notes]" value="${section.allowNotes ? 1 : 0}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][notes_required]" value="${section.notesRequired ? 1 : 0}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][notes_placeholder]" value="${encodeURIComponent(section.notesPlaceholder)}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][formula]" value="${encodeURIComponent(section.formula || '')}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][formula_display]" value="${encodeURIComponent(section.formulaDisplay || '')}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][readonly]" value="${section.readonly ? 1 : 0}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][auto_source]" value="${section.autoSource || ''}">`;
+                // CD-023: حقول القسم النصي والتقدير العام
+                html += `<input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][max_chars]" value="${section.maxChars ?? ''}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][required]" value="${section.required ? 1 : 0}"><input type="hidden" name="criteria[${cIndex}][sections][${sIndex}][scale_name]" value="${encodeURIComponent(section.scaleName || '')}">`;
             });
         });
         elements.hiddenFieldsContainer.innerHTML = html;
@@ -489,11 +527,41 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
         if (builderForm) {
             builderForm.addEventListener('submit', function(e) {
                 updateHiddenFields();
-                const totalWeight = formStructure.criteria.reduce((sum, c) => sum + parseFloat(c.weight), 0);
-                if (formStructure.criteria.length > 0 && Math.abs(totalWeight - 100) > 0.01) { e.preventDefault(); alert('لا يمكن حفظ الاستمارة. يجب أن يكون إجمالي وزن المعايير 100%. المجموع الحالي هو: ' + totalWeight.toFixed(2) + '%'); return; }
-                for(const criterion of formStructure.criteria) {
-                    const sectionsWeightSum = criterion.sections.reduce((sum, s) => sum + parseFloat(s.weight), 0);
-                    if (criterion.sections.length > 0 && Math.abs(sectionsWeightSum - 100) > 0.01) { e.preventDefault(); alert(`خطأ في معيار "${criterion.name}": يجب أن يكون مجموع أوزان الأقسام 100%. المجموع الحالي هو: ${sectionsWeightSum.toFixed(2)}%`); return; }
+                // CD-023: التحقق يعتمد على evaluation_mode
+                const evalMode = (document.getElementById('evaluation_mode') || {}).value || 'numeric';
+                const nonWeightedTypes = ['helper', 'textarea', 'text', 'overall_grade'];
+                const isNonWeighted = (s) => nonWeightedTypes.indexOf(s.sectionType) !== -1;
+
+                // عدّ أقسام "التقدير العام" — لا يُسمح بأكثر من واحد
+                let overallGradeCount = 0;
+                formStructure.criteria.forEach(c => (c.sections || []).forEach(s => { if (s.sectionType === 'overall_grade') overallGradeCount++; }));
+                if (overallGradeCount > 1) { e.preventDefault(); alert('لا يُسمح بإضافة "التقدير العام" إلا مرة واحدة في القالب.'); return; }
+
+                // القالب الوصفي: لا شرط 100%، لكن يُشترط وجود "التقدير العام"
+                if (evalMode === 'descriptive') {
+                    if (overallGradeCount < 1) { e.preventDefault(); alert('القالب الوصفي يجب أن يحتوي على "التقدير العام" ليُحفظ.'); return; }
+                    return; // لا فحص أوزان للقوالب الوصفية
+                }
+
+                // numeric / mixed: شرط 100% مع استثناء الأنواع غير المرجَّحة
+                // المعايير التي تحتوي أقساماً مرجَّحة فقط تُحتسب في المجموع الكلي
+                let totalCriteriaWeight = 0;
+                for (const criterion of formStructure.criteria) {
+                    const weightedSections = (criterion.sections || []).filter(s => !isNonWeighted(s));
+                    if (weightedSections.length > 0) {
+                        totalCriteriaWeight += parseFloat(criterion.weight || 0);
+                        const sectionsWeightSum = weightedSections.reduce((sum, s) => sum + parseFloat(s.weight || 0), 0);
+                        if (Math.abs(sectionsWeightSum - 100) > 0.01) {
+                            e.preventDefault();
+                            alert(`خطأ في معيار "${criterion.name}": يجب أن يكون مجموع أوزان الأقسام (المرجَّحة) 100%. المجموع الحالي هو: ${sectionsWeightSum.toFixed(2)}%`);
+                            return;
+                        }
+                    }
+                }
+                if (formStructure.criteria.length > 0 && Math.abs(totalCriteriaWeight - 100) > 0.01) {
+                    e.preventDefault();
+                    alert('لا يمكن حفظ الاستمارة. يجب أن يكون إجمالي وزن المعايير (المرجَّحة) 100%. المجموع الحالي هو: ' + totalCriteriaWeight.toFixed(2) + '%');
+                    return;
                 }
             });
         }
@@ -514,7 +582,7 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
                             parsedOptions = parsedOptions.map(opt => (typeof opt === 'string' ? { label: opt, value: '' } : opt));
                             let parsedFormula = {};
                             try { parsedFormula = JSON.parse(serverSection.formula_config || '{}') || {}; } catch (e) { parsedFormula = {}; }
-                            return { id: `s_${serverSection.id}`, type: 'section', sectionType: serverSection.evaluation_type, name: serverSection.section_name, description: serverSection.section_description || '', weight: parseFloat(serverSection.section_weight), allowNotes: !!parseInt(serverSection.allow_notes), notesRequired: !!parseInt(serverSection.notes_required), notesPlaceholder: serverSection.notes_placeholder || 'اكتب ملاحظاتك هنا...', options: parsedOptions, min_value: serverSection.min_value, max_value: serverSection.max_value, formula: parsedFormula.formula || '', formulaDisplay: parsedFormula.display || '', readonly: !!parsedFormula.readonly, autoSource: parsedFormula.auto_source || null, isHelper: serverSection.evaluation_type === 'helper' };
+                            return { id: `s_${serverSection.id}`, type: 'section', sectionType: serverSection.evaluation_type, name: serverSection.section_name, description: serverSection.section_description || '', weight: parseFloat(serverSection.section_weight), allowNotes: !!parseInt(serverSection.allow_notes), notesRequired: !!parseInt(serverSection.notes_required), notesPlaceholder: serverSection.notes_placeholder || 'اكتب ملاحظاتك هنا...', options: parsedOptions, min_value: serverSection.min_value, max_value: serverSection.max_value, formula: parsedFormula.formula || '', formulaDisplay: parsedFormula.display || '', readonly: !!parsedFormula.readonly, autoSource: parsedFormula.auto_source || null, isHelper: serverSection.evaluation_type === 'helper', maxChars: serverSection.max_chars ? parseInt(serverSection.max_chars) : (serverSection.evaluation_type === 'textarea' ? 1000 : null), required: serverSection.evaluation_type === 'textarea' ? !!parseInt(serverSection.required || 0) : null, scaleName: serverSection.scale_name || (serverSection.evaluation_type === 'overall_grade' ? (gradingScaleNames[0] || 'السلم الخماسي') : null) };
                         });
                     }
                     return cleanCriterion;
@@ -531,7 +599,7 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
     }
 
     function getSectionTypeName(type) {
-        const names = { percentage: 'نسبة مئوية', numeric: 'رقمي', grade: 'تقدير', boolean: 'نعم/لا', formula: 'صيغة حسابية', auto: 'تلقائي', helper: 'حقل مساعد' };
+        const names = { percentage: 'نسبة مئوية', numeric: 'رقمي', grade: 'تقدير', boolean: 'نعم/لا', formula: 'صيغة حسابية', auto: 'تلقائي', helper: 'حقل مساعد', textarea: 'قسم نصي', overall_grade: 'التقدير العام' };
         return names[type] || 'قسم';
     }
 

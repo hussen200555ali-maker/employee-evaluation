@@ -56,6 +56,18 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
                     <div><strong>حقل مساعد للحسابات</strong><small>مدخل لعمليات الصيغ (لا يُحتسب).</small></div>
                 </div>
             </div>
+            <!-- CD-023: عناصر التقييم الوصفي -->
+            <div class="element-group">
+                <h6><i class="fas fa-pen-alt"></i> التقييم الوصفي (CD-023)</h6>
+                <div class="draggable-element" data-type="section" data-section-type="textarea" draggable="true">
+                    <i class="fas fa-align-right text-secondary"></i>
+                    <div><strong>قسم نصي</strong><small>إجابة وصفية حرة (Textarea) — لا وزن.</small></div>
+                </div>
+                <div class="draggable-element" data-type="section" data-section-type="overall_grade" draggable="true">
+                    <i class="fas fa-trophy" style="color:#c8943f;"></i>
+                    <div><strong>التقدير العام</strong><small>سلم تقديرات يدوي في أسفل القالب (مرة واحدة).</small></div>
+                </div>
+            </div>
         </div>
     </aside>
 
@@ -212,6 +224,8 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
 <script>
     const isEditing = <?php echo json_encode($isEditing); ?>;
     const initialFormStructure = <?php echo $formStructureJson; ?>;
+    // CD-023: أسماء السلالم النشطة (لخصائص "التقدير العام")
+    const gradingScaleNames = <?php echo json_encode($gradingScaleNames ?? []); ?>;
 </script>
 
 <?php 

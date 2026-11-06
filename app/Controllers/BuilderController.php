@@ -53,12 +53,16 @@ class BuilderController extends Controller {
         }
 
         // 3. عرض الواجهة مع تمرير كل البيانات اللازمة
+        // CD-023: تمرير أسماء السلالم النشطة لاستخدامها في خصائص "التقدير العام"
+        $gradingScaleNames = (new \App\Models\GradingScale())->getActiveScaleNames();
+
         $this->view('builder/index', [
             'pageTitle' => $isEditing ? 'تعديل القالب: ' . htmlspecialchars($templateData['template_name']) : 'إنشاء قالب جديد',
             'isEditing' => $isEditing,
             'template' => $templateData,
             'formStructureJson' => $formStructureJson,
-            'positions' => $allPositions // تمرير قائمة المناصب
+            'positions' => $allPositions, // تمرير قائمة المناصب
+            'gradingScaleNames' => $gradingScaleNames // CD-023: سلالم التقدير المتاحة
         ]);
     }
 
@@ -103,8 +107,8 @@ class BuilderController extends Controller {
         $templateModel = new Template();
         $criteriaStructure = $templateModel->buildStructureFromRequest($_POST);
 
-        // 2. التحقق الذكي من صحة الأوزان
-        $validationError = $this->validateWeights($criteriaStructure);
+        // 2. التحقق الذكي من صحة الأوزان (CD-023: يأخذ evaluation_mode بعين الاعتبار)
+        $validationError = $this->validateWeights($criteriaStructure, $evaluationMode);
         if ($validationError) {
             Flash::set($validationError, 'danger');
             // إعادة المستخدم إلى نفس الصفحة التي كان عليها (إنشاء أو تعديل)
@@ -141,33 +145,75 @@ class BuilderController extends Controller {
      * =================================================================
      * دالة مساعدة للتحقق من الأوزان بهامش خطأ
      * =================================================================
-     * @param array $criteriaStructure
+     * CD-023: التحقق أصبح يعتمد على evaluation_mode:
+     *   - descriptive: يُلغى شرط الـ 100% تماماً، ويُشترط وجود "التقدير العام".
+     *   - numeric/mixed: يظل شرط الـ 100% إلزامياً، لكن تُستثنى الأقسام النصية
+     *     (textarea/text) و"التقدير العام" (overall_grade) من مجموع الأوزان.
+     *
+     * @param array  $criteriaStructure
+     * @param string $evaluationMode  'numeric' | 'descriptive' | 'mixed'
      * @return string|null رسالة الخطأ أو null إذا كانت الأوزان صحيحة
      */
-    private function validateWeights($criteriaStructure) {
-        $totalCriteriaWeight = 0;
-        $tolerance = 0.01; // هامش الخطأ المسموح به
-
+    private function validateWeights(array $criteriaStructure, string $evaluationMode): ?string {
         if (empty($criteriaStructure)) {
             return null; // لا يوجد شيء للتحقق منه
         }
 
+        $tolerance = 0.01;
+        $isDescriptive = ($evaluationMode === 'descriptive');
+
+        // أنواع أقسام غير رقمية تُستثنى من حساب الأوزان (CD-023)
+        $nonWeightedTypes = ['textarea', 'text', 'overall_grade'];
+
+        // عدّ أقسام "التقدير العام" — لا يُسمح بأكثر من واحد في القالب
+        $overallGradeCount = 0;
         foreach ($criteriaStructure as $criterion) {
-            $totalCriteriaWeight += (float)$criterion['weight'];
-            
-            $totalSectionWeight = 0;
-            if (!empty($criterion['sections'])) {
-                foreach ($criterion['sections'] as $section) {
-                    $totalSectionWeight += (float)$section['weight'];
-                }
-                // التحقق من مجموع أوزان الأقسام داخل المعيار
-                if (abs(100 - $totalSectionWeight) > $tolerance) {
-                    return "خطأ: مجموع أوزان الأقسام في معيار '" . htmlspecialchars($criterion['name']) . "' يجب أن يكون 100%. المجموع الحالي هو " . round($totalSectionWeight, 2) . "%.";
+            foreach ($criterion['sections'] ?? [] as $section) {
+                if (($section['type'] ?? '') === 'overall_grade') {
+                    $overallGradeCount++;
                 }
             }
         }
+        if ($overallGradeCount > 1) {
+            return 'خطأ: لا يُسمح بإضافة "التقدير العام" إلا مرة واحدة في القالب.';
+        }
 
-        // التحقق من المجموع الكلي لأوزان المعايير
+        // القالب الوصفي: لا شرط 100%، لكن يُشترط وجود "التقدير العام"
+        if ($isDescriptive) {
+            if ($overallGradeCount < 1) {
+                return 'خطأ: القالب الوصفي يجب أن يحتوي على "التقدير العام" ليُحفظ بنجاح.';
+            }
+            return null;
+        }
+
+        // numeric / mixed: شرط 100% مع استثناء الأقسام النصية والتقدير العام
+        $totalCriteriaWeight = 0.0;
+
+        foreach ($criteriaStructure as $criterion) {
+            $criterionSections = $criterion['sections'] ?? [];
+            $weightedSections = [];
+            foreach ($criterionSections as $section) {
+                $type = $section['type'] ?? 'percentage';
+                if (!in_array($type, $nonWeightedTypes, true)) {
+                    $weightedSections[] = $section;
+                }
+            }
+
+            // لا نتحقق من مجموع أقسام إلا إن وُجدت أقسام مرجَّحة (رقمية) في المعيار
+            if (!empty($weightedSections)) {
+                $totalSectionWeight = 0.0;
+                foreach ($weightedSections as $section) {
+                    $totalSectionWeight += (float)($section['weight'] ?? 0);
+                }
+                if (abs(100 - $totalSectionWeight) > $tolerance) {
+                    return "خطأ: مجموع أوزان الأقسام في معيار '" . htmlspecialchars($criterion['name']) . "' يجب أن يكون 100%. المجموع الحالي هو " . round($totalSectionWeight, 2) . "%.";
+                }
+                // هذا المعيار يشارك في مجموع أوزان المعايير الكلي
+                $totalCriteriaWeight += (float)($criterion['weight'] ?? 0);
+            }
+        }
+
+        // التحقق من المجموع الكلي لأوزان المعايير المرجَّحة فقط
         if (abs(100 - $totalCriteriaWeight) > $tolerance) {
             return "خطأ: المجموع الكلي لأوزان المعايير يجب أن يكون 100%. المجموع الحالي هو " . round($totalCriteriaWeight, 2) . "%.";
         }

@@ -228,33 +228,56 @@ class Evaluation extends Model {
                         continue; // ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± طµط§ظ„ط­ط©طŒ طھط¬ط§ظ‡ظ„ ظ‡ط°ظ‡ ط§ظ„ط¥ط¬ط§ط¨ط© ظˆط§ظ†طھظ‚ظ„ ظ„ظ„طھط§ظ„ظٹط©.
                     }
 
-                    // ط¬ظ„ط¨ طھظپط§طµظٹظ„ ط§ظ„ظ‚ط³ظ… ظ…ظ† ط§ظ„ط®ط±ظٹط·ط© ط§ظ„طھظٹ ط£ظ†ط´ط£ظ†ط§ظ‡ط§.
+                    // جلب تفاصيل القسم من الخريطة التي أنشأناها.
                     $section = $sectionsMap[$sectionId];
-                    // ط¬ظ„ط¨ ط§ظ„ظ‚ظٹظ…ط© ط§ظ„ط®ط§ظ… ط§ظ„طھظٹ ط£ط¯ط®ظ„ظ‡ط§ ط§ظ„ظ…ط³طھط®ط¯ظ….
+                    $evalType = trim(strtolower($section['evaluation_type'] ?? 'percentage'));
+
+                    // CD-023: للقسم النصي والتقدير العام، نقرأ حقلاً مختلفاً ونخزّن raw_value كنص
+                    // بدون normalized_score (تبقى null لأنها لا تشارك في الحساب الرقمي).
+                    if ($evalType === 'textarea' || $evalType === 'text') {
+                        $textValue = isset($answer['text']) ? trim((string)$answer['text']) : '';
+                        $this->db->query($sql);
+                        $this->db->bind(':evaluation_id', $evaluationId);
+                        $this->db->bind(':section_id', (int)$sectionId);
+                        $this->db->bind(':raw_value', $textValue);
+                        $this->db->bind(':notes', $answer['notes'] ?? null);
+                        $this->db->bind(':normalized_score', null);
+                        $this->db->execute();
+                        continue;
+                    }
+                    if ($evalType === 'overall_grade') {
+                        $gradeLabel = isset($answer['grade_label']) ? trim((string)$answer['grade_label']) : '';
+                        $this->db->query($sql);
+                        $this->db->bind(':evaluation_id', $evaluationId);
+                        $this->db->bind(':section_id', (int)$sectionId);
+                        $this->db->bind(':raw_value', $gradeLabel);
+                        $this->db->bind(':notes', $answer['notes'] ?? null);
+                        $this->db->bind(':normalized_score', null);
+                        $this->db->execute();
+                        continue;
+                    }
+
+                    // جلب القيمة الخام التي أدخلها المستخدم.
                     $answerValue = $answer['score'] ?? null;
                     
-                    // ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظ‚ظٹظ…ط© ظپط§ط±ط؛ط© طھظ…ط§ظ…ط§ظ‹طŒ ظ†ط¹طھط¨ط±ظ‡ط§ طµظپط±ط§ظ‹ ظ„طھط¬ظ†ط¨ ط§ظ„ط£ط®ط·ط§ط،.
+                    // إذا كانت القيمة فارغة تماماً، نعتبرها صفراً لتجنب الأخطاء.
                     if ($answerValue === null || $answerValue === '') {
                         $answerValue = 0;
                     }
 
-                    // --- ظ…ظ†ط·ظ‚ ط­ط³ط§ط¨ ط§ظ„ط¯ط±ط¬ط© ط§ظ„ظ…ظˆط­ط¯ط© (normalized_score) ---
+                    // --- منطق حساب الدرجة الموحدة (normalized_score) ---
                     $normalizedScore = 0.0;
-                    // ظ†ظ‚ظˆظ… ط¨طھظ†ط¸ظٹظپ ظˆطھظˆط­ظٹط¯ ظ†ظˆط¹ ط§ظ„طھظ‚ظٹظٹظ… ظ„ط¶ظ…ط§ظ† ط§ظ„ظ…ظ‚ط§ط±ظ†ط© ط§ظ„طµط­ظٹط­ط©.
-                    $evalType = trim(strtolower($section['evaluation_type']));
 
                     if ($evalType === 'numeric') {
-                        // ظ„ظ„ط­ظ‚ظ„ ط§ظ„ط±ظ‚ظ…ظٹطŒ ظ†ط³طھط®ط¯ظ… ظ…ط¹ط§ط¯ظ„ط© ط§ظ„طھظˆط­ظٹط¯ ظ„طھط­ظˆظٹظ„ ط§ظ„ط¯ط±ط¬ط© ط¥ظ„ظ‰ ظ†ط³ط¨ط© ظ…ط¦ظˆظٹط©.
                         $max = (float)($section['max_value'] ?? 100);
                         $min = (float)($section['min_value'] ?? 0);
                         if ($max > $min) {
                             $normalizedScore = (((float)$answerValue - $min) / ($max - $min)) * 100;
                         }
                     } elseif ($evalType === 'grade' || $evalType === 'percentage') {
-                        // ظ„ط­ظ‚ظˆظ„ ط§ظ„طھظ‚ط¯ظٹط± ظˆط§ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط©طŒ ط§ظ„ظ‚ظٹظ…ط© ط§ظ„ظ…ط¯ط®ظ„ط© ظ‡ظٹ ظ†ظپط³ظ‡ط§ ط§ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط©.
                         $normalizedScore = (float)$answerValue;
                     }
-                    // ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ط£ظ†ظˆط§ط¹ ط£ط®ط±ظ‰ ظ…ط«ظ„ 'boolean' ط£ظˆ 'text' ظ‡ظ†ط§ ظ…ط³طھظ‚ط¨ظ„ط§ظ‹.
+                    // boolean/helper/formula/auto تبقى 0.0 (لم تُعالج بعد).
 
                     // --- طھظ†ظپظٹط° ط¹ظ…ظ„ظٹط© ط§ظ„ط¥ط¶ط§ظپط© ---
                     $this->db->query($sql);
@@ -371,7 +394,10 @@ class Evaluation extends Model {
         $templateModel = new \App\Models\Template();
         $template = $templateModel->getTemplateWithStructure($evaluation->template_id);
         if (!$template) return null;
-        if (($template['evaluation_mode'] ?? 'numeric') === 'descriptive') return null;
+        if (($template['evaluation_mode'] ?? 'numeric') === 'descriptive') {
+            // CD-023: الدرجة النهائية = القيمة الرقمية للتقدير العام المختار
+            return $this->calculateDescriptiveScore($evaluationId, $template);
+        }
 
         // 3. ط¬ظ„ط¨ ط§ظ„ط¥ط¬ط§ط¨ط§طھ ظ…ط¹ ط§ظ„ط¯ط±ط¬ط§طھ ط§ظ„ظ…ظˆط­ط¯ط© ط§ظ„ظ…ط­ظپظˆط¸ط©
         $this->db->query("SELECT section_id, normalized_score FROM evaluation_answers WHERE evaluation_id = :id");
@@ -387,6 +413,11 @@ class Evaluation extends Model {
             $criterionScore = 0.0;
             
             foreach ($criterion['sections'] as $section) {
+                // CD-023: تخطّي الأقسام النصية والتقدير العام (لا تشارك في الحساب الرقمي)
+                $sectionType = $section['evaluation_type'] ?? 'percentage';
+                if (in_array($sectionType, ['textarea', 'text', 'overall_grade'], true)) {
+                    continue;
+                }
                 $sectionId = $section['id'];
                 // ط¬ظ„ط¨ ط§ظ„ط¯ط±ط¬ط© ط§ظ„ظ…ظˆط­ط¯ط© ظ…ط¨ط§ط´ط±ط© ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
                 $normalizedScore = (float)($answers[$sectionId] ?? 0);
@@ -403,6 +434,48 @@ class Evaluation extends Model {
 
         // طھظ‚ط±ظٹط¨ ط§ظ„ظ†طھظٹط¬ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط© ظ„ط£ظ‚ط±ط¨ ظ…ظ†ط²ظ„طھظٹظ† ط¹ط´ط±ظٹطھظٹظ†
         return round($totalScore, 2);
+    }
+
+    /**
+     * CD-023: حساب الدرجة النهائية للقالب الوصفي.
+     * يجد قسم "التقدير العام"، يقرأ الإجابة (grade_label)، ويحوّلها إلى
+     * قيمتها الرقمية من grading_scales.
+     *
+     * @return float|null  القيمة الرقمية أو null إن لم تُوجد إجابة
+     */
+    private function calculateDescriptiveScore(int $evaluationId, array $template): ?float {
+        $overallGradeSectionId = null;
+        $scaleName = 'السلم الخماسي';
+
+        foreach ($template['criteria'] ?? [] as $criterion) {
+            foreach ($criterion['sections'] ?? [] as $section) {
+                if (($section['evaluation_type'] ?? '') === 'overall_grade') {
+                    $overallGradeSectionId = (int)$section['id'];
+                    $opts = is_string($section['evaluation_options'] ?? '')
+                        ? json_decode($section['evaluation_options'], true)
+                        : ($section['evaluation_options'] ?? []);
+                    if (is_array($opts) && !empty($opts['scale_name'])) {
+                        $scaleName = (string)$opts['scale_name'];
+                    }
+                    break 2;
+                }
+            }
+        }
+
+        if ($overallGradeSectionId === null) {
+            return null;
+        }
+
+        $this->db->query("SELECT raw_value FROM evaluation_answers WHERE evaluation_id = :id AND section_id = :sid LIMIT 1");
+        $this->db->bind(':id', $evaluationId);
+        $this->db->bind(':sid', $overallGradeSectionId);
+        $row = $this->db->fetch();
+        if (!$row || empty($row->raw_value)) {
+            return null;
+        }
+
+        $gradeLabel = (string)$row->raw_value;
+        return (new \App\Models\GradingScale())->getNumericValueForLabel($scaleName, $gradeLabel);
     }
 
      /**

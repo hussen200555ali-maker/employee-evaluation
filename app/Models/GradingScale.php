@@ -36,6 +36,59 @@ class GradingScale extends Model {
         return $this->db->fetchAll();
     }
 
+    /**
+     * CD-023: جلب كل تقديرات سلمٍ مُسماة (نشطة فقط).
+     * يُستخدم في شاشة التعبئة لرسم قائمة "التقدير العام" المرتبطة بقالب وصفي.
+     *
+     * @return array<object>  صفوف grading_scales مرتبة حسب sort_order
+     */
+    public function getByName(string $scaleName): array {
+        $this->db->query(
+            'SELECT * FROM grading_scales
+             WHERE scale_name = :scale_name AND is_active = 1
+             ORDER BY sort_order, min_value, id'
+        );
+        $this->db->bind(':scale_name', $scaleName);
+        return $this->db->fetchAll() ?: [];
+    }
+
+    /**
+     * CD-023: جلب القيمة الرقمية (numeric_value) لمسمى تقديرٍ ضمن سلمٍ مُسماة.
+     * يُستخدم في calculateFinalScore للقوالب الوصفية لتحويل التقدير المختار
+     * (مثلاً "ممتاز") إلى قيمته الرقمية (مثلاً 5.00) ليُحفظ في final_score.
+     *
+     * @return float|null  القيمة الرقمية أو null إن لم يُعثر على التقدير
+     */
+    public function getNumericValueForLabel(string $scaleName, string $gradeLabel): ?float {
+        $this->db->query(
+            'SELECT numeric_value FROM grading_scales
+             WHERE scale_name = :scale_name AND grade_label = :grade_label AND is_active = 1
+             LIMIT 1'
+        );
+        $this->db->bind(':scale_name', $scaleName);
+        $this->db->bind(':grade_label', $gradeLabel);
+        $row = $this->db->fetch();
+        return $row ? (float)$row->numeric_value : null;
+    }
+
+    /**
+     * CD-023: قائمة أسماء السلالم المركزية النشطة (لاختيار "سلم تقديرات"
+     * في خصائص "التقدير العام" داخل الباني).
+     *
+     * @return array<string>  أسماء فريدة مرتبة
+     */
+    public function getActiveScaleNames(): array {
+        $this->db->query(
+            'SELECT DISTINCT scale_name FROM grading_scales
+             WHERE is_active = 1
+             ORDER BY scale_name'
+        );
+        $rows = $this->db->fetchAll() ?: [];
+        $names = [];
+        foreach ($rows as $row) { $names[] = $row->scale_name; }
+        return $names;
+    }
+
     public function hasOverlappingRange(
         string $scaleName,
         float $minValue,

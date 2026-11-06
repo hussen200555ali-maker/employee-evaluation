@@ -318,14 +318,28 @@ public function getTemplateWithStructure($id) {
 
             if (isset($c_data['sections']) && is_array($c_data['sections'])) {
                 foreach ($c_data['sections'] as $s_data) {
+                    $type = $s_data['type'] ?? 'percentage';
+                    // CD-023: للأقسام النصية والتقدير العام، نخزّن الخصائص الإضافية
+                    // داخل evaluation_options (JSON) لأنها لا تملك أعمدة مخصصة.
+                    $options = json_decode(urldecode($s_data['options'] ?? '[]'), true) ?: [];
+                    if ($type === 'textarea') {
+                        $options = [
+                            'max_chars' => isset($s_data['max_chars']) ? (int)$s_data['max_chars'] : 1000,
+                            'required'  => !empty($s_data['required']),
+                        ];
+                    } elseif ($type === 'overall_grade') {
+                        $options = [
+                            'scale_name' => urldecode($s_data['scale_name'] ?? '') ?: 'السلم الخماسي',
+                        ];
+                    }
                     $section = [
                         'name'             => urldecode($s_data['name']),
                         'description'      => urldecode($s_data['description']),
-                        'type'             => $s_data['type'],
+                        'type'             => $type,
                         'weight'           => (float)($s_data['weight']),
                         'min_value'        => $s_data['min_value'] ?: null,
                         'max_value'        => $s_data['max_value'] ?: null,
-                        'options'          => json_decode(urldecode($s_data['options'])),
+                        'options'          => $options,
                         'allow_notes'      => (int)($s_data['allow_notes']),
                         'notes_required'   => (int)($s_data['notes_required']),
                         'notes_placeholder'=> urldecode($s_data['notes_placeholder']),
