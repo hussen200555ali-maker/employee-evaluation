@@ -287,7 +287,18 @@ function saveSingle(empId) {
     formData.append('evaluation_date', document.getElementById('evalDate').value);
     formData.append('evaluator_name', document.getElementById('evaluatorName').value);
     formData.append('evaluator_title', document.getElementById('evaluatorTitle').value);
-    for (var key in results) formData.append('results[' + key + '][score]', results[key]);
+    for (var key in results) {
+        var entry = results[key];
+        if (entry && typeof entry === 'object') {
+            // numeric section: { score: 4 }  →  results[key][score]=4
+            if (entry.score !== undefined) formData.append('results[' + key + '][score]', entry.score);
+            // descriptive section: { text: '...' }  →  results[key][text]=...
+            if (entry.text !== undefined) formData.append('results[' + key + '][text]', entry.text);
+        } else if (key === 'grade_label') {
+            // grade is a scalar — send as top-level field (controller reads final_grade_label)
+            formData.append('final_grade_label', entry);
+        }
+    }
 
     fetch(appUrl + '/evaluations/save-single', { method: 'POST', body: formData })
     .then(r => r.json()).then(data => {
@@ -352,7 +363,11 @@ function saveAll() {
 
     fetch(appUrl + '/evaluations/bulk-save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+            'Accept': 'application/json'
+        },
         body: payload
     }).then(r => r.json()).then(data => {
         if (data.success) {
