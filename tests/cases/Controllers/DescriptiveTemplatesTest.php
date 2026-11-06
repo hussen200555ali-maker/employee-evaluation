@@ -58,6 +58,20 @@ class DescriptiveTemplatesTest extends TestCase
     }
 
     /**
+     * CD-023: جلب معرّف مستخدم صالح من قاعدة البيانات.
+     * ضروري لأن جدول evaluations له قيد FK (eval_fk_creator) على
+     * created_by_user_id → users(id)، فإدراج تقييم بدونه يفشل بـ 1452.
+     */
+    private function fetchAnyUserId(): int
+    {
+        $db = Database::getInstance();
+        $db->query('SELECT id FROM users ORDER BY id LIMIT 1');
+        $userId = (int)$db->fetchColumn();
+        $this->assertTrue($userId > 0, 'مطلوب مستخدم أساسي في قاعدة البيانات لإسناد created_by_user_id.');
+        return $userId;
+    }
+
+    /**
      * بناء قالب رقمي بسيط + إدراج تقييم + إجابة واحدة.
      * يعدّ: [evaluationId, sectionId]
      */
@@ -103,10 +117,13 @@ class DescriptiveTemplatesTest extends TestCase
             ->execute(['code' => $empCode, 'name' => 'موظف CD023 رقمي']);
         $employeeId = (int)$pdo->lastInsertId();
 
-        $pdo->prepare('INSERT INTO evaluations (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id, employee_name, employee_code, entity_type, entity_id, created_at)
-                       VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :entity, NOW())')
+        // CD-023: created_by_user_id مطلوب لقيد FK eval_fk_creator
+        $creatorId = $this->fetchAnyUserId();
+        $pdo->prepare('INSERT INTO evaluations (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id, employee_name, employee_code, entity_type, entity_id, created_by_user_id, created_at)
+                       VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :entity, :creator, NOW())')
             ->execute([
                 'tpl' => $templateId, 'emp' => $employeeId, 'entity' => $employeeId,
+                'creator' => $creatorId,
                 'ename' => 'موظف CD023 رقمي', 'ecode' => $empCode,
             ]);
         $evaluationId = (int)$pdo->lastInsertId();
@@ -293,10 +310,13 @@ class DescriptiveTemplatesTest extends TestCase
                 ->execute(['code' => $empCode, 'name' => 'موظف CD023 وصفي']);
             $employeeId = (int)$pdo->lastInsertId();
 
-            $pdo->prepare('INSERT INTO evaluations (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id, employee_name, employee_code, entity_type, entity_id, created_at)
-                           VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :entity, NOW())')
+            // CD-023: created_by_user_id مطلوب لقيد FK eval_fk_creator
+            $creatorId = $this->fetchAnyUserId();
+            $pdo->prepare('INSERT INTO evaluations (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id, employee_name, employee_code, entity_type, entity_id, created_by_user_id, created_at)
+                           VALUES (:tpl, "draft", CURDATE(), "annual", :emp, :ename, :ecode, "employee", :entity, :creator, NOW())')
                 ->execute([
                     'tpl' => $templateId, 'emp' => $employeeId, 'entity' => $employeeId,
+                    'creator' => $creatorId,
                     'ename' => 'موظف CD023 وصفي', 'ecode' => $empCode,
                 ]);
             $evaluationId = (int)$pdo->lastInsertId();
