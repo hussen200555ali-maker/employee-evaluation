@@ -244,28 +244,55 @@ function renderCardBody(emp) {
     var isDescriptive = templateSchema.evaluation_mode === 'descriptive';
 
     templateSchema.criteria.forEach(function(c) {
-        html += '<div class="criteria-title">' + c.name + ' (وزن ' + c.weight + '%)</div>';
+        html += '<div class="criteria-title">' + c.name + (isDescriptive ? '' : ' (وزن ' + c.weight + '%)') + '</div>';
         c.sections.forEach(function(s) {
-            if (isDescriptive) {
-                html += '<div style="margin-bottom:4px;font-size:11px;">' + s.name + ':</div>';
-                html += '<textarea class="desc-textarea" data-section="' + s.id + '" placeholder="أدخل الوصف..."></textarea>';
-            } else {
-                html += '<div class="criteria-row"><div class="lbl">' + s.name + '</div><div class="scale-group">';
-                for (var i = 1; i <= 5; i++) {
-                    html += '<button class="scale-btn" data-section="' + s.id + '" data-value="' + i + '" onclick="selectScale(this)">' + i + '</button>';
-                }
-                html += '</div></div>';
-            }
+            html += renderSectionField(s);
         });
     });
 
-    if (isDescriptive) {
-        html += '<div class="criteria-title">التقدير العام</div>';
-        html += '<div class="criteria-row"><div class="lbl">اختر التقدير:</div><select class="grade-select" data-grade="1"><option value="">— اختر —</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option><option>ضعيف</option></select></div>';
-    }
-
     html += '<div class="notes-row"><label>ملاحظات المقيّم</label><textarea data-notes="' + emp.id + '" placeholder="ملاحظات..."></textarea></div>';
     body.innerHTML = html;
+}
+
+// CD-024: render a single section field based on its type
+function renderSectionField(s) {
+    var type = s.type || 'percentage';
+    var fieldId = 'sec-' + s.id;
+    var label = '<div class="criteria-row"><div class="lbl">' + s.name + '</div>';
+
+    switch (type) {
+        case 'percentage':
+            return label + '<div class="scale-group"><input type="number" class="cd024-input" data-section="' + s.id + '" data-field="score" min="0" max="100" step="1" placeholder="0-100%" style="width:90px;padding:6px 8px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;"></div></div>';
+        case 'numeric':
+            var mn = s.min_value != null ? s.min_value : 0;
+            var mx = s.max_value != null ? s.max_value : 999999;
+            return label + '<div class="scale-group"><input type="number" class="cd024-input" data-section="' + s.id + '" data-field="score" min="' + mn + '" max="' + mx + '" step="any" placeholder="' + mn + '-' + mx + '" style="width:110px;padding:6px 8px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;"></div></div>';
+        case 'grade':
+            var opts = s.options || [];
+            var sel = '<select class="cd024-select grade-select" data-section="' + s.id + '" data-field="score" style="padding:6px 10px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;font-size:12px;"><option value="">— اختر —</option>';
+            opts.forEach(function(o) { sel += '<option value="' + o.value + '">' + (o.label || o.value) + '</option>'; });
+            sel += '</select>';
+            return label + '<div class="scale-group">' + sel + '</div></div>';
+        case 'textarea':
+        case 'text':
+            var mxChars = (s.options && s.options.max_chars) ? s.options.max_chars : 1000;
+            return '<div class="criteria-row" style="flex-direction:column;align-items:stretch;"><div class="lbl" style="margin-bottom:4px;">' + s.name + '</div><textarea class="cd024-textarea desc-textarea" data-section="' + s.id + '" data-field="text" rows="3" maxlength="' + mxChars + '" placeholder="أدخل الإجابة الوصفية..." style="width:100%;padding:8px 12px;border:1px solid #e8e8e8;border-radius:8px;font-family:Cairo;font-size:12px;resize:vertical;"></textarea></div>';
+        case 'overall_grade':
+            var grades = s.grades || [];
+            var sel = '<select class="cd024-select cd024-overall-grade" data-section="' + s.id + '" data-field="grade_label" style="padding:6px 10px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;font-size:12px;width:100%;"><option value="">— اختر التقدير —</option>';
+            grades.forEach(function(g) { sel += '<option value="' + g.label + '">' + g.label + ' (' + g.value + ')</option>'; });
+            sel += '</select>';
+            return '<div class="criteria-row" style="border-top:2px solid #c8943f;padding-top:8px;margin-top:8px;"><div class="lbl" style="color:#c8943f;font-weight:700;">🏆 ' + s.name + '</div><div class="scale-group" style="flex:1;">' + sel + '</div></div>';
+        case 'boolean':
+            return label + '<div class="scale-group"><label style="font-size:12px;margin-left:12px;cursor:pointer;"><input type="radio" class="cd024-bool" data-section="' + s.id + '" data-field="score" name="bool-' + s.id + '" value="1"> نعم</label><label style="font-size:12px;margin-left:12px;cursor:pointer;"><input type="radio" class="cd024-bool" data-section="' + s.id + '" data-field="score" name="bool-' + s.id + '" value="0"> لا</label></div></div>';
+        case 'helper':
+            return label + '<div class="scale-group"><input type="number" class="cd024-input" data-section="' + s.id + '" data-field="score" min="' + (s.min_value||0) + '" max="' + (s.max_value||999999) + '" step="any" placeholder="قيمة مساعدة" style="width:110px;padding:6px 8px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;"></div><small style="color:#999;font-size:10px;">حقل مساعد</small></div>';
+        case 'formula':
+        case 'auto':
+            return label + '<div class="scale-group"><input type="text" class="cd024-input" data-section="' + s.id + '" data-field="score" readonly placeholder="تلقائي" style="width:110px;padding:6px 8px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;background:#f5f5f5;"></div></div>';
+        default:
+            return label + '<div class="scale-group"><input type="text" class="cd024-input" data-section="' + s.id + '" data-field="score" placeholder="أدخل القيمة" style="width:110px;padding:6px 8px;border:1px solid #e8e8e8;border-radius:6px;font-family:Cairo;"></div></div>';
+    }
 }
 
 function selectScale(btn) {
@@ -290,12 +317,14 @@ function saveSingle(empId) {
     for (var key in results) {
         var entry = results[key];
         if (entry && typeof entry === 'object') {
-            // numeric section: { score: 4 }  →  results[key][score]=4
+            // numeric/percentage/grade/boolean: { score: N }
             if (entry.score !== undefined) formData.append('results[' + key + '][score]', entry.score);
-            // descriptive section: { text: '...' }  →  results[key][text]=...
+            // textarea/text: { text: '...' }
             if (entry.text !== undefined) formData.append('results[' + key + '][text]', entry.text);
+            // overall_grade section: { grade_label: 'ممتاز' }
+            if (entry.grade_label !== undefined) formData.append('results[' + key + '][grade_label]', entry.grade_label);
         } else if (key === 'grade_label') {
-            // grade is a scalar — send as top-level field (controller reads final_grade_label)
+            // legacy: top-level grade_label scalar
             formData.append('final_grade_label', entry);
         }
     }
@@ -321,15 +350,36 @@ function collectResults(empId) {
     var card = document.getElementById('card-' + empId);
     var results = {};
     var hasData = false;
-    card.querySelectorAll('.scale-btn.selected').forEach(function(btn) {
-        results[btn.dataset.section] = { score: parseFloat(btn.dataset.value) };
+
+    // CD-024: collect from all type-aware fields via data-section + data-field
+    // numeric/percentage/grade/boolean → { score: value }
+    // textarea/text → { text: value }
+    // overall_grade → { grade_label: value }
+    card.querySelectorAll('[data-section][data-field]').forEach(function(el) {
+        var sid = el.dataset.section;
+        var field = el.dataset.field;
+        var val = '';
+        if (el.type === 'radio') {
+            if (!el.checked) return;
+            val = el.value;
+        } else if (el.tagName === 'SELECT') {
+            val = el.value;
+        } else {
+            val = el.value;
+        }
+        if (val === '' || val === null) return;
+
+        if (!results[sid]) results[sid] = {};
+        if (field === 'score') {
+            results[sid].score = parseFloat(val);
+        } else if (field === 'text') {
+            results[sid].text = val;
+        } else if (field === 'grade_label') {
+            results[sid].grade_label = val;
+        }
         hasData = true;
     });
-    card.querySelectorAll('.desc-textarea').forEach(function(ta) {
-        if (ta.value.trim()) { results[ta.dataset.section] = { text: ta.value }; hasData = true; }
-    });
-    var grade = card.querySelector('.grade-select');
-    if (grade && grade.value) { results['grade_label'] = grade.value; hasData = true; }
+
     var notes = card.querySelector('[data-notes="' + empId + '"]');
     if (notes && notes.value.trim()) results['notes'] = notes.value;
     if (!hasData) { alert('لم يتم إدخال أي تقييم'); return null; }

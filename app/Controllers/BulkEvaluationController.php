@@ -87,14 +87,39 @@ final class BulkEvaluationController extends Controller
                 'sections'       => [],
             ];
             foreach (($criterion['sections'] ?? []) as $section) {
-                $c['sections'][] = [
+                $type = $section['evaluation_type'] ?? 'percentage';
+                // CD-024: parse evaluation_options for grade/textarea/overall_grade
+                $opts = null;
+                if (!empty($section['evaluation_options'])) {
+                    $opts = is_string($section['evaluation_options'])
+                        ? json_decode($section['evaluation_options'], true)
+                        : $section['evaluation_options'];
+                }
+                $secData = [
                     'id'             => (int)$section['id'],
+                    'criterion_id'   => (int)$criterion['id'],
                     'name'           => $section['section_name'],
-                    'type'           => $section['evaluation_type'] ?? 'percentage',
-                    'weight'         => (float)($section['section_weight'] ?? 100),
+                    'type'           => $type,
+                    'weight'         => (float)($section['section_weight'] ?? 0),
                     'min_value'      => isset($section['min_value']) ? (float)$section['min_value'] : null,
                     'max_value'      => isset($section['max_value']) ? (float)$section['max_value'] : null,
+                    'options'        => $opts,
                 ];
+                // CD-024: for overall_grade, resolve the grading scale rows server-side
+                if ($type === 'overall_grade' && is_array($opts) && !empty($opts['scale_name'])) {
+                    $secData['scale_name'] = (string)$opts['scale_name'];
+                    $secData['grades'] = [];
+                    $scaleRows = (new \App\Models\GradingScale())->getByName((string)$opts['scale_name']);
+                    foreach ($scaleRows as $g) {
+                        $secData['grades'][] = [
+                            'label'        => $g->grade_label,
+                            'value'        => (float)$g->numeric_value,
+                            'min_value'    => (float)$g->min_value,
+                            'max_value'    => (float)$g->max_value,
+                        ];
+                    }
+                }
+                $c['sections'][] = $secData;
             }
             $schema['criteria'][] = $c;
         }
@@ -334,20 +359,62 @@ final class BulkEvaluationController extends Controller
         $db = Database::getInstance();
         $evalModel = new Evaluation();
 
-        // Save answers
+        // CD-024: load template structure to know each section's type
+        $template = (new Template())->getTemplateWithStructure($templateId);
+        $sectionsMap = [];
+        foreach (($template['criteria'] ?? []) as $criterion) {
+            foreach (($criterion['sections'] ?? []) as $section) {
+                $sectionsMap[(int)$section['id']] = $section;
+            }
+        }
+
+        // Save answers — type-aware storage
         foreach ($results as $sectionId => $data) {
-            $score = isset($data['score']) ? (float)$data['score'] : null;
+            if (strpos((string)$sectionId, 'notes') !== false || strpos((string)$sectionId, 'grade_label') !== false && !is_array($data)) {
+                continue; // skip non-section keys (notes, legacy grade_label)
+            }
+            $sectionId = (int)$sectionId;
+            if (!isset($sectionsMap[$sectionId])) continue;
+
+            $section = $sectionsMap[$sectionId];
+            $type = $section['evaluation_type'] ?? 'percentage';
+
+            // Determine raw_value + normalized_score based on type + provided field
+            $rawValue = '';
+            $normalizedScore = null;
+
+            if ($type === 'textarea' || $type === 'text') {
+                $rawValue = (string)($data['text'] ?? '');
+                $normalizedScore = null;
+            } elseif ($type === 'overall_grade') {
+                $rawValue = (string)($data['grade_label'] ?? '');
+                $normalizedScore = null;
+            } else {
+                // numeric/percentage/grade/boolean/helper/formula/auto
+                $score = isset($data['score']) ? (float)$data['score'] : null;
+                if ($score !== null) {
+                    $rawValue = (string)$score;
+                    // Normalize: percentage/grade use raw value; numeric scales to 0-100
+                    if ($type === 'numeric') {
+                        $max = (float)($section['max_value'] ?? 100);
+                        $min = (float)($section['min_value'] ?? 0);
+                        $normalizedScore = ($max > $min) ? ((($score - $min) / ($max - $min)) * 100) : $score;
+                    } else {
+                        $normalizedScore = $score;
+                    }
+                }
+            }
+
             $notes = $data['notes'] ?? '';
-            $rawValue = $score !== null ? (string)$score : ($data['text'] ?? '');
 
             $db->query(
                 'INSERT INTO evaluation_answers (evaluation_id, section_id, raw_value, normalized_score, notes)
                  VALUES (:eval, :section, :raw, :score, :notes)'
             );
             $db->bind(':eval', $evaluationId);
-            $db->bind(':section', (int)$sectionId);
+            $db->bind(':section', $sectionId);
             $db->bind(':raw', $rawValue);
-            $db->bind(':score', $score);
+            $db->bind(':score', $normalizedScore);
             $db->bind(':notes', $notes);
             $db->execute();
         }
@@ -358,16 +425,39 @@ final class BulkEvaluationController extends Controller
             $finalScore = $evalModel->calculateFinalScore($evaluationId);
             $evalModel->updateScoreAndStatus($evaluationId, $finalScore, 'completed');
         } else {
-            // For descriptive: use manual grade if provided
-            $gradeLabel = $_POST['final_grade_label'] ?? ($results['grade_label'] ?? '');
-            $gradeValue = 0;
-            if ($gradeLabel) {
-                $db->query('SELECT numeric_value FROM grading_scales WHERE grade_label = :label AND is_active = 1 LIMIT 1');
-                $db->bind(':label', $gradeLabel);
-                $g = $db->fetch();
-                if ($g) $gradeValue = (float)$g->numeric_value;
+            // CD-024: descriptive — find the overall_grade section's answer
+            $gradeLabel = '';
+            $gradeValue = 0.0;
+            // First: check per-section grade_label (new CD-024 format)
+            foreach ($sectionsMap as $sid => $sec) {
+                if (($sec['evaluation_type'] ?? '') === 'overall_grade') {
+                    $ans = $results[$sid] ?? null;
+                    if (is_array($ans) && !empty($ans['grade_label'])) {
+                        $gradeLabel = (string)$ans['grade_label'];
+                        break;
+                    }
+                }
             }
-            $evalModel->updateScoreGradeAndStatus($evaluationId, null, $gradeLabel, $gradeValue, 'completed');
+            // Fallback: legacy top-level grade_label or final_grade_label
+            if (!$gradeLabel) {
+                $gradeLabel = (string)($results['grade_label'] ?? $_POST['final_grade_label'] ?? '');
+            }
+            if ($gradeLabel) {
+                // Look up numeric_value — prefer the scale_name linked to the section
+                $scaleName = 'السلم الخماسي';
+                foreach ($sectionsMap as $sec) {
+                    if (($sec['evaluation_type'] ?? '') === 'overall_grade') {
+                        $opts = is_string($sec['evaluation_options'] ?? '') ? json_decode($sec['evaluation_options'], true) : ($sec['evaluation_options'] ?? []);
+                        if (is_array($opts) && !empty($opts['scale_name'])) {
+                            $scaleName = (string)$opts['scale_name'];
+                            break;
+                        }
+                    }
+                }
+                $val = (new \App\Models\GradingScale())->getNumericValueForLabel($scaleName, $gradeLabel);
+                if ($val !== null) $gradeValue = $val;
+            }
+            $evalModel->updateScoreGradeAndStatus($evaluationId, $gradeValue > 0 ? $gradeValue : null, $gradeLabel, $gradeValue, 'completed');
         }
     }
 

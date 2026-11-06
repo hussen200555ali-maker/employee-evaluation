@@ -1,5 +1,14 @@
 # سجل التغييرات
 
+## 2026-11-07 — CD-024: الرسم الديناميكي لواجهة التقييم الجماعي
+
+- إصلاح واجهة `bulk-create.php` لتعمل بالرسم الديناميكي: قراءة هيكل القالب ورسم الحقل المناسب لكل قسم حسب نوعه (percentage/numeric/grade/textarea/overall_grade/boolean) بدلاً من أزرار 1-5 الثابتة.
+- `BulkEvaluationController::schema()`: تُعيد `criterion_id` و`options` (parsed JSON) لكل قسم، و`grades` المُحلَّلة لأقسام `overall_grade` (صفوف السلم من `grading_scales`).
+- `renderSectionField()` (دالة JS جديدة): switch على `s.type` يرسم الحقل الصحيح لكل نوع.
+- `collectResults()`: تجمع القيم عبر `[data-section][data-field]` (score/text/grade_label).
+- `saveResults()`: type-aware storage — textarea/overall_grade بـ `normalized_score=NULL`؛ numeric يُطبَّع إلى 0-100؛ descriptive يحسب `final_score` من `overall_grade` عبر `GradingScale::getNumericValueForLabel`.
+- الاختبارات: **141/141 PASS** (137 + 4 جديدة في `DynamicBulkRenderingTest`). التفاصيل في `docs/CD-024_Implementation.md`.
+
 ## 2026-11-06 — CD-023: تحديث باني القوالب لدعم التقييمات الوصفية
 
 - إضافة عنصرَي «قسم نصي» (textarea) و«التقدير العام» (overall_grade) إلى مكتبة عناصر الباني، مع لوحة خصائص مخصصة لكلٍّ منهما (الحد الأقصى للأحرف/الإلزامية للقسم النصي، واختيار سلم التقديرات للتقدير العام).
