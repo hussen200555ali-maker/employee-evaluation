@@ -13,7 +13,8 @@ $getVal = static function ($obj, $key, $default = '') {
 };
 $reportUrl = APP_URL . '/employees/profile/' . $employeeId . '/reports/' . (int)$snapshot->id;
 $logoPath = dirname(__DIR__, 2) . '/public/assets/images/logo.png';
-$logoUrl = APP_URL . '/assets/images/logo.png';
+// الأصول العامة تُخدَم من مجلد public، وبدونه يعطي المسار 500 ويظهر الشعار مكسوراً.
+$logoUrl = APP_URL . '/public/assets/images/logo.png';
 $records = $report['records'] ?? [];
 $averages = $report['averages'] ?? [];
 
