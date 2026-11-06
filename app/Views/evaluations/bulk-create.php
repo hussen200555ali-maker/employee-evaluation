@@ -1,0 +1,387 @@
+<?php
+require_once APP_ROOT . '/app/Views/layouts/header.php';
+?>
+<style>
+.bulk-setup { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:16px; align-items:end; background:#fff; border-radius:12px; padding:20px 24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px; }
+.bulk-setup label { display:block; font-size:11px; color:#6c757d; margin-bottom:4px; font-weight:600; }
+.bulk-setup select, .bulk-setup input { width:100%; padding:10px 14px; border:1px solid #e8e8e8; border-radius:8px; font-size:13px; font-family:'Cairo'; }
+.bulk-setup .lock-badge { font-size:9px; color:#6c757d; margin-top:4px; }
+.bulk-search { display:flex; gap:12px; align-items:center; margin-bottom:20px; }
+.bulk-search input { flex:1; padding:12px 18px; border:2px solid #e8e8e8; border-radius:8px; font-size:13px; font-family:'Cairo'; }
+.bulk-search input:focus { outline:none; border-color:#c8943f; }
+.bulk-search .btn-add { padding:12px 20px; background:#0c2823; color:#c8943f; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+.search-results { display:none; position:absolute; background:#fff; border:1px solid #e8e8e8; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.1); max-height:300px; overflow-y:auto; z-index:50; min-width:400px; }
+.search-results .item { padding:10px 16px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:12px; }
+.search-results .item:hover { background:#f5f0e8; }
+.search-results .item .name { font-weight:600; color:#0c2823; }
+.search-results .item .meta { font-size:10px; color:#6c757d; }
+.emp-card { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px; overflow:hidden; border:1px solid #e8e8e8; transition:background 0.2s; }
+.emp-card.saved { background:#e8f5f0; border-color:#0d5e52; }
+.emp-card .card-header { padding:14px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e8e8e8; background:#f5f0e8; }
+.emp-card.saved .card-header { background:#e8f5f0; border-bottom-color:#0d5e52; }
+.emp-card .card-header .emp-info { display:flex; align-items:center; gap:12px; }
+.emp-card .avatar { width:42px; height:42px; border-radius:50%; background:#0c2823; color:#c8943f; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; }
+.emp-card.saved .avatar { background:#0d5e52; color:#fff; }
+.emp-card .emp-name { font-size:14px; font-weight:700; color:#0c2823; }
+.emp-card .emp-meta { font-size:11px; color:#6c757d; }
+.saved-badge { background:#0d5e52; color:#fff; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:700; }
+.emp-card .card-body { padding:16px 20px; }
+.criteria-title { font-size:12px; font-weight:700; color:#0c2823; margin:10px 0 6px; padding-bottom:4px; border-bottom:1px solid #e8e8e8; }
+.criteria-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; }
+.criteria-row .lbl { font-size:12px; flex:1; }
+.scale-group { display:flex; gap:4px; }
+.scale-btn { width:32px; height:32px; border:1px solid #e8e8e8; border-radius:6px; background:#fff; font-size:13px; font-weight:600; cursor:pointer; font-family:'Cairo'; color:#6c757d; }
+.scale-btn:hover { border-color:#c8943f; color:#0c2823; }
+.scale-btn.selected { background:#0c2823; color:#c8943f; border-color:#0c2823; }
+.emp-card.saved .scale-btn { opacity:0.5; }
+.emp-card.saved .scale-btn.selected { opacity:1; }
+.desc-textarea { width:100%; padding:10px 14px; border:1px solid #e8e8e8; border-radius:8px; font-size:12px; font-family:'Cairo'; min-height:50px; resize:vertical; }
+.emp-card.saved .desc-textarea { background:#f0f0f0; color:#6c757d; }
+.grade-select { padding:8px 14px; border:1px solid #e8e8e8; border-radius:8px; font-size:12px; font-family:'Cairo'; }
+.notes-row { margin-top:10px; padding-top:8px; border-top:1px solid #e8e8e8; }
+.notes-row label { font-size:11px; color:#6c757d; display:block; margin-bottom:3px; }
+.notes-row textarea { width:100%; padding:8px 12px; border:1px solid #e8e8e8; border-radius:6px; font-size:11px; font-family:'Cairo'; min-height:30px; resize:vertical; }
+.emp-card.saved .notes-row textarea { background:#f0f0f0; color:#6c757d; }
+.card-actions { padding:10px 20px; display:flex; gap:8px; justify-content:flex-end; border-top:1px solid #e8e8e8; }
+.btn-save-one { background:#0c2823; color:#c8943f; border:none; padding:8px 18px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Cairo'; }
+.btn-add-next { background:#fff; color:#0c2823; border:1px solid #e8e8e8; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:'Cairo'; }
+.emp-card.saved .btn-save-one { display:none; }
+.quick-add-inline { background:#f5f0e8; padding:16px 20px; border:2px dashed #c8943f; border-radius:8px; margin:12px 0; }
+.quick-add-inline h4 { font-size:13px; color:#0c2823; margin-bottom:10px; }
+.inline-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:8px; align-items:end; }
+.inline-grid input, .inline-grid select { padding:8px 12px; border:1px solid #e8e8e8; border-radius:6px; font-size:12px; font-family:'Cairo'; }
+.btn-inline-add { background:#c8943f; color:#0c2823; border:none; padding:8px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; }
+.btn-inline-cancel { background:transparent; color:#6c757d; border:none; padding:8px 10px; font-size:12px; cursor:pointer; }
+.global-actions { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:2px solid #c8943f; padding:14px 24px; display:flex; justify-content:center; align-items:center; gap:16px; box-shadow:0 -4px 12px rgba(0,0,0,0.08); z-index:100; }
+.global-actions .summary { font-size:12px; color:#6c757d; }
+.global-actions .summary strong { color:#0c2823; }
+.btn-save-all { background:#0c2823; color:#c8943f; border:none; padding:14px 40px; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Cairo'; box-shadow:0 2px 8px rgba(12,40,35,0.3); }
+.empty-state { text-align:center; padding:40px; color:#999; }
+.empty-state .icon { font-size:40px; margin-bottom:10px; }
+</style>
+
+<div class="container-fluid">
+    <h2><?= htmlspecialchars($pageTitle ?? '') ?></h2>
+    <hr>
+
+    <!-- Setup Bar -->
+    <div class="bulk-setup">
+        <div>
+            <label>قالب التقييم</label>
+            <select id="templateSelect">
+                <option value="0">— اختر القالب —</option>
+                <?php foreach ($templates ?? [] as $tpl): ?>
+                    <option value="<?= (int)$tpl->id ?>" data-mode="<?= htmlspecialchars($tpl->evaluation_mode ?? 'numeric') ?>">
+                        <?= htmlspecialchars($tpl->template_name) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <div class="lock-badge">🔒 يُقفل بعد أول تقييم</div>
+        </div>
+        <div><label>التاريخ الموحد</label><input type="date" id="evalDate" value="<?= date('Y-m-d') ?>"></div>
+        <div><label>اسم المقيّم</label><input type="text" id="evaluatorName" value="<?= htmlspecialchars($evaluatorName ?? '') ?>"></div>
+        <div><label>صفة المقيّم</label><input type="text" id="evaluatorTitle" value="<?= htmlspecialchars($evaluatorTitle ?? '') ?>"></div>
+    </div>
+
+    <!-- Search + Quick Add -->
+    <div class="bulk-search" style="position:relative;">
+        <input type="text" id="empSearch" placeholder="🔍 بحث وإضافة موظف (الاسم أو الرقم الوظيفي)..." autocomplete="off">
+        <button class="btn-add" onclick="toggleQuickAdd()">＋ إضافة موظف جديد</button>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Quick Add Inline -->
+    <div id="quickAddForm" style="display:none;">
+        <div class="quick-add-inline">
+            <h4>＋ إضافة موظف جديد</h4>
+            <div class="inline-grid">
+                <input type="text" id="qaName" placeholder="الاسم الكامل">
+                <input type="text" id="qaCode" placeholder="الرقم الوظيفي">
+                <select id="qaBranch"><option value="0">الفرع</option><?php foreach ($branches ?? [] as $b): ?><option value="<?= (int)$b->id ?>"><?= htmlspecialchars($b->name) ?></option><?php endforeach; ?></select>
+                <select id="qaDept"><option value="0">القسم</option></select>
+                <div style="display:flex;gap:4px;">
+                    <button class="btn-inline-add" onclick="submitQuickAdd()">✓ إضافة</button>
+                    <button class="btn-inline-cancel" onclick="toggleQuickAdd()">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Container -->
+    <div id="cardsContainer" style="margin-bottom:80px;">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">📋</div>
+            ابحث عن موظف أو أضف واحداً للبدء في التقييم الجماعي.
+        </div>
+    </div>
+</div>
+
+<!-- Global Actions -->
+<div class="global-actions">
+    <div class="summary" id="summary"><strong>0</strong> موظفين · <strong>0</strong> محفوظ · <strong>0</strong> بانتظار الحفظ</div>
+    <button class="btn-save-all" onclick="saveAll()" id="btnSaveAll">💾 حفظ الجميع</button>
+</div>
+
+<script>
+var csrfToken = '<?= htmlspecialchars($csrfToken ?? '') ?>';
+var templateSchema = null;
+var templateLocked = false;
+var employeeCards = [];
+
+// Template selection → load schema
+document.getElementById('templateSelect').addEventListener('change', function() {
+    if (templateLocked) { alert('القالب مُقفل. لا يمكن تغييره بعد إدخال تقييمات.'); this.value = templateSchema ? templateSchema.id : 0; return; }
+    var id = parseInt(this.value);
+    if (id === 0) { templateSchema = null; return; }
+    fetch('/api/templates/' + id + '/schema').then(r => r.json()).then(data => {
+        templateSchema = data;
+        // Re-render existing cards with new schema
+        employeeCards.forEach(function(emp) { renderCardBody(emp); });
+    });
+});
+
+// Search autocomplete
+var searchTimer;
+document.getElementById('empSearch').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    var q = this.value.trim();
+    if (q.length < 2) { document.getElementById('searchResults').style.display = 'none'; return; }
+    searchTimer = setTimeout(function() {
+        fetch('/api/employees/search?q=' + encodeURIComponent(q)).then(r => r.json()).then(data => {
+            var box = document.getElementById('searchResults');
+            box.innerHTML = '';
+            if (data.employees && data.employees.length > 0) {
+                data.employees.forEach(function(e) {
+                    var div = document.createElement('div');
+                    div.className = 'item';
+                    div.innerHTML = '<div class="name">' + e.full_name + '</div><div class="meta">' + e.emp_code + ' · ' + (e.department_name || '') + '</div>';
+                    div.onclick = function() { addEmployeeCard(e); document.getElementById('empSearch').value = ''; box.style.display = 'none'; };
+                    box.appendChild(div);
+                });
+                box.style.display = 'block';
+            } else {
+                box.style.display = 'none';
+            }
+        });
+    }, 300);
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.bulk-search')) document.getElementById('searchResults').style.display = 'none';
+});
+
+function toggleQuickAdd() {
+    var f = document.getElementById('quickAddForm');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function submitQuickAdd() {
+    var name = document.getElementById('qaName').value.trim();
+    var code = document.getElementById('qaCode').value.trim();
+    var branch = document.getElementById('qaBranch').value;
+    if (!name || !code) { alert('الاسم والرقم الوظيفي مطلوبان'); return; }
+
+    var formData = new FormData();
+    formData.append('_token', csrfToken);
+    formData.append('full_name', name);
+    formData.append('emp_code', code);
+    formData.append('branch_id', branch);
+    formData.append('department_id', document.getElementById('qaDept').value);
+
+    fetch('/api/employees/quick-add', { method: 'POST', body: formData })
+    .then(r => r.json()).then(data => {
+        if (data.success) {
+            addEmployeeCard(data.employee);
+            document.getElementById('qaName').value = '';
+            document.getElementById('qaCode').value = '';
+            toggleQuickAdd();
+        } else { alert(data.error || 'فشل الإضافة'); }
+    });
+}
+
+// Branch → Department cascade for quick add
+document.getElementById('qaBranch').addEventListener('change', function() {
+    var deptSelect = document.getElementById('qaDept');
+    deptSelect.innerHTML = '<option value="0">القسم</option>';
+    if (this.value > 0) {
+        fetch('/api/departments/by-branch/' + this.value).then(r => r.json()).then(data => {
+            var depts = data.departments || data;
+            if (Array.isArray(depts)) depts.forEach(function(d) {
+                var opt = document.createElement('option');
+                opt.value = d.id; opt.textContent = d.name;
+                deptSelect.appendChild(opt);
+            });
+        });
+    }
+});
+
+function addEmployeeCard(emp) {
+    if (employeeCards.find(e => e.id === emp.id)) { alert('هذا الموظف مضاف بالفعل'); return; }
+    employeeCards.push(emp);
+    renderCard(emp);
+    updateSummary();
+    document.getElementById('emptyState').style.display = 'none';
+}
+
+function renderCard(emp) {
+    var container = document.getElementById('cardsContainer');
+    var card = document.createElement('div');
+    card.className = 'emp-card';
+    card.id = 'card-' + emp.id;
+    card.innerHTML = '<div class="card-header"><div class="emp-info"><div class="avatar">' + (emp.full_name[0] || '?') + '</div><div><div class="emp-name">' + emp.full_name + '</div><div class="emp-meta">' + (emp.emp_code || '') + ' · ' + (emp.department_name || '') + ' · ' + (emp.branch_name || '') + '</div></div></div></div><div class="card-body" id="body-' + emp.id + '"></div><div class="card-actions"><button class="btn-add-next" onclick="addNewCardSlot()">＋ إضافة موظف آخر</button><button class="btn-save-one" onclick="saveSingle(' + emp.id + ')">💾 حفظ فردي</button></div>';
+    container.appendChild(card);
+    renderCardBody(emp);
+}
+
+function renderCardBody(emp) {
+    var body = document.getElementById('body-' + emp.id);
+    if (!body || !templateSchema) { body.innerHTML = '<div style="color:#999;font-size:11px;">اختر قالباً لعرض حقول التقييم</div>'; return; }
+
+    var html = '';
+    var isDescriptive = templateSchema.evaluation_mode === 'descriptive';
+
+    templateSchema.criteria.forEach(function(c) {
+        html += '<div class="criteria-title">' + c.name + ' (وزن ' + c.weight + '%)</div>';
+        c.sections.forEach(function(s) {
+            if (isDescriptive) {
+                html += '<div style="margin-bottom:4px;font-size:11px;">' + s.name + ':</div>';
+                html += '<textarea class="desc-textarea" data-section="' + s.id + '" placeholder="أدخل الوصف..."></textarea>';
+            } else {
+                html += '<div class="criteria-row"><div class="lbl">' + s.name + '</div><div class="scale-group">';
+                for (var i = 1; i <= 5; i++) {
+                    html += '<button class="scale-btn" data-section="' + s.id + '" data-value="' + i + '" onclick="selectScale(this)">' + i + '</button>';
+                }
+                html += '</div></div>';
+            }
+        });
+    });
+
+    if (isDescriptive) {
+        html += '<div class="criteria-title">التقدير العام</div>';
+        html += '<div class="criteria-row"><div class="lbl">اختر التقدير:</div><select class="grade-select" data-grade="1"><option value="">— اختر —</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option><option>ضعيف</option></select></div>';
+    }
+
+    html += '<div class="notes-row"><label>ملاحظات المقيّم</label><textarea data-notes="' + emp.id + '" placeholder="ملاحظات..."></textarea></div>';
+    body.innerHTML = html;
+}
+
+function selectScale(btn) {
+    var siblings = btn.parentElement.querySelectorAll('.scale-btn');
+    siblings.forEach(function(s) { s.classList.remove('selected'); });
+    btn.classList.add('selected');
+    templateLocked = true;
+}
+
+function saveSingle(empId) {
+    if (!templateSchema) { alert('اختر قالباً أولاً'); return; }
+    var results = collectResults(empId);
+    if (!results) return;
+
+    var formData = new FormData();
+    formData.append('_token', csrfToken);
+    formData.append('employee_id', empId);
+    formData.append('template_id', templateSchema.id);
+    formData.append('evaluation_date', document.getElementById('evalDate').value);
+    formData.append('evaluator_name', document.getElementById('evaluatorName').value);
+    formData.append('evaluator_title', document.getElementById('evaluatorTitle').value);
+    for (var key in results) formData.append('results[' + key + '][score]', results[key]);
+
+    fetch('/evaluations/save-single', { method: 'POST', body: formData })
+    .then(r => r.json()).then(data => {
+        if (data.success) {
+            var card = document.getElementById('card-' + empId);
+            card.classList.add('saved');
+            card.querySelectorAll('.scale-btn,.desc-textarea,.grade-select,textarea').forEach(function(el) { el.disabled = true; el.readOnly = true; });
+            card.querySelector('.btn-save-one').style.display = 'none';
+            var header = card.querySelector('.card-header');
+            if (!header.querySelector('.saved-badge')) {
+                var badge = document.createElement('div'); badge.className = 'saved-badge'; badge.innerHTML = '✓ تم الحفظ';
+                header.appendChild(badge);
+            }
+            updateSummary();
+        } else { alert(data.error || 'فشل الحفظ'); }
+    });
+}
+
+function collectResults(empId) {
+    var card = document.getElementById('card-' + empId);
+    var results = {};
+    var hasData = false;
+    card.querySelectorAll('.scale-btn.selected').forEach(function(btn) {
+        results[btn.dataset.section] = { score: parseFloat(btn.dataset.value) };
+        hasData = true;
+    });
+    card.querySelectorAll('.desc-textarea').forEach(function(ta) {
+        if (ta.value.trim()) { results[ta.dataset.section] = { text: ta.value }; hasData = true; }
+    });
+    var grade = card.querySelector('.grade-select');
+    if (grade && grade.value) { results['grade_label'] = grade.value; hasData = true; }
+    var notes = card.querySelector('[data-notes="' + empId + '"]');
+    if (notes && notes.value.trim()) results['notes'] = notes.value;
+    if (!hasData) { alert('لم يتم إدخال أي تقييم'); return null; }
+    return results;
+}
+
+function saveAll() {
+    var unsaved = employeeCards.filter(function(e) {
+        var card = document.getElementById('card-' + e.id);
+        return card && !card.classList.contains('saved');
+    });
+    if (unsaved.length === 0) { alert('لا توجد بطاقات غير محفوظة'); return; }
+    if (!templateSchema) { alert('اختر قالباً أولاً'); return; }
+
+    var evaluations = [];
+    unsaved.forEach(function(emp) {
+        var results = collectResults(emp.id);
+        if (results) evaluations.push({ employee_id: emp.id, results: results });
+    });
+
+    if (evaluations.length === 0) { alert('لا توجد بيانات صالحة للحفظ'); return; }
+
+    var payload = JSON.stringify({
+        _token: csrfToken,
+        template_id: templateSchema.id,
+        evaluation_date: document.getElementById('evalDate').value,
+        evaluator_name: document.getElementById('evaluatorName').value,
+        evaluator_title: document.getElementById('evaluatorTitle').value,
+        evaluations: evaluations
+    });
+
+    fetch('/evaluations/bulk-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            alert(data.message);
+            unsaved.forEach(function(emp) {
+                var card = document.getElementById('card-' + emp.id);
+                card.classList.add('saved');
+                card.querySelectorAll('.scale-btn,.desc-textarea,.grade-select,textarea').forEach(function(el) { el.disabled = true; el.readOnly = true; });
+                var btn = card.querySelector('.btn-save-one'); if (btn) btn.style.display = 'none';
+                var header = card.querySelector('.card-header');
+                if (!header.querySelector('.saved-badge')) {
+                    var badge = document.createElement('div'); badge.className = 'saved-badge'; badge.innerHTML = '✓ تم الحفظ';
+                    header.appendChild(badge);
+                }
+            });
+            updateSummary();
+        } else { alert(data.error || 'فشل الحفظ الجماعي'); }
+    });
+}
+
+function addNewCardSlot() {
+    document.getElementById('empSearch').focus();
+}
+
+function updateSummary() {
+    var total = employeeCards.length;
+    var saved = employeeCards.filter(function(e) {
+        var card = document.getElementById('card-' + e.id);
+        return card && card.classList.contains('saved');
+    }).length;
+    document.getElementById('summary').innerHTML = '<strong>' + total + '</strong> موظفين · <strong>' + saved + '</strong> محفوظ · <strong>' + (total - saved) + '</strong> بانتظار الحفظ';
+}
+</script>
+
+<?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; ?>

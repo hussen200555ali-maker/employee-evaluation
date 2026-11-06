@@ -128,6 +128,13 @@ $router->get('builder/preview', 'App\Controllers\BuilderController@preview');
 
 // --- 5.3: عمليات التقييم الفعلية ---
 $router->get('evaluations/create', 'App\Controllers\EvaluationController@create');
+
+// CD-022: Bulk Evaluation
+$router->get('evaluations/bulk-create', 'App\Controllers\BulkEvaluationController@create');
+$router->get('api/templates/:id/schema', 'App\Controllers\BulkEvaluationController@schema');
+$router->post('api/employees/quick-add', 'App\Controllers\BulkEvaluationController@quickAdd');
+$router->post('evaluations/save-single', 'App\Controllers\BulkEvaluationController@saveSingle');
+$router->post('evaluations/bulk-save', 'App\Controllers\BulkEvaluationController@bulkSave');
 $router->post('evaluations/store', 'App\Controllers\EvaluationController@store');
 $router->get('evaluations/:id/fill', 'App\Controllers\EvaluationController@fill');
 $router->post('evaluations/submit', 'App\Controllers\EvaluationController@submit');
