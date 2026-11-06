@@ -1,5 +1,5 @@
 -- CD-022: Bulk Evaluation — schema changes
--- Idempotent: uses IF NOT EXISTS / IF EXISTS
+-- Idempotent: uses IF NOT EXISTS
 
 -- Add profile_status to employees
 ALTER TABLE employees
@@ -7,14 +7,11 @@ ALTER TABLE employees
   NOT NULL DEFAULT 'complete'
   COMMENT 'CD-022: Quick-added employees are incomplete until profile is filled';
 
--- Make fields nullable for quick-add (idempotent — MODIFY is safe)
-ALTER TABLE employees
-  MODIFY COLUMN position_id INT DEFAULT NULL,
-  MODIFY COLUMN hire_date DATE DEFAULT NULL,
-  MODIFY COLUMN manager_id INT DEFAULT NULL;
-
--- Note: department_id and branch_id are already DEFAULT NULL in the schema.
+-- Note: position_id, join_date (NOT hire_date), manager_id, department_id
+-- and branch_id are ALREADY DEFAULT NULL in the base schema (setup/install_schema.sql).
+-- The original draft referenced a non-existent `hire_date` column and was
+-- redundant — removed. No further ALTER needed.
 
 -- Verify:
 -- SHOW COLUMNS FROM employees LIKE 'profile_status';
--- Expected: one row
+-- Expected: one row with Default = 'complete'

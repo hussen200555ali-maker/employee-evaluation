@@ -75,6 +75,11 @@ class Controller {
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         
         // 4. إيقاف التنفيذ فورًا لضمان عدم إرسال أي مخرجات إضافية.
+        //    في بيئة CLI (الاختبارات) نكتفي بالعودة بدلاً من exit حتى لا يُقتل
+        //    مشغّل الاختبارات بالكامل (CD-022: كانت json() تُسقط بقية الاختبارات).
+        if (php_sapi_name() === 'cli') {
+            return;
+        }
         exit();
     }
 }

@@ -208,10 +208,14 @@ final class BulkEvaluationController extends Controller
     public function bulkSave(): void
     {
         Auth::enforce('evaluations.create');
-        Auth::validateCsrfToken($_POST['_token'] ?? $_POST['_csrf'] ?? '');
 
         $rawInput = file_get_contents('php://input');
         $data = json_decode($rawInput, true);
+
+        // CSRF: the body is JSON, so read the token from the decoded payload
+        // (the frontend sends _token inside the JSON body).
+        $csrfToken = is_array($data) ? ($data['_token'] ?? $data['_csrf'] ?? '') : '';
+        Auth::validateCsrfToken($csrfToken);
 
         if (!$data || empty($data['evaluations'])) {
             $this->json(['error' => 'لا توجد تقييمات للحفظ'], 400);
@@ -304,12 +308,13 @@ final class BulkEvaluationController extends Controller
                 (:tpl, "draft", :date, :etype, :emp,
                  :eval_emp, :eval_name, :eval_title,
                  :emp_name, :emp_code, :branch, :dept, :pos,
-                 "employee", :emp, :user, NOW())'
+                 "employee", :entity, :user, NOW())'
         );
         $db->bind(':tpl', $templateId);
         $db->bind(':date', $date);
         $db->bind(':etype', $evalType);
         $db->bind(':emp', $employeeId);
+        $db->bind(':entity', $employeeId);
         $db->bind(':eval_emp', $evaluatorEmpId);
         $db->bind(':eval_name', $evalName);
         $db->bind(':eval_title', $evalTitle);

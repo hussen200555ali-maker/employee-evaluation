@@ -123,6 +123,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 </div>
 
 <script>
+var appUrl = '<?= defined('APP_URL') ? htmlspecialchars(APP_URL, ENT_QUOTES) : '' ?>';
 var csrfToken = '<?= htmlspecialchars($csrfToken ?? '') ?>';
 var templateSchema = null;
 var templateLocked = false;
@@ -133,7 +134,7 @@ document.getElementById('templateSelect').addEventListener('change', function() 
     if (templateLocked) { alert('القالب مُقفل. لا يمكن تغييره بعد إدخال تقييمات.'); this.value = templateSchema ? templateSchema.id : 0; return; }
     var id = parseInt(this.value);
     if (id === 0) { templateSchema = null; return; }
-    fetch('/api/templates/' + id + '/schema').then(r => r.json()).then(data => {
+    fetch(appUrl + '/api/templates/' + id + '/schema').then(r => r.json()).then(data => {
         templateSchema = data;
         // Re-render existing cards with new schema
         employeeCards.forEach(function(emp) { renderCardBody(emp); });
@@ -147,11 +148,13 @@ document.getElementById('empSearch').addEventListener('input', function() {
     var q = this.value.trim();
     if (q.length < 2) { document.getElementById('searchResults').style.display = 'none'; return; }
     searchTimer = setTimeout(function() {
-        fetch('/api/employees/search?q=' + encodeURIComponent(q)).then(r => r.json()).then(data => {
+        fetch(appUrl + '/api/employees/search?q=' + encodeURIComponent(q)).then(r => r.json()).then(data => {
             var box = document.getElementById('searchResults');
             box.innerHTML = '';
-            if (data.employees && data.employees.length > 0) {
-                data.employees.forEach(function(e) {
+            // API may return a bare array OR an object wrapper {employees:[...]}
+            var list = Array.isArray(data) ? data : (data.employees || []);
+            if (list.length > 0) {
+                list.forEach(function(e) {
                     var div = document.createElement('div');
                     div.className = 'item';
                     div.innerHTML = '<div class="name">' + e.full_name + '</div><div class="meta">' + e.emp_code + ' · ' + (e.department_name || '') + '</div>';
@@ -188,7 +191,7 @@ function submitQuickAdd() {
     formData.append('branch_id', branch);
     formData.append('department_id', document.getElementById('qaDept').value);
 
-    fetch('/api/employees/quick-add', { method: 'POST', body: formData })
+    fetch(appUrl + '/api/employees/quick-add', { method: 'POST', body: formData })
     .then(r => r.json()).then(data => {
         if (data.success) {
             addEmployeeCard(data.employee);
@@ -204,8 +207,8 @@ document.getElementById('qaBranch').addEventListener('change', function() {
     var deptSelect = document.getElementById('qaDept');
     deptSelect.innerHTML = '<option value="0">القسم</option>';
     if (this.value > 0) {
-        fetch('/api/departments/by-branch/' + this.value).then(r => r.json()).then(data => {
-            var depts = data.departments || data;
+        fetch(appUrl + '/api/departments/by-branch/' + this.value).then(r => r.json()).then(data => {
+            var depts = Array.isArray(data) ? data : (data.departments || []);
             if (Array.isArray(depts)) depts.forEach(function(d) {
                 var opt = document.createElement('option');
                 opt.value = d.id; opt.textContent = d.name;
@@ -286,7 +289,7 @@ function saveSingle(empId) {
     formData.append('evaluator_title', document.getElementById('evaluatorTitle').value);
     for (var key in results) formData.append('results[' + key + '][score]', results[key]);
 
-    fetch('/evaluations/save-single', { method: 'POST', body: formData })
+    fetch(appUrl + '/evaluations/save-single', { method: 'POST', body: formData })
     .then(r => r.json()).then(data => {
         if (data.success) {
             var card = document.getElementById('card-' + empId);
@@ -347,7 +350,7 @@ function saveAll() {
         evaluations: evaluations
     });
 
-    fetch('/evaluations/bulk-save', {
+    fetch(appUrl + '/evaluations/bulk-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payload
