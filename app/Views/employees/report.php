@@ -154,12 +154,10 @@ table.sig td { padding:14px 8px; text-align:center; font-size:9px; color:#999; b
         <div class="section-title">بيانات الموظف</div>
         <div class="emp-grid">
             <?php
+            // بيانات الموظف الأساسية فقط (4 خانات = صفّان متوازنان في الشبكة).
             $fields = [
                 'الاسم' => $employee['full_name'] ?? '', 'الرقم الوظيفي' => $employee['emp_code'] ?? '',
                 'القسم' => $employee['department_name'] ?? '', 'الفرع' => $employee['branch_name'] ?? '',
-                'المنصب' => $employee['position_title'] ?? '', 'المدير المباشر' => $employee['manager_name'] ?? '',
-                'البريد' => $employee['email'] ?? '', 'الهاتف' => $employee['phone'] ?? '',
-                'تاريخ الالتحاق' => $employee['hire_date'] ?? '', 'الحالة' => $employee['status'] ?? '',
             ];
             foreach ($fields as $label => $value):
             ?>
