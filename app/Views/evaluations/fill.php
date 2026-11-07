@@ -245,9 +245,53 @@ body {
 @media (max-width: 991.98px) { .evaluation-layout { display: block; }.evaluation-sidebar { position: static; width: auto; margin-bottom: 1rem; }.navigation-card .list-group { display: flex; overflow-x: auto; }.navigation-card .list-group-item { white-space: nowrap; border-right: 0; border-bottom: 3px solid transparent; }.navigation-card .list-group-item.active { border-bottom-color: var(--brand); }.evaluation-action-bar { position: sticky; bottom: 0; } }
 </style>
 
+<!-- CD-026.2 UI active — حقول المقيّم + اختيار الدورة -->
 <form action="<?php echo APP_URL; ?>/evaluations/submit" method="POST" id="evaluation-form">
     <?= csrf_field() ?>
     <input type="hidden" name="evaluation_id" value="<?php echo $evaluation->id; ?>">
+
+    <?php
+    // CD-026.2: حقل اختيار الدورة/الورشة عند الحاجة
+    $targetType = $template['target_type'] ?? 'employee';
+    if ($targetType === 'employee_in_course'):
+    ?>
+    <div class="container mt-3">
+        <div class="card border-warning">
+            <div class="card-body">
+                <label class="form-label fw-bold"><i class="fas fa-book"></i> الدورة التدريبية</label>
+                <select class="form-select" name="context_course_id" required>
+                    <option value="">— اختر الدورة —</option>
+                    <?php
+                    $courses = (new \App\Models\TrainingCourse())->getAll();
+                    if ($courses): foreach ($courses as $c):
+                    ?>
+                        <option value="<?= (int)$c->id ?>"><?= htmlspecialchars($c->title ?? $c->description ?? 'دورة #'.$c->id) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+                <small class="text-muted">يرتبط هذا التقييم بالدورة المختارة.</small>
+            </div>
+        </div>
+    </div>
+    <?php elseif ($targetType === 'employee_in_workshop'): ?>
+    <div class="container mt-3">
+        <div class="card border-warning">
+            <div class="card-body">
+                <label class="form-label fw-bold"><i class="fas fa-users"></i> الورشة</label>
+                <select class="form-select" name="context_workshop_id" required>
+                    <option value="">— اختر الورشة —</option>
+                    <?php
+                    $workshops = (new \App\Models\TrainingWorkshop())->getAll();
+                    if ($workshops): foreach ($workshops as $w):
+                    ?>
+                        <option value="<?= (int)$w->id ?>"><?= htmlspecialchars('ورشة #'.$w->id . ' — ' . ($w->start_date ?? '')) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+                <small class="text-muted">يرتبط هذا التقييم بالورشة المختارة.</small>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php if (in_array($template['evaluation_mode'] ?? 'numeric', ['descriptive', 'mixed'], true)): ?>
         <div class="container mt-4">
             <?php if (empty($gradingScales)): ?>
@@ -491,6 +535,42 @@ body {
                     <?php endforeach; ?>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- CD-026.2: حقول المقيّم الثابتة -->
+    <div class="container mt-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <strong><i class="fas fa-user-tie"></i> بيانات المقيّم</strong>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">اسم المقيّم</label>
+                        <input type="text" class="form-control" name="evaluator_name"
+                               value="<?= htmlspecialchars($evaluation->evaluator_name ?? Auth::user()->full_name ?? '') ?>"
+                               placeholder="الاسم الكامل" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">صفة المقيّم</label>
+                        <input type="text" class="form-control" name="evaluator_title"
+                               value="<?= htmlspecialchars($evaluation->evaluator_title ?? '') ?>"
+                               placeholder="مدير مباشر / مشرف" >
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">تاريخ التقييم</label>
+                        <input type="date" class="form-control" name="evaluation_date"
+                               value="<?= htmlspecialchars($evaluation->evaluation_date ?? date('Y-m-d')) ?>"
+                               required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">ملاحظات المقيّم العامة</label>
+                        <textarea class="form-control" name="evaluator_notes" rows="2"
+                                  placeholder="ملاحظات شاملة عن أداء الموظف..."></textarea>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

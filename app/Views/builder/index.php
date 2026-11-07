@@ -102,6 +102,7 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
                         </div>
                     </div>
                     <div class="col-md-3">
+<!-- CD-026.2 UI active — skill في القائمة المنسدلة -->
                         <div class="form-floating">
                             <?php $tt = $template['target_type'] ?? 'employee'; ?>
                             <select class="form-select" id="target_type" name="target_type">
@@ -112,8 +113,9 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
                                 <option value="workshop" <?= $tt==='workshop'?'selected':'' ?>>ورشة ككيان</option>
                                 <option value="unit" <?= $tt==='unit'?'selected':'' ?>>وحدة تنظيمية</option>
                                 <option value="admin" <?= $tt==='admin'?'selected':'' ?>>إداري/تنظيمي</option>
+                                <option value="skill" <?= $tt==='skill'?'selected':'' ?>>تقييم مهاري (skill)</option>
                             </select>
-                            <label for="target_type">نوع القالب (7 أنواع عامة)</label>
+                            <label for="target_type">نوع القالب (8 أنواع)</label>
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -173,7 +175,7 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
                         </div>
                     </div>
                 </div>
-                <script>document.addEventListener('DOMContentLoaded',function(){const t=document.getElementById('target_type'),p=document.getElementById('pos-wrapper'),u=document.getElementById('unit-scope-wrapper');function tog(){const v=t.value;p.style.display=(v==='employee')?'':'none';u.style.display=(v==='unit')?'':'none';}t.addEventListener('change',tog);tog();const m={employee:{c:'معيار',s:'بند'},employee_in_course:{c:'معيار مشاركة',s:'هدف تدريبي'},employee_in_workshop:{c:'معيار مشاركة',s:'هدف'},course:{c:'محور',s:'عنصر'},workshop:{c:'محور',s:'فقرة'},unit:{c:'مهمة تشغيلية',s:'هدف تشغيلي'},admin:{c:'معيار إداري',s:'عمود/صف'}};t.addEventListener('change',e=>{const l=m[e.target.value];if(!l)return;document.querySelectorAll('.element-group h6').forEach(h=>{if(h.textContent.includes('العناصر')||h.textContent.includes('معيار'))h.innerHTML='<i class=\"fas fa-layer-group\"></i> '+l.c;});});});</script>
+                <script>document.addEventListener('DOMContentLoaded',function(){const t=document.getElementById('target_type'),p=document.getElementById('pos-wrapper'),u=document.getElementById('unit-scope-wrapper');function tog(){const v=t.value;p.style.display=(v==='employee'||v==='skill')?'':'none';u.style.display=(v==='unit')?'':'none';}t.addEventListener('change',tog);tog();const m={employee:{c:'معيار',s:'بند'},employee_in_course:{c:'معيار مشاركة',s:'هدف تدريبي'},employee_in_workshop:{c:'معيار مشاركة',s:'هدف'},course:{c:'محور',s:'عنصر'},workshop:{c:'محور',s:'فقرة'},unit:{c:'مهمة تشغيلية',s:'هدف تشغيلي'},admin:{c:'معيار إداري',s:'عمود/صف'},skill:{c:'مهارة',s:'مؤشر مهاري'}};t.addEventListener('change',e=>{const l=m[e.target.value];if(!l)return;document.querySelectorAll('.element-group h6').forEach(h=>{if(h.textContent.includes('العناصر')||h.textContent.includes('معيار'))h.innerHTML='<i class=\"fas fa-layer-group\"></i> '+l.c;});});});</script>
                 <div class="form-floating mt-3">
                     <textarea class="form-control" placeholder="وصف الاستمارة" id="template_description" name="template_description" style="height: 70px"><?php echo htmlspecialchars($template['template_description'] ?? ''); ?></textarea>
                     <label for="template_description">وصف الاستمارة (اختياري)</label>
