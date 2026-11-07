@@ -74,30 +74,31 @@ class CD026IntegrationTest extends TestCase
     }
 
     /**
-     * اختبار 5:ApiController يتطلب مصادقة
+     * اختبار 5: ApiController يتطلب مصادقة
+     * CD-026.1: أعيدت كتابته بـ subprocess (runCli) لأن الـ constructor
+     * يستدعي exit() الذي يقتل المشغّل — لا يمكن التقاطه in-process.
      */
     public function testApiControllerRequiresAuth(): void
     {
-        $previousSession = $_SESSION;
-        $_SESSION = []; // لا جلسة = غير مصرح
+        // نكتب سكربت مؤقت يحاكي طلباً بلا جلسة
+        $script = $this->tempFile('php');
+        $boot = var_export(APP_ROOT . '/tests/bootstrap.php', true);
+        file_put_contents($script, '<?php
+require ' . $boot . ';
+$_SESSION = []; // لا جلسة = غير مصرح
+ob_start();
+$ctrl = new \App\Controllers\ApiController();
+// لو وصلنا هنا فالمُنشئ لم يُنهِ — اختبار فاشل
+echo "NO_EXIT";
+');
+        $res = $this->runCli([$script]);
 
-        try {
-            $level = ob_get_level();
-            ob_start();
-            $ctrl = new ApiController();
-            $ctrl->searchEmployees();
-            $output = (string)ob_get_clean();
-            while (ob_get_level() > $level) { ob_end_clean(); }
-
-            // يجب أن يعيد 401 + JSON error
-            $this->assertStringContainsString('غير مصرح', $output);
-        } catch (\Throwable $e) {
-            // exit() in constructor may throw or terminate — both acceptable
-            $this->assertTrue(true, 'ApiController blocked unauthenticated access');
-        } finally {
-            $_SESSION = $previousSession;
-            while (ob_get_level() > 0) { ob_end_clean(); }
-        }
+        // exit() أنهى العملية — المتوقع: exit code غير صفري أو 0 لكن مع output يحوي "غير مصرح"
+        $output = $res['stdout'] . $res['stderr'];
+        $this->assertStringNotContainsString('NO_EXIT', $output,
+            'ApiController constructor must exit() when unauthenticated');
+        $this->assertStringContainsString('غير مصرح', $output,
+            'ApiController must return 401 JSON error for unauthenticated requests');
     }
 
     /**

@@ -206,13 +206,13 @@ class DynamicBulkRenderingTest extends TestCase
             $this->assertSame('ممتاز', (string)$row['raw_value']);
             $this->assertTrue($row['normalized_score'] === null, 'normalized_score يجب أن يكون NULL للتقدير العام.');
 
-            // تحقق من final_score = 5.0 (قيمة ممتاز في السلم الخماسي)
+            // CD-026: تحقق من final_score = 100.0 (max_value لـ "ممتاز" على مقياس 0-100)
             $stmt2 = $pdo->prepare('SELECT final_score, final_grade_label, status FROM evaluations WHERE id = :eid');
             $stmt2->execute(['eid' => $evaluationId]);
             $eval = $stmt2->fetch(PDO::FETCH_ASSOC);
             $this->assertSame('completed', (string)$eval['status']);
             $this->assertSame('ممتاز', (string)$eval['final_grade_label']);
-            $this->assertSame(5.0, (float)$eval['final_score'], 'final_score يجب أن يكون 5.0 (قيمة ممتاز).');
+            $this->assertSame(100.0, (float)$eval['final_score'], 'CD-026: final_score يجب أن يكون 100.0 (max_value لـ "ممتاز").');
         } finally {
             $_SESSION = $previousSession;
             $_POST = [];

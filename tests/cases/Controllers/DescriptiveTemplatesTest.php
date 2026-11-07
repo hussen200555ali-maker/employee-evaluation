@@ -326,7 +326,7 @@ class DescriptiveTemplatesTest extends TestCase
                            VALUES (:eid, :sid, :raw, NULL)')
                 ->execute(['eid' => $evaluationId, 'sid' => $textSectionId, 'raw' => 'أداء ممتاز مع التزام عالٍ.']);
 
-            // إجابة التقدير العام = "ممتاز" (numeric_value = 5.00 في السلم الخماسي)
+            // إجابة التقدير العام = "ممتاز" (CD-026: max_value = 100.0 على مقياس 0-100)
             $pdo->prepare('INSERT INTO evaluation_answers (evaluation_id, section_id, raw_value, normalized_score)
                            VALUES (:eid, :sid, :raw, NULL)')
                 ->execute(['eid' => $evaluationId, 'sid' => $gradeSectionId, 'raw' => 'ممتاز']);
@@ -335,7 +335,7 @@ class DescriptiveTemplatesTest extends TestCase
             $score = $evalModel->calculateFinalScore($evaluationId);
 
             $this->assertNotNull($score, 'الدرجة النهائية للقالب الوصفي يجب أن تُحسب من التقدير العام.');
-            $this->assertSame(5.0, (float)$score, 'الدرجة يجب أن تكون 5.0 (قيمة "ممتاز" في السلم الخماسي).');
+            $this->assertSame(100.0, (float)$score, 'CD-026: الدرجة يجب أن تكون 100.0 (max_value لـ "ممتاز" على مقياس 0-100).');
         } finally {
             $db->rollBack();
         }
