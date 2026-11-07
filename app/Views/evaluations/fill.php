@@ -549,7 +549,7 @@ body {
                     <div class="col-md-4">
                         <label class="form-label fw-bold small">اسم المقيّم</label>
                         <input type="text" class="form-control" name="evaluator_name"
-                               value="<?= htmlspecialchars($evaluation->evaluator_name ?? Auth::user()->full_name ?? '') ?>"
+                               value="<?= htmlspecialchars($evaluation->evaluator_name ?? '') ?>"
                                placeholder="الاسم الكامل" required>
                     </div>
                     <div class="col-md-4">
