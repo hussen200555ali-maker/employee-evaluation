@@ -1,6 +1,11 @@
 <?php
 require_once APP_ROOT . '/app/Views/layouts/header.php';
+// CD-024.1: منع التخزين المؤقت للصفحة لضمان تحميل أحدث نسخة من JS
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 ?>
+<!-- CD-024.1: dynamic-render v3401a68 — إذا رأيت هذا التعليق في View Source فالكود الحديث منشور -->
 <style>
 .bulk-setup { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:16px; align-items:end; background:#fff; border-radius:12px; padding:20px 24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px; }
 .bulk-setup label { display:block; font-size:11px; color:#6c757d; margin-bottom:4px; font-weight:600; }
@@ -123,6 +128,8 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 </div>
 
 <script>
+// CD-024.1: علامة تشخيصية — تحقق من وحدة تحكم المتصفح (Console)
+console.log('[CD-024] dynamic-render v3401a68 active — renderSectionField ready');
 var appUrl = '<?= defined('APP_URL') ? htmlspecialchars(APP_URL, ENT_QUOTES) : '' ?>';
 var csrfToken = '<?= htmlspecialchars($csrfToken ?? '') ?>';
 var templateSchema = null;
