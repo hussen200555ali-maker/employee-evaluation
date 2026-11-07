@@ -385,7 +385,14 @@ public function update() {
            // 3. استدعاء المودل للتحديث
         $userModel = new \App\Models\User();
         if ($userModel->updateUser($data)) {
-            \App\Core\Audit::log('USER_UPDATE', $data['id'], 'users', $data);
+            // CD-026: إزالة كلمات المرور النصية من سجل التدقيق — تسجيل bool فقط
+            $auditData = [
+                'username'      => $data['username'],
+                'email'         => $data['email'],
+                'employee_id'   => $data['employee_id'],
+                'password_changed' => !empty($data['password']),
+            ];
+            \App\Core\Audit::log('USER_UPDATE', $data['id'], 'users', $auditData);
             \App\Core\Flash::set('تم تحديث بيانات المستخدم بنجاح.', 'success');
         } else {
             \App\Core\Flash::set('فشل تحديث البيانات. قد يكون اسم المستخدم أو البريد مكرراً.', 'danger');

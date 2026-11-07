@@ -1,5 +1,12 @@
 # سجل التغييرات
 
+## 2026-11-08 — CD-026: التنفيذ الشامل (أمن + تدريب + مهارات + محرك)
+
+- **أمن P0:** إزالة كلمات مرور plaintext من audit_logs (UserController)؛ تأمين ApiController بمصادقة إلزامية؛ تحويل مسارات backup التدميرية GET→POST؛ إضافة 10 صلاحيات مفقودة للـ seeder.
+- **تدريب:** إنشاء `course_participants` + `workshop_participants` (junction tables N:M مع FK CASCADE + UNIQUE)؛ إضافة `skill` لـ `form_templates.target_type` ENUM.
+- **محرك:** إصلاح خلط المقاييس — التقييم الوصفي يُحوّل لـ 0-100 (max_value) بدل 1-5 (numeric_value) في `calculateDescriptiveScore` + `submit` + `saveResults`؛ AveragesEngine يتجاهل NULL أصلاً.
+- **الاختبارات:** **148/148 PASS** (141 + 7 جديدة في `CD026IntegrationTest`). التفاصيل في `docs/CD-026_Implementation.md`.
+
 ## 2026-11-07 — CD-024: الرسم الديناميكي لواجهة التقييم الجماعي
 
 - إصلاح واجهة `bulk-create.php` لتعمل بالرسم الديناميكي: قراءة هيكل القالب ورسم الحقل المناسب لكل قسم حسب نوعه (percentage/numeric/grade/textarea/overall_grade/boolean) بدلاً من أزرار 1-5 الثابتة.

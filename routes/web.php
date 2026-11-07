@@ -252,25 +252,25 @@ $router->get('backup/settings', 'App\Controllers\BackupController@settings');
 $router->post('backup/settings/save', 'App\Controllers\BackupController@saveSettings');
 
 // --- 8.2: أنواع النسخ ---
-$router->get('backup/full', 'App\Controllers\BackupController@createFullBackup');
-$router->get('backup/incremental', 'App\Controllers\BackupController@createIncrementalBackup');
-$router->get('backup/optimized', 'App\Controllers\BackupController@createOptimizedBackup');
-$router->get('backup/smart', 'App\Controllers\BackupController@createSmartBackup');
+// CD-026: تحويل مسارات النسخ التدميرية من GET إلى POST (حماية CSRF)
+$router->post('backup/full', 'App\Controllers\BackupController@createFullBackup');
+$router->post('backup/incremental', 'App\Controllers\BackupController@createIncrementalBackup');
+$router->post('backup/optimized', 'App\Controllers\BackupController@createOptimizedBackup');
+$router->post('backup/smart', 'App\Controllers\BackupController@createSmartBackup');
 
 // --- 8.3: إدارة الملفات ---
 $router->get('backup/download/:id', 'App\Controllers\BackupController@downloadBackup');
 $router->post('backup/download/:id', 'App\Controllers\BackupController@downloadBackup');
-$router->get('backup/restore/:id', 'App\Controllers\BackupController@restoreBackup');
 $router->post('backup/restore/:id', 'App\Controllers\BackupController@restoreBackup');
-$router->get('backup/delete/:id', 'App\Controllers\BackupController@deleteBackup');
-$router->get('backup/cleanup', 'App\Controllers\BackupController@cleanOldBackups');
-$router->get('backup/clean-backups', 'App\Controllers\BackupController@cleanBackups');
+$router->post('backup/delete/:id', 'App\Controllers\BackupController@deleteBackup');
+$router->post('backup/cleanup', 'App\Controllers\BackupController@cleanOldBackups');
+$router->post('backup/clean-backups', 'App\Controllers\BackupController@cleanBackups');
 
 // --- 8.4: الجدولة التلقائية ---
 $router->get('backup/scheduler-status', 'App\Controllers\BackupController@schedulerStatus');
-$router->get('backup/setup-scheduler', 'App\Controllers\BackupController@setupScheduler');
-$router->get('backup/remove-scheduler', 'App\Controllers\BackupController@removeScheduler');
-$router->get('backup/test-scheduler', 'App\Controllers\BackupController@testScheduler');
+$router->post('backup/setup-scheduler', 'App\Controllers\BackupController@setupScheduler');
+$router->post('backup/remove-scheduler', 'App\Controllers\BackupController@removeScheduler');
+$router->post('backup/test-scheduler', 'App\Controllers\BackupController@testScheduler');
 
 // --- 8.5: الصحة والفحوصات ---
 $router->get('backup/verify', 'App\Controllers\BackupController@verifyIntegrity');
@@ -280,9 +280,9 @@ $router->get('backup/check-disk', 'App\Controllers\BackupController@checkDisk');
 
 // --- 8.6: إدارة التشفير ---
 $router->get('backup/encryption', 'App\Controllers\BackupController@encryptionManager');
-$router->get('backup/encryption/generate-key', 'App\Controllers\BackupController@generateEncryptionKey');
+$router->post('backup/encryption/generate-key', 'App\Controllers\BackupController@generateEncryptionKey');
 $router->get('backup/encryption/keys', 'App\Controllers\BackupController@encryptionKeys');
-$router->get('backup/encryption/delete-key/:id', 'App\Controllers\BackupController@deleteEncryptionKey');
+$router->post('backup/encryption/delete-key/:id', 'App\Controllers\BackupController@deleteEncryptionKey');
 
 // --- 8.7: واجهات API ---
 $router->get('api/backup/stats', 'App\Controllers\BackupController@getBackupStatsApi');

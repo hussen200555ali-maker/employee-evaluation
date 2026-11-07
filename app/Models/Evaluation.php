@@ -475,7 +475,16 @@ class Evaluation extends Model {
         }
 
         $gradeLabel = (string)$row->raw_value;
-        return (new \App\Models\GradingScale())->getNumericValueForLabel($scaleName, $gradeLabel);
+
+        // CD-026: تحويل التقدير الوصفي إلى مقياس 0-100 (لا 1-5) لتوافق المتوسطات
+        // نأخذ max_value من صف grading_scales المطابق (مثلاً ممتاز=100, جيد جداً=89.99)
+        $scaleRows = (new \App\Models\GradingScale())->getByName($scaleName);
+        foreach ($scaleRows as $g) {
+            if ($g->grade_label === $gradeLabel) {
+                return (float)$g->max_value;
+            }
+        }
+        return null;
     }
 
      /**

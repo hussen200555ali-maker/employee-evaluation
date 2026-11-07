@@ -4,6 +4,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Auth; // CD-026: تأمين نقاط النهاية
 use App\Models\Department; // استيراد مودل الأقسام
 use App\Models\Employee;
 use App\Models\Template; // استيراد مودل القوالب
@@ -11,13 +12,24 @@ use App\Models\Template; // استيراد مودل القوالب
 class ApiController extends Controller {
 
     /**
+     * CD-026: المصادقة إلزامية لكل نقاط النهاية.
+     * منع الوصول غير المصرح به لبيانات الموظفين والأقسام والقوالب.
+     */
+    public function __construct() {
+        if (!Auth::check()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(401);
+            echo json_encode(['error' => 'غير مصرح — تسجيل الدخول مطلوب'], JSON_UNESCAPED_UNICODE);
+            exit();
+        }
+    }
+
+    /**
      * يجلب الأقسام التابعة لفرع معين ويعيدها كـ JSON.
      *
      * @param int $branchId
      */
     public function getDepartmentsByBranch($branchId) {
-        // التأكد من أن الطلب آمن (يمكن إضافة تحقق من تسجيل الدخول هنا)
-        // \App\Core\Auth::handle();
 
         $departmentModel = new Department();
         $departments = $departmentModel->findByBranch($branchId);

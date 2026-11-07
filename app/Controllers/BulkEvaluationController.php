@@ -443,7 +443,7 @@ final class BulkEvaluationController extends Controller
                 $gradeLabel = (string)($results['grade_label'] ?? $_POST['final_grade_label'] ?? '');
             }
             if ($gradeLabel) {
-                // Look up numeric_value — prefer the scale_name linked to the section
+                // CD-026: تحويل التقدير إلى مقياس 0-100 (max_value) بدل 1-5 (numeric_value)
                 $scaleName = 'السلم الخماسي';
                 foreach ($sectionsMap as $sec) {
                     if (($sec['evaluation_type'] ?? '') === 'overall_grade') {
@@ -454,8 +454,14 @@ final class BulkEvaluationController extends Controller
                         }
                     }
                 }
-                $val = (new \App\Models\GradingScale())->getNumericValueForLabel($scaleName, $gradeLabel);
-                if ($val !== null) $gradeValue = $val;
+                // ابحث في صفوف السلم عن grade_label المطابق وخذ max_value (0-100)
+                $scaleRows = (new \App\Models\GradingScale())->getByName($scaleName);
+                foreach ($scaleRows as $g) {
+                    if ($g->grade_label === $gradeLabel) {
+                        $gradeValue = (float)$g->max_value;
+                        break;
+                    }
+                }
             }
             $evalModel->updateScoreGradeAndStatus($evaluationId, $gradeValue > 0 ? $gradeValue : null, $gradeLabel, $gradeValue, 'completed');
         }

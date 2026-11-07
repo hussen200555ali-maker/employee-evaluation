@@ -383,9 +383,9 @@ class EvaluationController extends Controller {
 
         if ($success) {
             $isDescriptive = ($template['evaluation_mode'] ?? 'numeric') === 'descriptive';
-            // CD-023: للقوالب الوصفية، final_score = القيمة الرقمية للتقدير العام
+            // CD-026: للقوالب الوصفية، final_score على مقياس 0-100 (max_value) لا 1-5
             $finalScore = $isDescriptive
-                ? ($manualGrade ? (float)$manualGrade->numeric_value : null)
+                ? $evaluationModel->calculateFinalScore($evaluationId)
                 : $evaluationModel->calculateFinalScore($evaluationId);
             $isUnit = in_array($evaluation->entity_type ?? 'employee', ['branch','department']);
             $nextStatus = $isUnit ? 'pending_review' : 'completed';
