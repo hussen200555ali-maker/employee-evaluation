@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD-025 — الوثيقة المعمارية الشاملة</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+:root{--brand:#0c2823;--brand2:#0d5e52;--gold:#c8943f;--gold-bg:#faefd9;--ink:#1a2e2a;--line:#d4dcd9;--red:#c85b54}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;background:#f7f9f8;color:var(--ink);line-height:1.7;font-size:14px}
+.page{max-width:210mm;margin:20px auto;background:#fff;box-shadow:0 4px 24px rgba(12,40,35,.12);border-radius:8px;overflow:hidden}
+.cover{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:60px 50px;text-align:center;position:relative}
+.cover::after{content:'';position:absolute;bottom:0;left:0;right:0;height:6px;background:var(--gold)}
+.cover h1{font-size:28px;font-weight:800;margin-bottom:8px}
+.cover h2{font-size:15px;opacity:.85;margin-bottom:25px}
+.cover .meta{font-size:13px;opacity:.9;text-align:center}
+.cover .meta div{margin:3px 0}
+.cover .meta span{color:var(--gold);font-weight:700}
+.content{padding:40px 50px}
+h1{font-size:20px;color:var(--brand);font-weight:800;margin:30px 0 12px;padding-bottom:6px;border-bottom:3px solid var(--gold)}
+h2{font-size:16px;color:var(--brand2);font-weight:700;margin:22px 0 10px}
+p{margin:6px 0;text-align:justify}
+ul,ol{margin:6px 22px}li{margin:3px 0}
+strong{color:var(--brand)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+th{background:var(--brand);color:#fff;padding:8px 10px;text-align:right;font-weight:700;font-size:11px}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#f5f8f7}
+code{font-family:Consolas,monospace;background:var(--gold-bg);color:var(--brand);padding:1px 5px;border-radius:3px;font-size:11px;direction:ltr;display:inline-block}
+pre{background:#1a2e2a;color:#c5e0d8;padding:14px 18px;border-radius:6px;overflow-x:auto;font-family:Consolas,monospace;font-size:11px;line-height:1.5;direction:ltr;text-align:left;margin:10px 0;border-right:4px solid var(--gold)}
+.er{background:#f0f5f3;border:2px dashed var(--brand2);border-radius:6px;padding:14px;margin:10px 0;font-family:monospace;font-size:11px;direction:ltr;text-align:left;overflow-x:auto;white-space:pre;color:var(--brand)}
+.crit{color:var(--red);font-weight:700}.high{color:#c8943f;font-weight:700}.med{color:#d4a444;font-weight:700}.low{color:#6c757d;font-weight:700}
+.alert{border-radius:6px;padding:10px 15px;margin:12px 0;font-size:12.5px}
+.ac{background:#fce8e6;border-right:5px solid var(--red);color:#8b2f2a}
+.ah{background:var(--gold-bg);border-right:5px solid var(--gold);color:#7a531a}
+.ai{background:#e8f4f0;border-right:5px solid var(--brand2);color:#0d4a42}
+.mh{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;padding:14px 20px;margin:30px 0 15px;border-radius:6px;border-right:5px solid var(--gold)}
+.mh h1{color:#fff;border:none;margin:0;font-size:18px}
+.ok{color:var(--brand2);font-weight:700}.no{color:var(--red);font-weight:700}
+hr{border:none;border-top:1px solid var(--line);margin:20px 0}
+.ft{text-align:center;padding:15px;color:#6c757d;font-size:11px;border-top:1px solid var(--line)}
+@media print{body{background:#fff}.page{box-shadow:none;margin:0;border-radius:0}.content{padding:20px 30px}h1,.mh{page-break-after:avoid}table,pre{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="cover">
+<h1>CD-025 — الوثيقة المعمارية الشاملة</h1>
+<h2>Comprehensive Architectural &amp; Functional Audit</h2>
+<div class="meta">
+<div><strong>المرجع:</strong> <span>CD-025</span> | <strong>التاريخ:</strong> <span>2026-11-08</span></div>
+<div><strong>المُعدّ:</strong> كبير المطورين | <strong>السرية:</strong> <span>سري للغاية</span></div>
+<div><strong>الحالة:</strong> تحليل وتدقيق — لا كود</div>
+</div>
+</div>
+<div class="content">
+
+<h1>الملخص التنفيذي</h1>
+<p>تشريح هندسي شامل لست وحدات رئيسية في نظام تقييم الأداء. كل وحدة تُحلَّل عبر ثمانية أبعاد: نظرة عامة، مخطط البيانات، دورة الحياة، الشاشات والمسارات، نقاط التكامل، الأمان، الأداء، والفجوات.</p>
+<p><strong>الحكم:</strong> النظام وظيفي ومستخدم في الإنتاج، لكنه يحمل فجوات تتطلب تدخلاً قبل التوسع المؤسسي:</p>
+<ol>
+<li><span class="crit">🔴</span> كلمات مرور بنص صريح في سجل التدقيق (UserController L388)</li>
+<li><span class="crit">🔴</span> ApiController بدون مصادقة — أي شخص يعدّد الموظفين</li>
+<li><span class="crit">🔴</span> مسارات تدميرية عبر GET (backup/restore/delete) — ثغرة CSRF</li>
+<li><span class="crit">🔴</span> غياب جدول course_participants — لا ربط موظف↔دورة موثوق</li>
+<li><span class="crit">🔴</span> خلط مقاييس في AveragesEngine — (0-100) مع (1-5) = خاطئ</li>
+<li><span class="crit">🔴</span> صلاحيات مفقودة من البذور (evaluations.delete, training.evaluate, backup.manage)</li>
+</ol>
+
+<div class="mh"><h1>الوحدة 1: الهيكل التنظيمي</h1></div>
+<h2>1.1 نظرة عامة</h2>
+<p><strong>الهدف:</strong> إدارة الفروع، الأقسام، الموظفين، المناصب.<br><strong>الإنجاز:</strong> مكتمل وظيفياً (CRUD + فلترة + ترقيم صفحات + منع دورة المدير).<br><strong>الالتزام المؤسسي:</strong> جزئي — لا سجل نقل، لا فحص اتساق فرع↔قسم.</p>
+<h2>1.2 مخطط البيانات</h2>
+<div class="er">branches (id, name, location, manager_id→employees.id)
+    │ 1:N
+departments (id, name, branch_id→branches.id)
+    │ 1:N
+employees (id, emp_code[U], full_name, department_id, branch_id,
+           manager_id(self-ref), position_id, is_active, join_date)
+    │ N:1
+positions (id, title, category ENUM(manager/deputy/staff/other))</div>
+<p><strong>الفهارس:</strong> employees على dept/branch/manager/position (L277-280). FKs: ON DELETE SET NULL.</p>
+<h2>1.3 دورة حياة البيانات</h2>
+<ul><li><strong>المدخلات:</strong> شاشات create/edit؛ API search؛ Excel.</li><li><strong>المعالجة:</strong> فحص emp_code/full_name؛ لا فحص dept↔branch اتساق؛ دورة المدير فقط في update().</li><li><strong>المخرجات:</strong> employees؛ snapshots في evaluations.</li></ul>
+<h2>1.4 الشاشات والمسارات</h2>
+<table><tr><th>المسار</th><th>الصلاحية</th></tr>
+<tr><td><code>GET /employees</code></td><td>employees.view</td></tr>
+<tr><td><code>GET /employees/create</code></td><td>employees.create</td></tr>
+<tr><td><code>POST /employees/update</code></td><td>employees.edit</td></tr>
+<tr><td><code>POST /employees/delete</code></td><td>employees.delete</td></tr>
+<tr><td><code>GET /employees/profile/:id</code></td><td>employees.profile</td></tr>
+<tr><td><code>GET /branches</code></td><td>branches.view</td></tr>
+<tr><td><code>GET /departments</code></td><td>departments.view</td></tr></table>
+<h2>1.5 نقاط التكامل</h2>
+<ul><li>↔ التقييمات: getDetailsForSnapshot() يجمد البيانات.</li><li>↔ لوحة التحكم: RoleDashboardService يقيس حسب persona.</li><li>↔ التقارير: getProfileReport INNER JOIN emp_code.</li></ul>
+<h2>1.6 الأمان</h2>
+<ul><li>كل controller Auth::enforce(). <span class="ok">✅</span></li><li>branches/departments create/edit/delete غير معرَّفة في seed → 403.</li><li>حذف موظف لا يتحقق branches.manager_id.</li></ul>
+<h2>1.7 الأداء</h2>
+<ul><li><span class="ok">✅</span> ترقيم صفحات (25/صفحة).</li><li><span class="crit">🔴</span> getAll() بلا LIMIT لقائمة المديرين.</li><li><span class="crit">🔴</span> search() يتجاهل $limit.</li><li><span class="crit">🔴</span> findByDepartment/getAllActiveEmployeeIds بلا LIMIT.</li></ul>
+<h2>1.8 الفجوات</h2>
+<table><tr><th>#</th><th>الخطورة</th><th>الفجوة</th></tr>
+<tr><td>G1</td><td class="crit">🔴</td><td>لا مسار نقل مخصص؛ النقل بلا تسجيل القسم السابق.</td></tr>
+<tr><td>G2</td><td class="crit">🔴</td><td>getAdminReports() JOIN حيّ بدل snapshots.</td></tr>
+<tr><td>G3</td><td class="crit">🔴</td><td>create() يصلب is_active=1.</td></tr>
+<tr><td>G4</td><td class="crit">🔴</td><td>getAll() بلا LIMIT — لا يدعم 5000+.</td></tr>
+<tr><td>G5</td><td class="high">🟡</td><td>store() لا يفحص دورة المدير.</td></tr>
+<tr><td>G6</td><td class="high">🟡</td><td>(int)position_id → 0 بدل NULL.</td></tr>
+<tr><td>G7</td><td class="high">🟡</td><td>لا فحص dept ينتمي لـ branch.</td></tr>
+<tr><td>G8</td><td class="high">🟡</td><td>حذف فرع لا يتحقق من موظفين.</td></tr></table>
+
+<div class="mh"><h1>الوحدة 2: باني القوالب (B1)</h1></div>
+<h2>2.1 نظرة عامة</h2>
+<p><strong>الإنجاز:</strong> مكتمل — 12 نوع قسم، تحقق أوزان حسب mode، معاينة. <strong>الالتزام:</strong> جيد.</p>
+<h2>2.2 مخطط البيانات</h2>
+<div class="er">form_templates (id, template_name, target_type ENUM(7),
+    evaluation_mode ENUM(numeric/descriptive/mixed), version INT)
+criteria (id, template_id CASCADE, criterion_name, criterion_weight)
+criteria_sections (id, criterion_id CASCADE, section_name,
+    evaluation_type ENUM(12), evaluation_options JSON, section_weight)
+grading_scales (id, scale_name, grade_label, numeric_value, template_id)</div>
+<h2>2.3 دورة الحياة</h2>
+<ul><li><strong>المعالجة:</strong> validateWeights — descriptive: لا 100%، يلزم overall_grade؛ numeric/mixed: 100% مستثنياً text/textarea/overall_grade.</li><li><strong>المخرجات:</strong> transaction. التحديث = DELETE + re-INSERT.</li></ul>
+<h2>2.4 المسارات</h2>
+<table><tr><th>المسار</th></tr><tr><td><code>GET /builder/create</code></td></tr><tr><td><code>POST /builder/save</code></td></tr><tr><td><code>GET /templates</code></td></tr></table>
+<h2>2.5 التكامل</h2>
+<ul><li>↔ التقييمات: getTemplateWithStructure في calculateFinalScore, fill, schema.</li><li>↔ الجماعي: schema() API.</li></ul>
+<h2>2.6 الأمان</h2>
+<ul><li>templates.manage في constructor. <span class="ok">✅</span></li><li>isTemplateInUse يمنع الحذف. <span class="ok">✅</span></li></ul>
+<h2>2.7 الأداء</h2>
+<ul><li><span class="ok">✅</span> مقبول (قوالب قليلة).</li><li><span class="high">🟡</span> التحديث = DELETE + re-INSERT.</li></ul>
+<h2>2.8 الفجوات</h2>
+<table><tr><th>#</th><th>الخطورة</th><th>الفجوة</th></tr>
+<tr><td>G9</td><td class="high">🟡</td><td>version يُزاد لكن لا optimistic concurrency.</td></tr>
+<tr><td>G10</td><td class="high">🟡</td><td>DELETE + re-INSERT → IDs تتغير. snapshots تحمي.</td></tr>
+<tr><td>G11</td><td class="low">🟢</td><td>builder1.js/css stale.</td></tr></table>
+
+<div class="mh"><h1>الوحدة 3: التقييمات</h1></div>
+<h2>3.1 نظرة عامة</h2>
+<p><strong>الإنجاز:</strong> مكتمل — 4 مسارات (فردي/جماعي/دورة/وحدة)، حساب آلي، snapshots. <strong>الالتزام:</strong> جيد.</p>
+<h2>3.2 مخطط البيانات</h2>
+<div class="er">evaluations (id, template_id, status ENUM(4),
+    evaluated_employee_id, employee_name/code/branch/dept ← SNAPSHOT,
+    final_score, final_grade_label, final_grade_value,
+    entity_type ENUM(6), context_type ENUM(course/workshop))
+evaluation_answers (id, evaluation_id, section_id,
+    raw_value, normalized_score, notes)</div>
+<h2>3.3 دورة الحياة</h2>
+<ul><li><strong>المعالجة:</strong> saveEvaluationResults حسب type؛ calculateFinalScore: numeric=Σ(score×weight)، descriptive=قيمة التقدير.</li></ul>
+<h2>3.4 المسارات</h2>
+<table><tr><th>المسار</th><th>الصلاحية</th></tr>
+<tr><td><code>GET /evaluations/:id/fill</code></td><td>evaluations.fill</td></tr>
+<tr><td><code>POST /evaluations/submit</code></td><td>evaluations.fill</td></tr>
+<tr><td><code>GET /evaluations/bulk-create</code></td><td>evaluations.create</td></tr>
+<tr><td><code>POST /evaluations/bulk-save</code></td><td>evaluations.create</td></tr></table>
+<h2>3.5 التكامل</h2>
+<ul><li>↔ القوالب: evaluation_mode يحدد الحساب.</li><li>↔ السلالم: getNumericValueForLabel.</li><li>↔ الهيكل: snapshots.</li></ul>
+<h2>3.6 الأمان</h2>
+<ul><li>evaluations.create/fill مُنفَّذة. <span class="ok">✅</span></li><li><span class="crit">🔴</span> evaluations.delete/edit غير معرَّفة → 403.</li><li>لا team-scoping في EvaluationController.</li></ul>
+<h2>3.7 الأداء</h2>
+<ul><li><span class="ok">✅</span> calculateFinalScore استعلام واحد.</li><li><span class="high">🟡</span> saveEvaluationResults = DELETE + re-INSERT.</li></ul>
+<h2>3.8 الفجوات</h2>
+<table><tr><th>#</th><th>الخطورة</th><th>الفجوة</th></tr>
+<tr><td>G13</td><td class="crit">🔴</td><td>evaluations.delete/edit غير معرَّفة → 403.</td></tr>
+<tr><td>G14</td><td class="high">🟡</td><td>لا team-scoping — المدير محجوب.</td></tr>
+<tr><td>G15</td><td class="high">🟡</td><td>full overwrite — لا حفظ جزئي.</td></tr>
+<tr><td>G16</td><td class="low">🟢</td><td>updateStatus() غير معرَّفة.</td></tr></table>
+
+<div class="mh"><h1>الوحدة 4: التدريب</h1></div>
+<h2>4.1 نظرة عامة</h2>
+<p><strong>الإنجاز:</strong> <span class="crit">جزئي (~70%)</span>. <strong>الالتزام:</strong> ضعيف — نظامان متوازيان، جداول مفقودة.</p>
+<h2>4.2 مخطط البيانات</h2>
+<div class="er">course_catalog / workshop_catalog
+training_courses (catalog_id CASCADE, branch_id, dept_id)
+training_workshops (branch_id CASCADE, created_by[لاFK!])
+course_evaluations (course_id[U] CASCADE, final_score DECIMAL(5,2))
+workshop_evaluations (workshop_id[لاU!] CASCADE, final_score DECIMAL(8,2))</div>
+<div class="alert ac"><strong>🔴 الجدول المفقود: course_participants</strong><br>لا يوجد جدول يربط الموظف بالدورة. لا تاريخ تدريبي، لا شهادات، لا حضور فردي.</div>
+<h2>4.3 دورة الحياة</h2>
+<ul><li>نظامان: System A (course_evaluations) + System B (evaluations بـ entity_type='course'). خطر ازدواجية.</li></ul>
+<h2>4.4 المسارات</h2>
+<table><tr><th>المسار</th></tr><tr><td><code>GET /training/courses</code></td></tr><tr><td><code>GET /training/workshops</code></td></tr><tr><td><code>GET /training/evaluations/create/:course_id</code></td></tr></table>
+<div class="alert ac"><strong>مسارات مفقودة:</strong> workshop catalog create/edit؛ لا شاشة تفاصيل؛ تقارير التدريب فارغة.</div>
+<h2>4.5 التكامل</h2>
+<ul><li>↔ القوالب: target_type='course'.</li><li>↔ الموظفين: <span class="crit">مقطوع</span> — لا جدول مشاركة.</li></ul>
+<h2>4.6 الأمان</h2>
+<ul><li><span class="crit">🔴</span> training.evaluate غير معرَّفة → 403.</li><li><span class="high">🟡</span> courses.manage/workshops.manage ميتة.</li></ul>
+<h2>4.7 الأداء</h2>
+<ul><li><span class="ok">✅</span> فهارس على branch/dept.</li><li><span class="high">🟡</span> Department::getAll() JOIN ثقيل.</li></ul>
+<h2>4.8 الفجوات</h2>
+<table><tr><th>#</th><th>الخطورة</th><th>الفجوة</th></tr>
+<tr><td>G17</td><td class="crit">🔴</td><td>لا course_participants — علاقة مقطوعة.</td></tr>
+<tr><td>G18</td><td class="crit">🔴</td><td>نظاما تقييم متوازيان بلا توحيد.</td></tr>
+<tr><td>G19</td><td class="crit">🔴</td><td>training.evaluate غير معرَّفة.</td></tr>
+<tr><td>G20</td><td class="crit">🔴</td><td>مسارات workshop catalog مفقودة.</td></tr>
+<tr><td>G21</td><td class="high">🟡</td><td>تباين schema course vs workshop.</td></tr>
+<tr><td>G22</td><td class="high">🟡</td><td>training_workshops.created_by بلا FK.</td></tr>
+<tr><td>G23</td><td class="high">🟡</td><td>ميثودات تقارير بلا مسارات — كود ميت.</td></tr></table>
+
+<div class="mh"><h1>الوحدة 5: محرك التقارير</h1></div>
+<h2>5.1 نظرة عامة</h2>
+<p><strong>الإنجاز:</strong> مكتمل لكن بـ <span class="crit">خلل خلط مقاييس</span>. <strong>الالتزام:</strong> متوسط.</p>
+<h2>5.2 مخطط البيانات</h2>
+<div class="er">report_snapshots (id, report_number[U], employee_id,
+    created_by_user_id, snapshot_json LONGTEXT, created_at)
+    ← TRIGGER: UPDATE/DELETE → SIGNAL SQLSTATE '45000'
+report_snapshot_counters (id, last_number) — atomic sequence
+grading_scales (scale_name, grade_label, numeric_value)</div>
+<h2>5.3 دورة الحياة</h2>
+<ul><li>getProfileReport (متوسطات)؛ AveragesEngine (AVG final_score)؛ ReportSnapshotService (تجميد + رقم تسلسلي ER-NNNNNNNN).</li></ul>
+<h2>5.4 المسارات</h2>
+<table><tr><th>المسار</th></tr><tr><td><code>GET /reports/create</code></td></tr><tr><td><code>GET /reports/archive</code></td></tr><tr><td><code>POST /reports/generate</code></td></tr><tr><td><code>GET /reports/print/:id</code></td></tr><tr><td><code>GET /reports/export/:id/:format</code></td></tr></table>
+<h2>5.5 التكامل</h2>
+<ul><li>↔ التقييمات: يقرأ final_score.</li><li>↔ السلالم: grading_scales.</li></ul>
+<h2>5.6 الأمان</h2>
+<ul><li><span class="crit">🔴</span> reports.generate يتيمة — لا controller يستخدمها.</li><li><span class="crit">🔴</span> printOnly بلا audit log.</li><li><span class="ok">✅</span> snapshots immutable (triggers).</li></ul>
+<h2>5.7 الأداء</h2>
+<ul><li><span class="crit">🔴</span> N+1: 100+ استعلام لـ 50 موظف.</li><li><span class="crit">🔴</span> لا فهرس created_at.</li><li><span class="crit">🔴</span> JSON_EXTRACT بحث — full scan.</li></ul>
+<h2>5.8 الفجوات</h2>
+<table><tr><th>#</th><th>الخطورة</th><th>الفجوة</th></tr>
+<tr><td>G25</td><td class="crit">🔴</td><td>خلط مقاييس: (85+5)/2=45 → "ضعيف".</td></tr>
+<tr><td>G26</td><td class="crit">🔴</td><td>الوصفي يُعرض في "/100".</td></tr>
+<tr><td>G27</td><td class="crit">🔴</td><td>reports.generate يتيمة.</td></tr>
+<tr><td>G28</td><td class="crit">🔴</td><td>printOnly بلا audit.</td></tr>
+<tr><td>G29</td><td class="crit">🔴</td><td>getAdminReports JOIN حيّ.</td></tr>
+<tr><td>G30</td><td class="high">🟡</td><td>بلا emp_code → يُفقد.</td></tr>
+<tr><td>G31</td><td class="high">🟡</td><td>summarizeByYear gap inconsistency.</td></tr>
+<tr><td>G32</td><td class="high">🟡</td><td>كود ميت: ReportPDF, pChart.</td></tr>
+<tr><td>G33</td><td class="high">🟡</td><td>snapshot غير قابل للإصلاح.</td></tr></table>
+
+<div class="mh"><h1>الوحدة 6: الأمان والصلاحيات</h1></div>
+<h2>6.1 نظرة عامة</h2>
+<p><strong>الإنجاز:</strong> ناضج لكن بـ <span class="crit">فجوات حرجة</span>. <strong>الالتزام:</strong> متوسط.</p>
+<h2>6.2 مخطط البيانات</h2>
+<div class="er">users (id, username[U], password_hash, status, employee_id, permissions_version)
+roles (id, name[U], is_system_role) — Admin/HR/Manager/Staff
+user_roles (user_id, role_id) — composite PK
+permissions (id, name[U]) — 42 seeded
+role_permissions (role_id, permission_id) — composite PK
+audit_logs (id, user_id, action, entity_type, details, ip_address)
+login_attempts / password_history / csrf_tokens</div>
+<h2>6.3 دورة الحياة</h2>
+<ul><li>password_verify + قفل (5/15د)؛ refreshSessionPermissions؛ permissions_version invalidation.</li></ul>
+<h2>6.4 المسارات</h2>
+<table><tr><th>المسار</th></tr><tr><td><code>GET /login</code></td></tr><tr><td><code>POST /login</code></td></tr><tr><td><code>GET /admin/users</code></td></tr><tr><td><code>GET /grading-scales</code></td></tr></table>
+<h2>6.5 التكامل</h2>
+<ul><li>كل controller Auth::enforce().</li><li>RoleDashboardService::resolvePersona.</li><li>Audit::log في العمليات الحساسة.</li></ul>
+<h2>6.6 الأمان</h2>
+<div class="alert ac"><strong>🔴 ثغرات حرجة:</strong><ol><li>كلمات مرور plaintext في audit_logs (UserController L388)</li><li>ApiController بلا مصادقة</li><li>مسارات backup تدميرية عبر GET (CSRF)</li></ol></div>
+<div class="alert ah"><strong>🟡 فجوات عالية:</strong><ol start=4><li>8 صلاحيات مفقودة → 403</li><li>Auth::user() قديم</li><li>logout() ناقص</li><li>قفل per-username فقط</li><li>api_keys table غير معرَّفة</li></ol></div>
+<div class="alert ai"><strong>✅ نقاط القوة:</strong> bcrypt؛ CSRF 128-bit + hash_equals؛ permissions_version؛ SameSite=Strict؛ لا SQLi؛ password policy كامل.</div>
+<h2>6.7 الأداء</h2>
+<ul><li><span class="high">🟡</span> لا فهارس audit_logs.</li><li><span class="ok">✅</span> permissions_version caching.</li></ul>
+<h2>6.8 الفجوات</h2>
+<table><tr><th>#</th><th>الخطورة</th><th>الفجوة</th></tr>
+<tr><td>G34</td><td class="crit">🔴</td><td>كلمات مرور plaintext في audit_logs.</td></tr>
+<tr><td>G35</td><td class="crit">🔴</td><td>ApiController بلا مصادقة.</td></tr>
+<tr><td>G36</td><td class="crit">🔴</td><td>مسارات backup GET تدميرية.</td></tr>
+<tr><td>G37</td><td class="crit">🔴</td><td>8 صلاحيات مفقودة.</td></tr>
+<tr><td>G38</td><td class="crit">🔴</td><td>api_keys غير معرَّفة.</td></tr>
+<tr><td>G39</td><td class="high">🟡</td><td>Auth::user() قديم.</td></tr>
+<tr><td>G40</td><td class="high">🟡</td><td>لا team-scoping.</td></tr>
+<tr><td>G41</td><td class="high">🟡</td><td>لا audit لـ branch/settings.</td></tr></table>
+
+<div class="mh"><h1>مصفوفة الترابط</h1></div>
+<table><tr><th>الوحدة ↓</th><th>الهيكل</th><th>القوالب</th><th>التقييمات</th><th>التدريب</th><th>التقارير</th><th>الأمان</th></tr>
+<tr><td><strong>الهيكل</strong></td><td>—</td><td>—</td><td>snapshots</td><td>—</td><td>lookup</td><td>Auth</td></tr>
+<tr><td><strong>القوالب</strong></td><td>positions</td><td>—</td><td>structure</td><td>target_type</td><td>—</td><td>templates</td></tr>
+<tr><td><strong>التقييمات</strong></td><td>snapshot</td><td>schema</td><td>—</td><td>context</td><td>score</td><td>create</td></tr>
+<tr><td><strong>التدريب</strong></td><td>branch</td><td>type</td><td>Sys B</td><td>—</td><td>—</td><td>training</td></tr>
+<tr><td><strong>التقارير</strong></td><td>search</td><td>—</td><td>avg</td><td>—</td><td>—</td><td>profile</td></tr></table>
+
+<div class="mh"><h1>قائمة الأولويات</h1></div>
+<h2>🔴 P0 — عاجل</h2>
+<table><tr><th>#</th><th>البند</th><th>الوحدة</th></tr>
+<tr><td>1</td><td>إزالة كلمات مرور plaintext من audit_logs</td><td>أمان</td></tr>
+<tr><td>2</td><td>مصادقة ApiController</td><td>أمان</td></tr>
+<tr><td>3</td><td>تحويل backup GET → POST</td><td>أمان</td></tr>
+<tr><td>4</td><td>الصلاحيات المفقودة في seed</td><td>أمان</td></tr>
+<tr><td>5</td><td>إنشاء course_participants</td><td>تدريب</td></tr>
+<tr><td>6</td><td>إصلاح خلط المقاييس</td><td>تقارير</td></tr></table>
+<h2>🟠 P1 — عالية</h2>
+<table><tr><th>#</th><th>البند</th></tr>
+<tr><td>7</td><td>getAdminReports يستخدم snapshots</td></tr>
+<tr><td>8</td><td>توحيد نظامَي التدريب</td></tr>
+<tr><td>9</td><td>ربط reports.generate</td></tr>
+<tr><td>10</td><td>audit لـ printOnly</td></tr>
+<tr><td>11</td><td>مسارات workshop catalog</td></tr>
+<tr><td>12</td><td>autocomplete بدل getAll()</td></tr>
+<tr><td>13</td><td>api_keys في installer</td></tr></table>
+<h2>🟡 P2 — متوسطة</h2>
+<table><tr><th>#</th><th>البند</th></tr>
+<tr><td>14</td><td>team-scoping في EvaluationController</td></tr>
+<tr><td>15</td><td>مسار نقل موظف</td></tr>
+<tr><td>16</td><td>فهارس audit_logs</td></tr>
+<tr><td>17</td><td>تباين schema course/workshop</td></tr>
+<tr><td>18</td><td>حذف الكود الميت</td></tr>
+<tr><td>19</td><td>summarizeByYear gap</td></tr>
+<tr><td>20</td><td>logout() كامل</td></tr></table>
+
+<div class="mh"><h1>إجابات الاستفسارات</h1></div>
+<p><strong>أ. نقل موظف؟</strong> Snapshots تحمي، لكن getAdminReports يتجاوزها.</p>
+<p><strong>5000 موظف؟</strong> getAll() بلا LIMIT → بطء.</p>
+<p><strong>ب. تعديل قالب؟</strong> version يُزاد، DELETE+re-INSERT، snapshots تحمي التاريخ.</p>
+<p><strong>ج. Transaction جماعي؟</strong> <span class="ok">✅</span> bulkSave rollback عند الفشل.</p>
+<p><strong>د. course_participants؟</strong> <span class="no">❌</span> لا يوجد — أكبر فجوة.</p>
+<p><strong>هـ. موظف بلا تقييمات؟</strong> يظهر + snapshot فارغ. بلا emp_code → يُفقد.</p>
+<p><strong>متوسط رقمي+وصفي؟</strong> <span class="no">❌</span> خطأ — لا تطبيع.</p>
+
+<hr>
+<div class="ft">CD-025 — Comprehensive Architectural &amp; Functional Audit · 2026-11-08 · كبير المطورين · سري للغاية</div>
+</div>
+</div>
+</body>
+</html>
