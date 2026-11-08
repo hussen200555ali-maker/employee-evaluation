@@ -171,7 +171,7 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                     <?php endif; ?>
 
                     <!-- L2: التدريب -->
-                    <?php if (Auth::userHasPermission('training.view')): ?>
+                    <?php if (Auth::userHasPermission('training.view') || Auth::userHasPermission('training.manage')): ?>
                     <li class="sidebar-group <?php echo $__isActive('/training') ? 'open' : ''; ?>">
                         <button type="button" class="sidebar-group-toggle" aria-expanded="false">
                             <span class="sidebar-group-label"><i class="fas fa-graduation-cap sidebar-ico"></i> التدريب</span>
@@ -179,10 +179,19 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                         </button>
                         <ul class="sidebar-subnav">
                             <li><a class="sidebar-sublink <?php echo $__isActive('/training/courses/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses/catalog"><i class="fas fa-book fa-fw me-2"></i> كتالوج الدورات التدريبية</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/courses') && !$__isActive('/training/courses/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses"><i class="fas fa-chalkboard-teacher fa-fw me-2"></i> إدارة الدورات</a></li>
+                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/courses') && !$__isActive('/training/courses/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses"><i class="fas fa-chalkboard-teacher fa-fw me-2"></i> 📚 إدارة الدورات</a></li>
                             <li><a class="sidebar-sublink <?php echo $__isActive('/training/workshops/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops/catalog"><i class="fas fa-list fa-fw me-2"></i> كتالوج الورش</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/workshops') && !$__isActive('/training/workshops/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops"><i class="fas fa-tools fa-fw me-2"></i> إدارة الورش</a></li>
+                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/workshops') && !$__isActive('/training/workshops/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops"><i class="fas fa-tools fa-fw me-2"></i> 🏆 إدارة الورش</a></li>
                         </ul>
+                    </li>
+                    <?php endif; ?>
+
+                    <!-- CD-033: روابط مباشرة للتقييم الجماعي -->
+                    <?php if (Auth::userHasPermission('evaluations.create')): ?>
+                    <li class="sidebar-group" style="<?php echo $__isActive('/evaluations/bulk-create') ? '' : ''; ?>">
+                        <a class="sidebar-link <?php echo $__isActive('/evaluations/bulk-create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/bulk-create" style="padding:.55rem 1rem;display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--sidebar-link,#5a6b65);">
+                            <i class="fas fa-layer-group fa-fw"></i> التقييم الجماعي
+                        </a>
                     </li>
                     <?php endif; ?>
 

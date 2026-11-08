@@ -67,10 +67,11 @@ $typeLabels = [
                 <div class="card-header fw-bold">سجل التقييمات المعتمدة والمكتملة</div>
                 <div class="table-responsive">
                     <table class="table table-striped align-middle mb-0">
-                        <thead><tr><th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة</th><th>التقدير</th></tr></thead>
+                        <!-- CD-033: جدول التقييمات مع نوع + اسم الدورة -->
+                        <thead><tr><th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة</th><th>التقدير</th><th>📚 الدورة</th></tr></thead>
                         <tbody>
                         <?php if ($report['records'] === []): ?>
-                            <tr><td colspan="5" class="text-center text-muted py-4">لا توجد تقييمات مكتملة لهذا الموظف.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-4">لا توجد تقييمات مكتملة لهذا الموظف.</td></tr>
                         <?php else: ?>
                             <?php foreach ($report['records'] as $record): ?>
                                 <tr>
@@ -79,6 +80,20 @@ $typeLabels = [
                                     <td><?= $valueOrDash($record->template_name) ?></td>
                                     <td><?= $record->grade_value === null ? '—' : number_format((float)$record->grade_value, 2) . ($report['grading_scale_max_value'] === null ? '' : ' / ' . number_format($report['grading_scale_max_value'], 2)) ?></td>
                                     <td><?= $valueOrDash($record->grade_label) ?></td>
+                                    <td>
+                                        <?php
+                                        // CD-033: عرض اسم الدورة إن وُجدت
+                                        $ctxType = $record->context_type ?? '';
+                                        $ctxId = $record->context_id ?? null;
+                                        if ($ctxType === 'course' && $ctxId):
+                                            echo '<span class="badge bg-warning text-dark"><i class="fas fa-book"></i> دورة #' . (int)$ctxId . '</span>';
+                                        elseif ($ctxType === 'workshop' && $ctxId):
+                                            echo '<span class="badge bg-info"><i class="fas fa-tools"></i> ورشة #' . (int)$ctxId . '</span>';
+                                        else:
+                                            echo '—';
+                                        endif;
+                                        ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

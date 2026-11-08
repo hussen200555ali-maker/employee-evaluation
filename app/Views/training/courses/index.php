@@ -46,6 +46,13 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
     </td>
     <td>
                           <div class="action-buttons">
+                              <!-- CD-033: أزرار ربط موظفين + تفاصيل -->
+                              <a href="<?php echo APP_URL; ?>/training/courses/enroll/<?php echo $course->id; ?>" class="btn-action" style="background:#c8943f;color:#0c2823;" title="🔗 ربط موظفين">
+                                  <i class="fas fa-user-plus"></i>
+                              </a>
+                              <a href="<?php echo APP_URL; ?>/training/courses/<?php echo $course->id; ?>" class="btn-action btn-view" title="📊 تفاصيل الدورة">
+                                  <i class="fas fa-chart-bar"></i>
+                              </a>
                               <a href="<?php echo APP_URL; ?>/training/courses/edit/<?php echo $course->id; ?>" class="btn-action btn-edit" title="تعديل الدورة">
                                   <i class="fas fa-pencil-alt"></i>
                               </a>
