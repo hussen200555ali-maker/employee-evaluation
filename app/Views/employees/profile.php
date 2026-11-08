@@ -1,5 +1,6 @@
 <?php
 require_once APP_ROOT . '/app/Views/layouts/header.php';
+// CD-028 UX active — profile with KPI cards + tabs
 
 $valueOrDash = static function ($value): string {
     return ($value === null || $value === '') ? '—' : htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');

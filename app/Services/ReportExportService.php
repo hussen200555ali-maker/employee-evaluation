@@ -356,6 +356,9 @@ final class ReportExportService
             $html .= '<div class="empty-state">لا توجد تقييمات مسجلة لهذا الموظف حتى الآن.</div>';
         }
 
+        // CD-028: إضافة بيانات المقيّم قبل التوقيعات
+        $html .= $this->buildEvaluatorInfoHtml($records);
+
         $html .= $this->buildSignaturesHtml();
         $html .= '<div class="confidential-mark">سرّي — للاستخدام الداخلي فقط | صفحة</div>';
 
@@ -445,6 +448,50 @@ final class ReportExportService
             . '</tr>';
 
         return $html . '</tbody></table></div>';
+    }
+
+    /**
+     * CD-028: بناء كتلة بيانات المقيّم للعرض في PDF/HTML.
+     * يأخذ أول تقييم منفصل (الأحدث) ويستخرج اسم/صفة المقيّم وتاريخ التقييم.
+     */
+    private function buildEvaluatorInfoHtml(array $records): string
+    {
+        $evaluatorName = '';
+        $evaluatorTitle = '';
+        $evaluationDate = '';
+
+        // ابحث في السجلات عن أول تقييم يحوي بيانات مقيّم
+        foreach ($records as $record) {
+            $name = $this->recordValue($record, 'evaluator_name', '');
+            $title = $this->recordValue($record, 'evaluator_title', '');
+            $date = $this->recordValue($record, 'evaluation_date', '');
+
+            if ($name || $title || $date) {
+                $evaluatorName = $name;
+                $evaluatorTitle = $title;
+                $evaluationDate = $date;
+                break;
+            }
+        }
+
+        if (!$evaluatorName && !$evaluatorTitle && !$evaluationDate) {
+            return '';
+        }
+
+        $html = '<div class="evaluator-info-block" style="margin-top:6mm;padding:3mm 4mm;border:0.8px solid #c8943f;border-radius:3mm;background:#fffbf3;">'
+            . '<div class="section-title" style="color:#c8943f;font-weight:bold;font-size:9pt;margin-bottom:2mm;">بيانات المقيّم</div>'
+            . '<table style="width:100%;font-size:8.5pt;">';
+        if ($evaluatorName) {
+            $html .= '<tr><td style="width:25%;color:#6c757d;">اسم المقيّم:</td><td style="font-weight:bold;">' . $this->esc($evaluatorName) . '</td></tr>';
+        }
+        if ($evaluatorTitle) {
+            $html .= '<tr><td style="color:#6c757d;">صفة المقيّم:</td><td>' . $this->esc($evaluatorTitle) . '</td></tr>';
+        }
+        if ($evaluationDate) {
+            $html .= '<tr><td style="color:#6c757d;">تاريخ التقييم:</td><td>' . $this->esc($evaluationDate) . '</td></tr>';
+        }
+        $html .= '</table></div>';
+        return $html;
     }
 
     private function buildSignaturesHtml(): string

@@ -245,11 +245,12 @@ body {
 @media (max-width: 991.98px) { .evaluation-layout { display: block; }.evaluation-sidebar { position: static; width: auto; margin-bottom: 1rem; }.navigation-card .list-group { display: flex; overflow-x: auto; }.navigation-card .list-group-item { white-space: nowrap; border-right: 0; border-bottom: 3px solid transparent; }.navigation-card .list-group-item.active { border-bottom-color: var(--brand); }.evaluation-action-bar { position: sticky; bottom: 0; } }
 
 /* CD-028: UX/UI Polish — Enterprise-grade */
-.cd028-evaluator-card { border: 2px solid var(--gold) !important; border-radius: 14px !important; overflow: hidden; transition: box-shadow .3s; }
-.cd028-evaluator-card:hover { box-shadow: 0 8px 28px rgba(200,148,63,.15); }
-.cd028-evaluator-card .card-header { background: linear-gradient(90deg, #fbf3e2, #f6e8cf) !important; border-bottom: 2px solid var(--gold); }
-.cd028-evaluator-card .form-label { font-size: .82rem; margin-bottom: .3rem; }
-.cd028-evaluator-card .form-control:focus { border-color: var(--gold); box-shadow: 0 0 0 .2rem rgba(200,148,63,.15); }
+/* CD-028.1: زيادة specificity لتجاوز sidebar.css */
+.card.cd028-evaluator-card { border: 2px solid #c8943f !important; border-radius: 14px !important; overflow: hidden; transition: box-shadow .3s; }
+.card.cd028-evaluator-card:hover { box-shadow: 0 8px 28px rgba(200,148,63,.15); }
+.card.cd028-evaluator-card .card-header { background: linear-gradient(90deg, #fbf3e2, #f6e8cf) !important; border-bottom: 2px solid #c8943f !important; }
+.card.cd028-evaluator-card .form-label { font-size: .82rem; margin-bottom: .3rem; }
+.card.cd028-evaluator-card .form-control:focus { border-color: #c8943f; box-shadow: 0 0 0 .2rem rgba(200,148,63,.15); }
 .cd028-progress-bar { position: sticky; top: 0; z-index: 1030; background: linear-gradient(90deg, var(--brand-deep), var(--brand)); padding: 8px 20px; display: flex; align-items: center; gap: 12px; color: #fff; font-size: 13px; }
 .cd028-progress-bar .step { display: flex; align-items: center; gap: 6px; opacity: .6; transition: opacity .3s; }
 .cd028-progress-bar .step.active { opacity: 1; font-weight: 700; }
@@ -258,7 +259,7 @@ body {
 .cd028-score-highlight { background: linear-gradient(135deg, var(--brand-deep), var(--brand)); border-radius: 16px; padding: 24px; text-align: center; color: #fff; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(12,40,35,.2); }
 .cd028-score-highlight .score-value { font-size: 3rem; font-weight: 800; color: var(--gold); }
 .cd028-score-highlight .score-label { font-size: 13px; opacity: .8; margin-top: 4px; }
-.cd028-course-card { border: 2px solid var(--gold) !important; border-radius: 14px !important; }
+.card.cd028-course-card { border: 2px solid #c8943f !important; border-radius: 14px !important; }
 .cd028-course-card .card-body { background: #fffbf3; }
 @media (max-width: 575.98px) {
   .cd028-evaluator-card .row > div { margin-bottom: 12px; }

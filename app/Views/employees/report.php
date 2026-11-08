@@ -1,4 +1,5 @@
 <?php
+// CD-028 UX active — WYSIWYG A4 report preview
 // CD-021 Final: WYSIWYG A4 report preview — no sidebar, no topbar
 $data = $snapshot->snapshot_data;
 $employee = $data['employee'];
