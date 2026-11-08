@@ -243,9 +243,31 @@ body {
 .live-scoreboard { overflow: hidden; }.scoreboard-header { background: linear-gradient(120deg, var(--brand-deep), var(--brand)); padding: .9rem 1.1rem; }.total-score-display { color: var(--brand); font-size: 2.65rem; padding: 1.15rem; background: #f6fbf8; }.criteria-scores-list li { padding: .65rem 1.1rem; border-bottom: 1px solid #edf3f0; }.criteria-scores-list li .score { color: var(--brand); }
 .evaluation-action-bar { background: rgba(255,255,255,.95); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(22,48,43,.08); }.evaluation-action-bar .btn { min-width: 9rem; }
 @media (max-width: 991.98px) { .evaluation-layout { display: block; }.evaluation-sidebar { position: static; width: auto; margin-bottom: 1rem; }.navigation-card .list-group { display: flex; overflow-x: auto; }.navigation-card .list-group-item { white-space: nowrap; border-right: 0; border-bottom: 3px solid transparent; }.navigation-card .list-group-item.active { border-bottom-color: var(--brand); }.evaluation-action-bar { position: sticky; bottom: 0; } }
+
+/* CD-028: UX/UI Polish — Enterprise-grade */
+.cd028-evaluator-card { border: 2px solid var(--gold) !important; border-radius: 14px !important; overflow: hidden; transition: box-shadow .3s; }
+.cd028-evaluator-card:hover { box-shadow: 0 8px 28px rgba(200,148,63,.15); }
+.cd028-evaluator-card .card-header { background: linear-gradient(90deg, #fbf3e2, #f6e8cf) !important; border-bottom: 2px solid var(--gold); }
+.cd028-evaluator-card .form-label { font-size: .82rem; margin-bottom: .3rem; }
+.cd028-evaluator-card .form-control:focus { border-color: var(--gold); box-shadow: 0 0 0 .2rem rgba(200,148,63,.15); }
+.cd028-progress-bar { position: sticky; top: 0; z-index: 1030; background: linear-gradient(90deg, var(--brand-deep), var(--brand)); padding: 8px 20px; display: flex; align-items: center; gap: 12px; color: #fff; font-size: 13px; }
+.cd028-progress-bar .step { display: flex; align-items: center; gap: 6px; opacity: .6; transition: opacity .3s; }
+.cd028-progress-bar .step.active { opacity: 1; font-weight: 700; }
+.cd028-progress-bar .step .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.4); }
+.cd028-progress-bar .step.active .dot { background: var(--gold); box-shadow: 0 0 8px rgba(200,148,63,.6); }
+.cd028-score-highlight { background: linear-gradient(135deg, var(--brand-deep), var(--brand)); border-radius: 16px; padding: 24px; text-align: center; color: #fff; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(12,40,35,.2); }
+.cd028-score-highlight .score-value { font-size: 3rem; font-weight: 800; color: var(--gold); }
+.cd028-score-highlight .score-label { font-size: 13px; opacity: .8; margin-top: 4px; }
+.cd028-course-card { border: 2px solid var(--gold) !important; border-radius: 14px !important; }
+.cd028-course-card .card-body { background: #fffbf3; }
+@media (max-width: 575.98px) {
+  .cd028-evaluator-card .row > div { margin-bottom: 12px; }
+  .cd028-score-highlight .score-value { font-size: 2.2rem; }
+  .cd028-progress-bar { font-size: 11px; overflow-x: auto; }
+}
 </style>
 
-<!-- CD-026.2 UI active — حقول المقيّم + اختيار الدورة -->
+<!-- CD-028 UX active — Enterprise-grade polish -->
 <form action="<?php echo APP_URL; ?>/evaluations/submit" method="POST" id="evaluation-form">
     <?= csrf_field() ?>
     <input type="hidden" name="evaluation_id" value="<?php echo $evaluation->id; ?>">
@@ -256,7 +278,7 @@ body {
     if ($targetType === 'employee_in_course'):
     ?>
     <div class="container mt-3">
-        <div class="card border-warning">
+        <div class="card border-warning cd028-course-card">
             <div class="card-body">
                 <label class="form-label fw-bold"><i class="fas fa-book"></i> الدورة التدريبية</label>
                 <select class="form-select" name="context_course_id" required>
@@ -274,7 +296,7 @@ body {
     </div>
     <?php elseif ($targetType === 'employee_in_workshop'): ?>
     <div class="container mt-3">
-        <div class="card border-warning">
+        <div class="card border-warning cd028-course-card">
             <div class="card-body">
                 <label class="form-label fw-bold"><i class="fas fa-users"></i> الورشة</label>
                 <select class="form-select" name="context_workshop_id" required>
@@ -538,9 +560,9 @@ body {
         </div>
     </div>
 
-    <!-- CD-026.2: حقول المقيّم الثابتة -->
+    <!-- CD-026.2/CD-028: حقول المقيّم الثابتة — تصميم Enterprise -->
     <div class="container mt-4 mb-4">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm cd028-evaluator-card">
             <div class="card-header bg-light">
                 <strong><i class="fas fa-user-tie"></i> بيانات المقيّم</strong>
             </div>

@@ -5,7 +5,7 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
 ?>
-<!-- CD-026.2 UI active — حقول المقيّم + الرسم الديناميكي v3401a68 -->
+<!-- CD-028 UX active — Enterprise polish + responsive + transitions -->
 <style>
 .bulk-setup { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:16px; align-items:end; background:#fff; border-radius:12px; padding:20px 24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px; }
 .bulk-setup label { display:block; font-size:11px; color:#6c757d; margin-bottom:4px; font-weight:600; }
@@ -57,6 +57,29 @@ header('Expires: 0');
 .inline-grid input, .inline-grid select { padding:8px 12px; border:1px solid #e8e8e8; border-radius:6px; font-size:12px; font-family:'Cairo'; }
 .btn-inline-add { background:#c8943f; color:#0c2823; border:none; padding:8px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; }
 .btn-inline-cancel { background:transparent; color:#6c757d; border:none; padding:8px 10px; font-size:12px; cursor:pointer; }
+
+/* CD-028: UX/UI Polish — Responsive + Transitions */
+.emp-card { transition: transform .2s ease, box-shadow .3s ease, background .3s ease; }
+.emp-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(12,40,35,.12); }
+.emp-card.saved { background: linear-gradient(135deg, #e8f5f0 0%, #d4ebe4 100%) !important; border-color: #0d5e52 !important; transition: background .4s ease; }
+.emp-card.saved .card-header { background: linear-gradient(90deg, #d4ebe4, #c4dfd7) !important; }
+.saved-badge { animation: cd028-pop .3s ease; }
+@keyframes cd028-pop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+.cd024-input:focus, .cd024-select:focus { border-color: #c8943f !important; box-shadow: 0 0 0 .15rem rgba(200,148,63,.12) !important; outline: none; }
+.bulk-setup { transition: box-shadow .3s; }
+.bulk-setup:focus-within { box-shadow: 0 4px 16px rgba(200,148,63,.1); }
+.global-actions { backdrop-filter: blur(8px); }
+.btn-save-all { transition: transform .15s, box-shadow .2s; }
+.btn-save-all:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(12,40,35,.4); }
+.btn-save-all:active { transform: translateY(0); }
+@media (max-width: 768px) {
+  .bulk-setup { grid-template-columns: 1fr !important; gap: 12px; }
+  .inline-grid { grid-template-columns: 1fr !important; }
+  .emp-card .card-header { flex-direction: column; align-items: flex-start; }
+  .global-actions { position: fixed; bottom: 0; left: 0; right: 0; padding: 10px 16px; }
+  .global-actions .btn-save-all { width: 100%; padding: 12px; }
+  .global-actions .summary { font-size: 11px; }
+}
 .global-actions { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:2px solid #c8943f; padding:14px 24px; display:flex; justify-content:center; align-items:center; gap:16px; box-shadow:0 -4px 12px rgba(0,0,0,0.08); z-index:100; }
 .global-actions .summary { font-size:12px; color:#6c757d; }
 .global-actions .summary strong { color:#0c2823; }
