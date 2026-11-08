@@ -9,13 +9,7 @@
 :root{--brand:#0c2823;--brand2:#0d5e52;--gold:#c8943f;--gold-bg:#faefd9;--ink:#1a2e2a;--line:#e0e8e4;--bg:#f5f8f6;--red:#c85b54;--blue:#336da7}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;font-size:13px}
-.tabs{display:flex;flex-wrap:wrap;gap:2px;background:var(--brand);padding:8px;position:sticky;top:0;z-index:100}
-.tabs label{cursor:pointer;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);transition:all .2s;white-space:nowrap}
-.tabs label:hover{color:#fff;background:rgba(255,255,255,.08)}
-input[type=radio]{display:none}
-.p{display:none;padding:24px;max-width:880px;margin:0 auto;background:#fff;min-height:70vh;border-radius:0 0 10px 10px;box-shadow:0 4px 16px rgba(0,0,0,.05)}
-#s1:checked~.tabs label[for=s1],#s2:checked~.tabs label[for=s2],#s3:checked~.tabs label[for=s3],#s4:checked~.tabs label[for=s4],#s5:checked~.tabs label[for=s5],#s6:checked~.tabs label[for=s6],#s7:checked~.tabs label[for=s7],#s8:checked~.tabs label[for=s8],#s9:checked~.tabs label[for=s9],#s10:checked~.tabs label[for=s10]{background:#fff;color:var(--brand)}
-#s1:checked~.panels .p1,#s2:checked~.panels .p2,#s3:checked~.panels .p3,#s4:checked~.panels .p4,#s5:checked~.panels .p5,#s6:checked~.panels .p6,#s7:checked~.panels .p7,#s8:checked~.panels .p8,#s9:checked~.panels .p9,#s10:checked~.panels .p10{display:block}
+.p{padding:24px;max-width:880px;margin:0 auto 30px;background:#fff;min-height:auto;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.05)}
 .tag{display:inline-block;background:var(--gold-bg);color:var(--gold);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;margin-bottom:12px}
 .hdr{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:16px;position:relative}
 .hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold)}
@@ -83,28 +77,6 @@ tr:nth-child(even) td{background:#f5f8f7}
 </style>
 </head>
 <body>
-<input type=radio name=t id=s1 checked>
-<input type=radio name=t id=s2>
-<input type=radio name=t id=s3>
-<input type=radio name=t id=s4>
-<input type=radio name=t id=s5>
-<input type=radio name=t id=s6>
-<input type=radio name=t id=s7>
-<input type=radio name=t id=s8>
-<input type=radio name=t id=s9>
-<input type=radio name=t id=s10>
-<div class=tabs>
-<label for=s1>1️⃣ إنشاء دورة</label>
-<label for=s2>2️⃣ ربط موظفين</label>
-<label for=s3>3️⃣ تفاصيل الدورة</label>
-<label for=s4>4️⃣ تقييم وصفي</label>
-<label for=s5>5️⃣ تقييم رقمي</label>
-<label for=s6>6️⃣ تقييم ورشة</label>
-<label for=s7>7️⃣ تقييم سنوي</label>
-<label for=s8>8️⃣ جماعي عام</label>
-<label for=s9>9️⃣ جماعي دورة</label>
-<label for=s10>🔟 ملف الموظف</label>
-</div>
 <div class=panels>
 
 <!-- ===== Screen 1: Create Course ===== -->
@@ -365,12 +337,7 @@ tr:nth-child(even) td{background:#f5f8f7}
 </div>
 
 <!-- ===== Screen 10b: Employee Profile ===== -->
-<div class=p p10 style="display:none;">
-<!-- This is a bonus screen showing the employee profile with all evaluation types -->
-</div>
-
-<!-- ===== Bonus: Employee Profile ===== -->
-<div class=p p10>
+<div class=p>
 <div class=tag>ملف الموظف — النتيجة النهائية</div>
 <div class=hdr><h2>👤 ملف الموظف: نورة القحطاني</h2><div class=sub>EMP-002 · تقنية المعلومات · الرياض · 3 تقييمات</div></div>
 <div class="grid g3" style="margin-bottom:14px;">
