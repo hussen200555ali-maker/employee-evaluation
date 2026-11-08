@@ -99,12 +99,18 @@ header('Expires: 0');
             <select id="templateSelect">
                 <option value="0">— اختر القالب —</option>
                 <?php foreach ($templates ?? [] as $tpl): ?>
-                    <option value="<?= (int)$tpl->id ?>" data-mode="<?= htmlspecialchars($tpl->evaluation_mode ?? 'numeric') ?>">
+                    <option value="<?= (int)$tpl->id ?>" data-mode="<?= htmlspecialchars($tpl->evaluation_mode ?? 'numeric') ?>" data-target="<?= htmlspecialchars($tpl->target_type ?? 'employee') ?>">
                         <?= htmlspecialchars($tpl->template_name) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
             <div class="lock-badge">🔒 يُقفل بعد أول تقييم</div>
+        </div>
+        <!-- CD-029: حقل اختيار الدورة/الورشة — يظهر ديناميكياً -->
+        <div id="contextSelectWrap" style="display:none;">
+            <label id="contextLabel">الدورة/الورشة</label>
+            <select id="contextSelect"><option value="0">— اختر —</option></select>
+            <span id="contextBadge" style="display:none;font-size:10px;background:#c8943f;color:#0c2823;padding:2px 8px;border-radius:10px;font-weight:700;"></span>
         </div>
         <div><label>التاريخ الموحد</label><input type="date" id="evalDate" value="<?= date('Y-m-d') ?>"></div>
         <div><label>اسم المقيّم</label><input type="text" id="evaluatorName" value="<?= htmlspecialchars($evaluatorName ?? '') ?>"></div>
@@ -159,16 +165,61 @@ var templateSchema = null;
 var templateLocked = false;
 var employeeCards = [];
 
-// Template selection → load schema
+// Template selection → load schema + context field
 document.getElementById('templateSelect').addEventListener('change', function() {
     if (templateLocked) { alert('القالب مُقفل. لا يمكن تغييره بعد إدخال تقييمات.'); this.value = templateSchema ? templateSchema.id : 0; return; }
     var id = parseInt(this.value);
-    if (id === 0) { templateSchema = null; return; }
+    if (id === 0) { templateSchema = null; document.getElementById('contextSelectWrap').style.display='none'; return; }
+
+    // CD-029: إظهار/إخفاء حقل الدورة حسب target_type
+    var selectedOpt = this.options[this.selectedIndex];
+    var target = selectedOpt.getAttribute('data-target') || 'employee';
+    var ctxWrap = document.getElementById('contextSelectWrap');
+    var ctxLabel = document.getElementById('contextLabel');
+    var ctxSelect = document.getElementById('contextSelect');
+    var ctxBadge = document.getElementById('contextBadge');
+
+    if (target === 'employee_in_course') {
+        ctxLabel.textContent = '📚 الدورة التدريبية';
+        ctxWrap.style.display = '';
+        // املأ القائمة بالدورات
+        ctxSelect.innerHTML = '<option value="0">— اختر الدورة —</option>';
+        fetch(appUrl + '/api/training/courses/list').then(r => r.json()).then(function(courses) {
+            var list = Array.isArray(courses) ? courses : (courses.courses || []);
+            list.forEach(function(c) {
+                var opt = document.createElement('option');
+                opt.value = c.id; opt.textContent = c.title || c.description || ('دورة #' + c.id);
+                ctxSelect.appendChild(opt);
+            });
+        }).catch(function() { ctxSelect.innerHTML = '<option value="0">— لا توجد دورات —</option>'; });
+        ctxBadge.style.display = 'none';
+    } else if (target === 'employee_in_workshop') {
+        ctxLabel.textContent = '👥 الورشة';
+        ctxWrap.style.display = '';
+        ctxSelect.innerHTML = '<option value="0">— اختر الورشة —</option>';
+        // TODO: fetch workshops list (similar pattern)
+        ctxBadge.style.display = 'none';
+    } else {
+        ctxWrap.style.display = 'none';
+    }
+
     fetch(appUrl + '/api/templates/' + id + '/schema').then(r => r.json()).then(data => {
         templateSchema = data;
         // Re-render existing cards with new schema
         employeeCards.forEach(function(emp) { renderCardBody(emp); });
     });
+});
+
+// CD-029: شارة تأكيد الدورة المختارة
+document.getElementById('contextSelect').addEventListener('change', function() {
+    var badge = document.getElementById('contextBadge');
+    if (this.value > 0) {
+        var name = this.options[this.selectedIndex].text;
+        badge.textContent = '✓ ' + name;
+        badge.style.display = '';
+    } else {
+        badge.style.display = 'none';
+    }
 });
 
 // Search autocomplete
@@ -341,6 +392,12 @@ function saveSingle(empId) {
     formData.append('_token', csrfToken);
     formData.append('employee_id', empId);
     formData.append('template_id', templateSchema.id);
+    // CD-029: أضف context_id إن وُجد (دورة/ورشة)
+    var ctxSelect = document.getElementById('contextSelect');
+    if (ctxSelect && ctxSelect.value > 0) {
+        formData.append('context_id', ctxSelect.value);
+        formData.append('context_type', ctxSelect.closest('#contextSelectWrap') ? 'course' : 'course');
+    }
     formData.append('evaluation_date', document.getElementById('evalDate').value);
     formData.append('evaluator_name', document.getElementById('evaluatorName').value);
     formData.append('evaluator_title', document.getElementById('evaluatorTitle').value);
@@ -432,12 +489,19 @@ function saveAll() {
 
     if (evaluations.length === 0) { alert('لا توجد بيانات صالحة للحفظ'); return; }
 
+    // CD-029: أضف context_id للحمولة إن وُجد
+    var ctxSel = document.getElementById('contextSelect');
+    var ctxId = (ctxSel && ctxSel.value > 0) ? parseInt(ctxSel.value) : null;
+    var ctxType = ctxId ? 'course' : null; // TODO: detect workshop
+
     var payload = JSON.stringify({
         _token: csrfToken,
         template_id: templateSchema.id,
         evaluation_date: document.getElementById('evalDate').value,
         evaluator_name: document.getElementById('evaluatorName').value,
         evaluator_title: document.getElementById('evaluatorTitle').value,
+        context_id: ctxId,
+        context_type: ctxType,
         evaluations: evaluations
     });
 

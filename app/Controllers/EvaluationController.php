@@ -347,6 +347,32 @@ class EvaluationController extends Controller {
             return;
         }
 
+        // CD-029: ربط التقييم بالدورة/الورشة — إلزامي لـ employee_in_course/workshop
+        $targetType = $template['target_type'] ?? 'employee';
+        $contextType = null;
+        $contextId = null;
+        if ($targetType === 'employee_in_course') {
+            $contextId = (int)($_POST['context_course_id'] ?? 0);
+            if ($contextId < 1) {
+                Flash::set('يجب اختيار الدورة التدريبية قبل الحفظ.', 'error');
+                $this->redirect("/evaluations/{$evaluationId}/fill");
+                return;
+            }
+            $contextType = 'course';
+        } elseif ($targetType === 'employee_in_workshop') {
+            $contextId = (int)($_POST['context_workshop_id'] ?? 0);
+            if ($contextId < 1) {
+                Flash::set('يجب اختيار الورشة قبل الحفظ.', 'error');
+                $this->redirect("/evaluations/{$evaluationId}/fill");
+                return;
+            }
+            $contextType = 'workshop';
+        }
+        // حفظ context في التقييم إن وُجد
+        if ($contextType && $contextId) {
+            $this->saveEvaluationContext($evaluationId, $contextType, $contextId);
+        }
+
         $manualGrade = null;
         $mode = $template['evaluation_mode'] ?? 'numeric';
         if (in_array($mode, ['descriptive', 'mixed'], true)) {
@@ -409,6 +435,14 @@ class EvaluationController extends Controller {
                 return;
             }
             Audit::log('EVALUATION_SUBMITTED', $evaluationId, 'evaluations');
+
+            // CD-029: تحديث course_participants عند إكمال تقييم دورة
+            if ($contextType === 'course' && $contextId) {
+                $this->syncCourseParticipant($contextId, (int)$evaluation->evaluated_employee_id);
+            } elseif ($contextType === 'workshop' && $contextId) {
+                $this->syncWorkshopParticipant($contextId, (int)$evaluation->evaluated_employee_id);
+            }
+
             if ($isUnit) Flash::set('تم حفظ تقييم الوحدة وإرساله للمراجعة.', 'success');
             else Flash::set('تم حفظ وإرسال التقييم بنجاح!', 'success');
             $this->redirect('/employees');
@@ -645,6 +679,61 @@ class EvaluationController extends Controller {
             }
         }
         return null;
+    }
+
+    /**
+     * CD-029: حفظ context_type + context_id في جدول evaluations.
+     */
+    private function saveEvaluationContext(int $evaluationId, string $contextType, int $contextId): void {
+        $db = Database::getInstance();
+        $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
+        $db->bind(':ctype', $contextType);
+        $db->bind(':cid', $contextId);
+        $db->bind(':eid', $evaluationId);
+        $db->execute();
+    }
+
+    /**
+     * CD-029: تحديث/إدراج سجل مشاركة الموظف في دورة → status='completed'.
+     */
+    private function syncCourseParticipant(int $courseId, int $employeeId): void {
+        $db = Database::getInstance();
+        // تحقق من وجود السجل
+        $db->query('SELECT id FROM course_participants WHERE course_id = :cid AND employee_id = :eid LIMIT 1');
+        $db->bind(':cid', $courseId);
+        $db->bind(':eid', $employeeId);
+        $existing = $db->fetch();
+        if ($existing) {
+            $db->query('UPDATE course_participants SET status = "completed", completed_at = NOW() WHERE id = :id');
+            $db->bind(':id', (int)$existing->id);
+            $db->execute();
+        } else {
+            $db->query('INSERT INTO course_participants (course_id, employee_id, status, enrolled_at, completed_at) VALUES (:cid, :eid, "completed", NOW(), NOW())');
+            $db->bind(':cid', $courseId);
+            $db->bind(':eid', $employeeId);
+            $db->execute();
+        }
+    }
+
+    /**
+     * CD-029: تحديث/إدراج سجل مشاركة الموظف في ورشة → status='completed'.
+     */
+    private function syncWorkshopParticipant(int $workshopId, int $employeeId): void {
+        $db = Database::getInstance();
+        $db->query('SELECT id FROM workshop_participants WHERE workshop_id = :wid AND employee_id = :eid LIMIT 1');
+        $db->bind(':wid', $workshopId);
+        $db->bind(':eid', $employeeId);
+        $existing = $db->fetch();
+        if ($existing) {
+            $db->query('UPDATE workshop_participants SET status = "completed", completed_at = NOW() WHERE id = :id');
+            $db->bind(':id', (int)$existing->id);
+            $db->execute();
+        } else {
+            $db->query('INSERT INTO workshop_participants (workshop_id, employee_id, status, enrolled_at, completed_at) VALUES (:wid, :eid, "completed", NOW(), NOW())');
+            $db->bind(':wid', $workshopId);
+            $db->bind(':eid', $employeeId);
+            $db->execute();
+        }
     }
 
     /** Only the assigned evaluator may change a draft; administrators retain their established report access. */

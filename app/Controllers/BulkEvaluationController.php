@@ -276,6 +276,25 @@ final class BulkEvaluationController extends Controller
                 try {
                     $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
                     $this->saveResults($evaluationId, $results, $templateId);
+
+                    // CD-029: حفظ context_id إن وُجد (دورة/ورشة)
+                    $bulkContextId = (int)($data['context_id'] ?? 0);
+                    $bulkContextType = (string)($data['context_type'] ?? '');
+                    if ($bulkContextId > 0 && $bulkContextType) {
+                        $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
+                        $db->bind(':ctype', $bulkContextType);
+                        $db->bind(':cid', $bulkContextId);
+                        $db->bind(':eid', $evaluationId);
+                        $db->execute();
+
+                        // تحديث course_participants
+                        if ($bulkContextType === 'course') {
+                            $this->syncParticipant('course_participants', 'course_id', $bulkContextId, $employeeId, $db);
+                        } elseif ($bulkContextType === 'workshop') {
+                            $this->syncParticipant('workshop_participants', 'workshop_id', $bulkContextId, $employeeId, $db);
+                        }
+                    }
+
                     $saved++;
                 } catch (\Throwable $e) {
                     $errors[] = "موظف ID {$employeeId}: " . $e->getMessage();
@@ -464,6 +483,26 @@ final class BulkEvaluationController extends Controller
                 }
             }
             $evalModel->updateScoreGradeAndStatus($evaluationId, $gradeValue > 0 ? $gradeValue : null, $gradeLabel, $gradeValue, 'completed');
+        }
+    }
+
+    /**
+     * CD-029: تحديث/إدراج سجل مشاركة في جدول participants.
+     */
+    private function syncParticipant(string $table, string $fkCol, int $fkId, int $employeeId, $db): void {
+        $db->query("SELECT id FROM {$table} WHERE {$fkCol} = :fk AND employee_id = :eid LIMIT 1");
+        $db->bind(':fk', $fkId);
+        $db->bind(':eid', $employeeId);
+        $existing = $db->fetch();
+        if ($existing) {
+            $db->query("UPDATE {$table} SET status = 'completed', completed_at = NOW() WHERE id = :id");
+            $db->bind(':id', (int)$existing->id);
+            $db->execute();
+        } else {
+            $db->query("INSERT INTO {$table} ({$fkCol}, employee_id, status, enrolled_at, completed_at) VALUES (:fk, :eid, 'completed', NOW(), NOW())");
+            $db->bind(':fk', $fkId);
+            $db->bind(':eid', $employeeId);
+            $db->execute();
         }
     }
 
