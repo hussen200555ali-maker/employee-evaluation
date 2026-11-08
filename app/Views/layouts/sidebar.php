@@ -170,19 +170,17 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                     </li>
                     <?php endif; ?>
 
-                    <!-- L2: التدريب -->
+                    <!-- CD-033.1: روابط التدريب المباشرة (غير قابلة للطي) -->
                     <?php if (Auth::userHasPermission('training.view') || Auth::userHasPermission('training.manage')): ?>
-                    <li class="sidebar-group <?php echo $__isActive('/training') ? 'open' : ''; ?>">
-                        <button type="button" class="sidebar-group-toggle" aria-expanded="false">
-                            <span class="sidebar-group-label"><i class="fas fa-graduation-cap sidebar-ico"></i> التدريب</span>
-                            <i class="fas fa-chevron-down sidebar-caret"></i>
-                        </button>
-                        <ul class="sidebar-subnav">
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/courses/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses/catalog"><i class="fas fa-book fa-fw me-2"></i> كتالوج الدورات التدريبية</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/courses') && !$__isActive('/training/courses/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses"><i class="fas fa-chalkboard-teacher fa-fw me-2"></i> 📚 إدارة الدورات</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/workshops/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops/catalog"><i class="fas fa-list fa-fw me-2"></i> كتالوج الورش</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/training/workshops') && !$__isActive('/training/workshops/catalog') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops"><i class="fas fa-tools fa-fw me-2"></i> 🏆 إدارة الورش</a></li>
-                        </ul>
+                    <li>
+                        <a class="sidebar-link <?php echo $__isActive('/training/courses') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses">
+                            <i class="fas fa-chalkboard-teacher fa-fw"></i> 📚 إدارة الدورات
+                        </a>
+                    </li>
+                    <li>
+                        <a class="sidebar-link <?php echo $__isActive('/training/workshops') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops">
+                            <i class="fas fa-tools fa-fw"></i> 🏆 إدارة الورش
+                        </a>
                     </li>
                     <?php endif; ?>
 

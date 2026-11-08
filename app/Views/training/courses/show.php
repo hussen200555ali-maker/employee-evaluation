@@ -4,8 +4,9 @@ $course = $course ?? null;
 $participants = $participants ?? [];
 $stats = $stats ?? ['total' => 0, 'completed' => 0, 'pending' => 0];
 ?>
-<!-- CD-032: تفاصيل الدورة + KPIs -->
+<!-- CD-033.1: تفاصيل الدورة — بدون أزرار ربط (الربط يتم أثناء التقييم) -->
 <div class="container mt-4">
+    <!-- بطاقة معلومات الدورة -->
     <div class="card shadow-sm mb-4" style="border:2px solid #c8943f;border-radius:12px;">
         <div class="card-header" style="background:linear-gradient(90deg,#fbf3e2,#f6e8cf);border-bottom:2px solid #c8943f;">
             <strong style="color:#c8943f;"><i class="fas fa-book"></i> معلومات الدورة</strong>
@@ -20,46 +21,61 @@ $stats = $stats ?? ['total' => 0, 'completed' => 0, 'pending' => 0];
         </div>
     </div>
 
+    <!-- بطاقات الإحصائيات -->
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="card text-center text-white" style="background:linear-gradient(135deg,#0c2823,#0d5e52);">
-                <div class="card-body"><div style="font-size:28px;font-weight:800;color:#c8943f;"><?= (int)$stats['total'] ?></div><small>إجمالي المسجلين</small></div>
+                <div class="card-body"><div style="font-size:28px;font-weight:800;color:#c8943f;"><?= (int)$stats['total'] ?></div><small>إجمالي الموظفين المُقيَّمين</small></div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card text-center" style="background:#d4edda;border:1px solid #c3e6cb;">
-                <div class="card-body"><div style="font-size:28px;font-weight:800;color:#155724;"><?= (int)$stats['completed'] ?></div><small style="color:#155724;">تم التقييم</small></div>
+                <div class="card-body"><div style="font-size:28px;font-weight:800;color:#155724;"><?= (int)$stats['completed'] ?></div><small style="color:#155724;">تقييمات مكتملة</small></div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-center" style="background:#fff3cd;border:1px solid #ffeeba;">
-                <div class="card-body"><div style="font-size:28px;font-weight:800;color:#856404;"><?= (int)$stats['pending'] ?></div><small style="color:#856404;">بانتظار التقييم</small></div>
+            <div class="card text-center" style="background:var(--gold-bg,#faefd9);border:1px solid #c8943f;">
+                <div class="card-body"><div style="font-size:28px;font-weight:800;color:#c8943f;">
+                    <?php
+                    // متوسط الدرجات
+                    $scores = [];
+                    foreach ($participants as $p) {
+                        if ($p->final_score !== null) { $scores[] = (float)$p->final_score; }
+                    }
+                    echo count($scores) > 0 ? number_format(array_sum($scores) / count($scores), 1) : '—';
+                    ?>
+                </div><small style="color:#c8943f;">متوسط الدرجات</small></div>
             </div>
         </div>
     </div>
 
+    <!-- جدول الموظفين المُقيَّمين فقط -->
+    <?php if (empty($participants)): ?>
+        <div class="alert alert-info text-center py-4">
+            <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+            <strong>لم يتم تقييم أي موظف في هذه الدورة حتى الآن.</strong><br>
+            <small class="text-muted">يتم ربط الموظفين بالدورة تلقائياً عند إنشاء تقييم لهم في هذه الدورة.</small>
+        </div>
+    <?php else: ?>
     <table class="table table-hover">
-        <thead><tr><th>الموظف</th><th>الرقم</th><th>القسم</th><th>حالة التقييم</th><th>الدرجة</th><th></th></tr></thead>
+        <thead><tr><th>الموظف</th><th>الرقم</th><th>القسم</th><th>الدرجة</th><th>التقدير</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($participants as $p): ?>
             <tr>
                 <td><?= htmlspecialchars($p->full_name) ?></td>
                 <td><?= htmlspecialchars($p->emp_code) ?></td>
                 <td><?= htmlspecialchars($p->dept_name ?? '—') ?></td>
-                <td><?php if ($p->status === 'completed'): ?><span class="badge bg-success">مكتمل</span><?php else: ?><span class="badge bg-warning text-dark">بانتظار</span><?php endif; ?></td>
                 <td><?= $p->final_score !== null ? '<strong style="color:#0c2823;">' . number_format((float)$p->final_score, 2) . '</strong>' : '—' ?></td>
-                <td><?php if ($p->status !== 'completed'): ?><a href="<?= APP_URL ?>/evaluations/bulk-create" class="btn btn-sm btn-outline-primary">تقييم</a><?php else: ?><a href="<?= APP_URL ?>/evaluations/<?= (int)$p->eval_id ?>" class="btn btn-sm btn-outline-secondary">عرض</a><?php endif; ?></td>
+                <td><?= htmlspecialchars($p->grade_label ?? '—') ?></td>
+                <td>
+                    <?php if ($p->eval_id): ?>
+                        <a href="<?= APP_URL ?>/evaluations/<?= (int)$p->eval_id ?>" class="btn btn-sm btn-outline-secondary">عرض</a>
+                    <?php endif; ?>
+                </td>
             </tr>
         <?php endforeach; ?>
         </tbody>
     </table>
-
-    <?php if ($stats['pending'] > 0): ?>
-    <div class="text-center mt-3">
-        <div style="background:linear-gradient(90deg,#0c2823,#0d5e52);border-radius:10px;padding:14px;">
-            <a href="<?= APP_URL ?>/evaluations/bulk-create" style="color:#c8943f;font-weight:700;font-size:14px;text-decoration:none;">📊 تقييم جميع الموظفين المتبقين في هذه الدورة ←</a>
-        </div>
-    </div>
     <?php endif; ?>
 </div>
 <?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; ?>
