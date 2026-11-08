@@ -169,6 +169,14 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
             <?php endif; -->
             <!-- CD-034: END ARCHIVED -->
 
+            <?php if (Auth::userHasPermission('training.view') || Auth::userHasPermission('training.manage')): ?>
+            <li class="sidebar-category">
+                <span class="sidebar-category-title">التدريب (CD-036)</span>
+                <a class="sidebar-link <?php echo $__isActive('/training/programs') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/programs"><i class="fas fa-list fa-fw"></i> 📋 سجل البرامج</a>
+                <a class="sidebar-link <?php echo $__isActive('/training/catalogs') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/catalogs"><i class="fas fa-folder-open fa-fw"></i> 📚 كتالوج التصنيفات</a>
+            </li>
+            <?php endif; ?>
+
             <?php if (Auth::userHasPermission('employees.profile')): ?>
             <li class="sidebar-category <?php echo ($__isActive('/reports/create') || $__isActive('/reports/archive')) ? 'open' : ''; ?>">
                 <button type="button" class="sidebar-category-toggle" aria-expanded="false">

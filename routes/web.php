@@ -348,6 +348,33 @@ $router->post('settings/rating/save', 'App\Controllers\SettingsController@saveRa
 
 /*
 |==========================================================================
+| 11. وحدة التدريب الموحدة (CD-036) — Unified Training Module
+|     Catalog + Programs registry + CRUD + details (no assign/link routes).
+|==========================================================================
+*/
+// --- كتالوج التصنيفات (Screen 1) ---
+$router->get('training/catalogs', 'App\Controllers\TrainingProgramController@catalogIndex');
+$router->post('training/catalogs/store', 'App\Controllers\TrainingProgramController@catalogStore');
+$router->post('training/catalogs/:id/update', 'App\Controllers\TrainingProgramController@catalogUpdate');
+$router->post('training/catalogs/:id/delete', 'App\Controllers\TrainingProgramController@catalogDelete');
+
+// --- سجل البرامج + الإنشاء (Screen 2/3) ---
+// NOTE: 'create' (static) and 'create/:type' MUST be defined before 'training/programs/:id'
+$router->get('training/programs', 'App\Controllers\TrainingProgramController@index');
+$router->get('training/programs/create', 'App\Controllers\TrainingProgramController@create');
+$router->get('training/programs/create/:type', 'App\Controllers\TrainingProgramController@create');
+$router->post('training/programs/store', 'App\Controllers\TrainingProgramController@store');
+
+// --- التعديل + التحديث + الحذف (CD-036.3) ---
+$router->get('training/programs/:id/edit', 'App\Controllers\TrainingProgramController@edit');
+$router->post('training/programs/:id/update', 'App\Controllers\TrainingProgramController@update');
+$router->post('training/programs/:id/delete', 'App\Controllers\TrainingProgramController@destroy');
+
+// --- تفاصيل البرنامج (Screen 4 — no assign/link routes; linking happens in evaluation) ---
+$router->get('training/programs/:id', 'App\Controllers\TrainingProgramController@show');
+
+/*
+|==========================================================================
 | إرجاع كائن الـ Router
 |==========================================================================
 */
