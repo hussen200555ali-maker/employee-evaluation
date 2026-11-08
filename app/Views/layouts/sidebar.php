@@ -121,7 +121,7 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
             </li>
             <?php endif; ?>
 
-            <!-- ================= التقييم والتحليل (L1) ================= -->
+            <!-- CD-034: ARCHIVED — التقييم والتدريب معلّقان، سيعاد بناؤهما في CD-035+
             <?php if (Auth::userHasPermission('evaluations.create') || Auth::userHasPermission('evaluations.fill') || Auth::userHasPermission('reports.view.all') || Auth::userHasPermission('training.view') || Auth::userHasPermission('units.create') || Auth::userHasPermission('units.manage')): ?>
             <li class="sidebar-category <?php echo ($__isActive('/evaluations') || $__isActive('/units') || $__isActive('/schedules') || $__isActive('/flexible') || $__isActive('/training') || $__isActive('/courses') || $__isActive('/workshops')) ? 'open' : ''; ?>">
                 <button type="button" class="sidebar-category-toggle" aria-expanded="false">
@@ -130,72 +130,44 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                 </button>
                 <ul class="sidebar-category-body">
 
-                    <!-- L2: التقييمات -->
-                    <?php if (Auth::userHasPermission('evaluations.create') || Auth::userHasPermission('evaluations.fill') || Auth::userHasPermission('reports.view.all') || Auth::userHasPermission('units.create') || Auth::userHasPermission('units.manage')): ?>
-                    <li class="sidebar-group <?php echo ($__isActive('/evaluations') || $__isActive('/units/evaluations') || $__isActive('/schedules') || $__isActive('/flexible')) ? 'open' : ''; ?>">
+                    <li class="sidebar-group">
                         <button type="button" class="sidebar-group-toggle" aria-expanded="false">
                             <span class="sidebar-group-label"><i class="fas fa-clipboard-check sidebar-ico"></i> التقييمات</span>
                             <i class="fas fa-chevron-down sidebar-caret"></i>
                         </button>
                         <ul class="sidebar-subnav">
                             <li class="sidebar-subheader">التقييم الفردي</li>
-                            <?php if (Auth::userHasPermission('evaluations.create')): ?>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/create"><i class="fas fa-play-circle fa-fw me-2"></i> إنشاء تقييم فردي</a></li>
-                            <?php endif; ?>
-                            <?php if (Auth::userHasPermission('evaluations.fill')): ?>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/excel/import') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/excel/import"><i class="fas fa-file-excel fa-fw me-2"></i> استيراد تقييم من Excel</a></li>
-                            <?php endif; ?>
-                            <?php if (Auth::userHasPermission('reports.view.all')): ?>
-                            <li><a class="sidebar-sublink <?php echo ($__current === '/evaluations') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> إدارة التقييمات<?php if ($__pendingEvals !== null && $__pendingEvals > 0): ?><span class="sidebar-badge"><?php echo (int)$__pendingEvals; ?></span><?php endif; ?></a></li>
-                            <?php endif; ?>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-play-circle fa-fw me-2"></i> إنشاء تقييم فردي</a></li>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-file-excel fa-fw me-2"></i> استيراد تقييم من Excel</a></li>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-folder-open fa-fw me-2"></i> إدارة التقييمات</a></li>
 
-                            <?php if (Auth::userHasPermission('units.create') || Auth::userHasPermission('units.manage')): ?>
                             <li class="sidebar-subheader">التقييم المؤسسي</li>
-                            <?php endif; ?>
-                            <?php if (Auth::userHasPermission('units.create')): ?>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/units/evaluations') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/units/evaluations/create"><i class="fas fa-building fa-fw me-2"></i> تقييم وحدة تنظيمية</a></li>
-                            <?php endif; ?>
-                            <?php if (Auth::userHasPermission('units.manage')): ?>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/schedules') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/schedules"><i class="fas fa-calendar-alt fa-fw me-2"></i> الجداول الزمنية للوحدات</a></li>
-                            <?php endif; ?>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-building fa-fw me-2"></i> تقييم وحدة تنظيمية</a></li>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-calendar-alt fa-fw me-2"></i> الجداول الزمنية للوحدات</a></li>
 
-                            <?php if (Auth::userHasPermission('evaluations.create')): ?>
                             <li class="sidebar-subheader">تقييمات مرنة</li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/flexible/evaluations/create/course') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/flexible/evaluations/create/course"><i class="fas fa-chalkboard-teacher fa-fw me-2"></i> تقييم دورة تدريبية</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/flexible/evaluations/create/workshop') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/flexible/evaluations/create/workshop"><i class="fas fa-tools fa-fw me-2"></i> تقييم ورشة عمل</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/flexible/evaluations/create/employee-in-course') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/flexible/evaluations/create/employee-in-course"><i class="fas fa-user-graduate fa-fw me-2"></i> تقييم موظف في دورة</a></li>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/flexible/evaluations/create/employee-in-workshop') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/flexible/evaluations/create/employee-in-workshop"><i class="fas fa-user-cog fa-fw me-2"></i> تقييم موظف في ورشة</a></li>
-                            <?php endif; ?>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-chalkboard-teacher fa-fw me-2"></i> تقييم دورة تدريبية</a></li>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-tools fa-fw me-2"></i> تقييم ورشة عمل</a></li>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-user-graduate fa-fw me-2"></i> تقييم موظف في دورة</a></li>
+                            <li><a class="sidebar-sublink" href="#"><i class="fas fa-user-cog fa-fw me-2"></i> تقييم موظف في ورشة</a></li>
                         </ul>
                     </li>
-                    <?php endif; ?>
 
-                    <!-- CD-033.1: روابط التدريب المباشرة (غير قابلة للطي) -->
-                    <?php if (Auth::userHasPermission('training.view') || Auth::userHasPermission('training.manage')): ?>
                     <li>
-                        <a class="sidebar-link <?php echo $__isActive('/training/courses') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/courses">
-                            <i class="fas fa-chalkboard-teacher fa-fw"></i> 📚 إدارة الدورات
-                        </a>
+                        <a class="sidebar-link" href="#"><i class="fas fa-chalkboard-teacher fa-fw"></i> 📚 إدارة الدورات</a>
                     </li>
                     <li>
-                        <a class="sidebar-link <?php echo $__isActive('/training/workshops') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/training/workshops">
-                            <i class="fas fa-tools fa-fw"></i> 🏆 إدارة الورش
-                        </a>
+                        <a class="sidebar-link" href="#"><i class="fas fa-tools fa-fw"></i> 🏆 إدارة الورش</a>
                     </li>
-                    <?php endif; ?>
 
-                    <!-- CD-033: روابط مباشرة للتقييم الجماعي -->
-                    <?php if (Auth::userHasPermission('evaluations.create')): ?>
-                    <li class="sidebar-group" style="<?php echo $__isActive('/evaluations/bulk-create') ? '' : ''; ?>">
-                        <a class="sidebar-link <?php echo $__isActive('/evaluations/bulk-create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/bulk-create" style="padding:.55rem 1rem;display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--sidebar-link,#5a6b65);">
-                            <i class="fas fa-layer-group fa-fw"></i> التقييم الجماعي
-                        </a>
+                    <li>
+                        <a class="sidebar-link" href="#"><i class="fas fa-layer-group fa-fw"></i> التقييم الجماعي</a>
                     </li>
-                    <?php endif; ?>
 
                 </ul>
             </li>
-            <?php endif; ?>
+            <?php endif; -->
+            <!-- CD-034: END ARCHIVED -->
 
             <?php if (Auth::userHasPermission('employees.profile')): ?>
             <li class="sidebar-category <?php echo ($__isActive('/reports/create') || $__isActive('/reports/archive')) ? 'open' : ''; ?>">

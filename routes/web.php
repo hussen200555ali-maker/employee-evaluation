@@ -126,6 +126,8 @@ $router->get('builder/edit/:id', 'App\Controllers\BuilderController@index');
 $router->post('builder/save', 'App\Controllers\BuilderController@save');
 $router->get('builder/preview', 'App\Controllers\BuilderController@preview');
 
+// CD-034: ARCHIVED — التقييمات ستعاد بناؤها في CD-035+
+/*
 // --- 5.3: عمليات التقييم الفعلية ---
 $router->get('evaluations/create', 'App\Controllers\EvaluationController@create');
 
@@ -176,10 +178,11 @@ $router->post('flexible/evaluations/store/employee-in-course', 'App\Controllers\
 $router->get('flexible/evaluations/create/employee-in-workshop', 'App\Controllers\FlexibleEvaluationController@createEmployeeInWorkshop');
 $router->post('flexible/evaluations/store/employee-in-workshop', 'App\Controllers\FlexibleEvaluationController@storeEmployeeInWorkshop');
 // الأرشيف القديم (للقراءة فقط) يبقى: training/evaluations/show/:id
+*/
 
 /*
 |==========================================================================
-| 6. وحدات التدريب (Training Modules)
+| 6. وحدات التدريب (CD-034: ARCHIVED) (Training Modules)
 |==========================================================================
 */
 // --- الدورات التدريبية (Courses) ---
@@ -225,6 +228,7 @@ $router->post('training/workshops/catalog/delete', 'App\Controllers\WorkshopCata
 $router->get('training/workshops/evaluations/create/:workshop_id', 'App\Controllers\WorkshopEvaluationController@create');
 $router->post('training/workshops/evaluations/store', 'App\Controllers\WorkshopEvaluationController@store');
 $router->get('training/workshops/evaluations/show/:id', 'App\Controllers\WorkshopEvaluationController@show');
+*/
 
 /*
 |==========================================================================
