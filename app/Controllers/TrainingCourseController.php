@@ -49,23 +49,17 @@ public function create() {
      public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $courseModel = new TrainingCourse();
-            
-            // ===> التصحيح الأول: التأكد من أن القسم ليس فارغاً (بناءً على ملاحظتك) <===
-            if (empty($_POST['department_id'])) {
-                \App\Core\Flash::set('الرجاء اختيار القسم المنفذ للدورة.', 'danger');
-                // إعادة المستخدم إلى نموذج الإنشاء مع البيانات التي أدخلها
-                // (هذه ميزة متقدمة يمكن إضافتها لاحقاً، الآن سنقوم بإعادة التوجيه فقط)
-                $this->redirect('/training/courses/create');
-                return; // إيقاف التنفيذ
-            }
+
+            // CD-033.1: department_id اختياري (عام = NULL لمستوى الفرع)
+            $deptId = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
 
           $data = [
                     'catalog_id' => $_POST['catalog_id'],
                     'branch_id' => $_POST['branch_id'],
-                    'department_id' => $_POST['department_id'],
+                    'department_id' => $deptId,
                     'start_date' => $_POST['start_date'],
                     'end_date' => $_POST['end_date'],
-                    'status' => $_POST['status'], 
+                    'status' => $_POST['status'],
                     'created_by' => Auth::id()
                 ];
 
