@@ -190,6 +190,12 @@ $router->get('training/courses/edit/:id', 'App\Controllers\TrainingCourseControl
 $router->post('training/courses/update', 'App\Controllers\TrainingCourseController@update');
 $router->post('training/courses/delete', 'App\Controllers\TrainingCourseController@destroy');
 $router->post('training/courses/update-status', 'App\Controllers\TrainingCourseController@updateStatus');
+// CD-032: ربط الموظفين + تفاصيل الدورة + API
+$router->get('training/courses/enroll/:id', 'App\Controllers\TrainingCourseController@enroll');
+$router->post('training/courses/enroll/store', 'App\Controllers\TrainingCourseController@enrollStore');
+$router->post('training/courses/enroll/remove', 'App\Controllers\TrainingCourseController@enrollRemove');
+$router->get('training/courses/:id', 'App\Controllers\TrainingCourseController@show');
+$router->get('api/courses/:id/pending-employees', 'App\Controllers\TrainingCourseController@pendingEmployees');
 
 // --- كتالوج الدورات (Course Catalog) ---
 $router->get('training/courses/catalog', 'App\Controllers\CourseCatalogController@index');

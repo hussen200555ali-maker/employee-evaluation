@@ -9,7 +9,10 @@ use App\Models\TrainingCourse;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Core\Flash; 
-use App\Models\CourseCatalog; // ===> استيراد المودل الجديد
+use App\Models\CourseCatalog;
+use App\Models\Employee;
+use App\Core\Database;
+use App\Core\Audit as AuditLog;
 
 class TrainingCourseController extends Controller {
 
@@ -186,6 +189,66 @@ public function destroy() {
             }
             $this->redirect('/training/courses');
         }
+    }
+
+    // CD-032: ربط الموظفين بالدورة (Enroll)
+    public function enroll($id) {
+        $courseModel = new TrainingCourse();
+        $course = $courseModel->findById($id);
+        if (!$course) { $this->redirect('/training/courses'); return; }
+        $db = Database::getInstance();
+        $db->query('SELECT cp.id, cp.employee_id, cp.status, e.full_name, e.emp_code, d.name AS dept_name, b.name AS branch_name FROM course_participants cp JOIN employees e ON e.id = cp.employee_id LEFT JOIN departments d ON d.id = e.department_id LEFT JOIN branches b ON b.id = e.branch_id WHERE cp.course_id = :cid ORDER BY e.full_name');
+        $db->bind(':cid', (int)$id);
+        $participants = $db->fetchAll() ?: [];
+        $this->view('training/courses/enroll', ['pageTitle' => 'ربط الموظفين بالدورة', 'course' => $course, 'participants' => $participants, 'csrfToken' => Auth::generateCsrfToken()]);
+    }
+
+    public function enrollStore() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->redirect('/training/courses'); return; }
+        Auth::validateCsrfToken($_POST['_token'] ?? '');
+        $courseId = (int)($_POST['course_id'] ?? 0);
+        $employeeIds = $_POST['employee_ids'] ?? [];
+        if ($courseId < 1 || empty($employeeIds)) { Flash::set('لم يتم اختيار موظفين.', 'danger'); $this->redirect('/training/courses/enroll/' . $courseId); return; }
+        $db = Database::getInstance(); $added = 0;
+        foreach ($employeeIds as $eid) {
+            $eid = (int)$eid; if ($eid < 1) continue;
+            $db->query('INSERT IGNORE INTO course_participants (course_id, employee_id, status, enrolled_at) VALUES (:cid, :eid, "pending", NOW())');
+            $db->bind(':cid', $courseId); $db->bind(':eid', $eid);
+            if ($db->execute()) { $added++; }
+        }
+        Audit::log('COURSE_ENROLL', $courseId, 'training_courses', ['added' => $added]);
+        Flash::set("تم تسجيل {$added} موظف.", 'success');
+        $this->redirect('/training/courses/enroll/' . $courseId);
+    }
+
+    public function enrollRemove() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->redirect('/training/courses'); return; }
+        Auth::validateCsrfToken($_POST['_token'] ?? '');
+        $pid = (int)($_POST['participant_id'] ?? 0); $cid = (int)($_POST['course_id'] ?? 0);
+        if ($pid > 0) { $db = Database::getInstance(); $db->query('DELETE FROM course_participants WHERE id = :id AND course_id = :cid'); $db->bind(':id', $pid); $db->bind(':cid', $cid); $db->execute(); Flash::set('تمت الإزالة.', 'success'); }
+        $this->redirect('/training/courses/enroll/' . $cid);
+    }
+
+    // CD-032: تفاصيل الدورة + KPIs
+    public function show($id) {
+        $courseModel = new TrainingCourse();
+        $course = $courseModel->findById($id);
+        if (!$course) { $this->redirect('/training/courses'); return; }
+        $db = Database::getInstance();
+        $db->query('SELECT cp.id, cp.employee_id, cp.status, cp.completed_at, e.full_name, e.emp_code, d.name AS dept_name, ev.final_score, ev.id AS eval_id FROM course_participants cp JOIN employees e ON e.id = cp.employee_id LEFT JOIN departments d ON d.id = e.department_id LEFT JOIN evaluations ev ON ev.evaluated_employee_id = e.id AND ev.context_id = :cid AND ev.context_type = "course" WHERE cp.course_id = :cid2 ORDER BY e.full_name');
+        $db->bind(':cid', (int)$id); $db->bind(':cid2', (int)$id);
+        $participants = $db->fetchAll() ?: [];
+        $total = count($participants); $completed = 0; $pending = 0;
+        foreach ($participants as $p) { if ($p->status === 'completed') { $completed++; } else { $pending++; } }
+        $this->view('training/courses/show', ['pageTitle' => 'تفاصيل الدورة', 'course' => $course, 'participants' => $participants, 'stats' => ['total'=>$total, 'completed'=>$completed, 'pending'=>$pending]]);
+    }
+
+    // CD-032: API — pending employees for bulk eval
+    public function pendingEmployees($id) {
+        $db = Database::getInstance();
+        $db->query('SELECT e.id, e.full_name, e.emp_code, d.name AS department_name, b.name AS branch_name FROM course_participants cp JOIN employees e ON e.id = cp.employee_id LEFT JOIN departments d ON d.id = e.department_id LEFT JOIN branches b ON b.id = e.branch_id WHERE cp.course_id = :cid AND cp.status = "pending" AND e.is_active = 1 ORDER BY e.full_name');
+        $db->bind(':cid', (int)$id);
+        $this->json($db->fetchAll() ?: []);
     }
 
 }

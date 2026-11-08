@@ -217,10 +217,27 @@ document.getElementById('contextSelect').addEventListener('change', function() {
         var name = this.options[this.selectedIndex].text;
         badge.textContent = '✓ ' + name;
         badge.style.display = '';
+        // CD-032: سحب الموظفين pending من الدورة تلقائياً
+        loadPendingEmployees(parseInt(this.value));
     } else {
         badge.style.display = 'none';
     }
 });
+
+// CD-032: سحب الموظفين المسجلين (pending) من الدورة المختارة
+function loadPendingEmployees(courseId) {
+    if (!courseId || courseId < 1) return;
+    fetch(appUrl + '/api/courses/' + courseId + '/pending-employees').then(r => r.json()).then(function(emps) {
+        var list = Array.isArray(emps) ? emps : [];
+        if (list.length === 0) { alert('لا يوجد موظفون بانتظار التقييم في هذه الدورة.'); return; }
+        // إضافة كل موظف كبطاقة
+        list.forEach(function(e) {
+            if (!employeeCards.find(function(c) { return c.id === e.id; })) {
+                addEmployeeCard({ id: e.id, full_name: e.full_name, emp_code: e.emp_code, department_name: e.department_name || '', branch_name: e.branch_name || '' });
+            }
+        });
+    }).catch(function() { alert('تعذر جلب الموظفين.'); });
+}
 
 // Search autocomplete
 var searchTimer;
