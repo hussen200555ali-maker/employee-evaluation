@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD-030 — نماذج أولية للواجهات المتكيفة</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+:root{--brand:#0c2823;--brand2:#0d5e52;--gold:#c8943f;--gold-bg:#faefd9;--ink:#1a2e2a;--line:#e0e8e4;--bg:#f5f8f6;--red:#c85b54}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+/* Tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--brand);padding:10px 16px;position:sticky;top:0;z-index:100}
+.tabs label{cursor:pointer;padding:8px 16px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:rgba(255,255,255,.6);transition:all .2s;white-space:nowrap}
+.tabs label:hover{color:#fff;background:rgba(255,255,255,.08)}
+input[type=radio]{display:none}
+.panel{display:none;padding:30px;max-width:900px;margin:0 auto;background:#fff;min-height:80vh;border-radius:0 0 12px 12px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+#a:checked~.tabs label[for=a],#b:checked~.tabs label[for=b],#c:checked~.tabs label[for=c],#d:checked~.tabs label[for=d],#e:checked~.tabs label[for=e],#f:checked~.tabs label[for=f]{background:#fff;color:var(--brand)}
+#a:checked~.panels .pa,#b:checked~.panels .pb,#c:checked~.panels .pc,#d:checked~.panels .pd,#e:checked~.panels .pe,#f:checked~.panels .pf{display:block}
+/* Components */
+.scenario-tag{display:inline-block;background:var(--gold-bg);color:var(--gold);padding:4px 14px;border-radius:999px;font-size:11px;font-weight:700;margin-bottom:16px}
+.form-header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:24px 30px;border-radius:12px;margin-bottom:20px;position:relative}
+.form-header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:var(--gold)}
+.form-header h2{font-size:20px;font-weight:800}
+.form-header .sub{font-size:13px;opacity:.8;margin-top:4px}
+.setup-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.setup-item label{display:block;font-size:11px;color:#6c757d;margin-bottom:4px;font-weight:600}
+.setup-item select,.setup-item input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:'Cairo';background:#fff}
+.setup-item select:focus,.setup-item input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 .15rem rgba(200,148,63,.12)}
+/* Course/Workshop card */
+.context-card{border:2px solid var(--gold);border-radius:12px;padding:16px 20px;margin-bottom:20px;background:#fffbf3;transition:box-shadow .3s}
+.context-card:hover{box-shadow:0 6px 20px rgba(200,148,63,.15)}
+.context-card .ctx-label{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--gold);font-size:14px;margin-bottom:10px}
+.context-card select{width:100%;padding:10px 14px;border:1px solid var(--gold);border-radius:8px;font-size:13px;font-family:'Cairo';background:#fff}
+.context-details{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}
+.context-details .det{background:#fff;padding:8px 12px;border-radius:6px;border:1px solid var(--line)}
+.context-details .det span{display:block;color:#6c757d;font-size:10px;margin-bottom:2px}
+.context-details .det strong{color:var(--ink)}
+/* Skill badge */
+.skill-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,var(--brand),var(--brand2));color:var(--gold);padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700}
+/* Criterion accordion */
+.criterion{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.criterion-head{background:var(--bg);padding:12px 16px;font-weight:700;font-size:13px;color:var(--brand);display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.criterion-head .weight{background:var(--gold-bg);color:var(--gold);padding:2px 10px;border-radius:999px;font-size:11px}
+.criterion-body{padding:12px 16px}
+.section-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.section-row:last-child{border:0}
+.section-row .lbl{font-size:13px;flex:1}
+.section-row input[type=number]{width:80px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;text-align:center}
+.section-row input[type=number]:focus{border-color:var(--gold);outline:none}
+/* Evaluator card */
+.evaluator-card{border:2px solid var(--gold);border-radius:12px;overflow:hidden;margin:20px 0}
+.evaluator-card .ev-head{background:linear-gradient(90deg,#fbf3e2,#f6e8cf);padding:10px 16px;font-weight:700;color:var(--gold);font-size:13px;border-bottom:2px solid var(--gold)}
+.evaluator-card .ev-body{padding:16px}
+.evaluator-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.evaluator-grid label{display:block;font-size:11px;color:#6c757d;margin-bottom:4px;font-weight:600}
+.evaluator-grid input,.evaluator-grid textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:'Cairo')}
+.evaluator-grid .full{grid-column:1/-1}
+/* Submit bar */
+.submit-bar{position:sticky;bottom:0;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:14px 30px;display:flex;justify-content:flex-end;gap:10px}
+.btn{padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;font-family:'Cairo';cursor:pointer;border:none;transition:transform .15s}
+.btn-primary{background:var(--brand);color:var(--gold)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(12,40,35,.3)}
+.btn-light{background:#e8e8e8;color:#6c757d}
+/* Bulk cards */
+.bulk-card{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:transform .2s,box-shadow .3s}
+.bulk-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(12,40,35,.1)}
+.bulk-card-head{background:var(--bg);padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.bulk-card-head .avatar{width:36px;height:36px;border-radius:50%;background:var(--brand);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.bulk-card-head .name{font-size:13px;font-weight:700}
+.bulk-card-head .meta{font-size:11px;color:#6c757d}
+.bulk-card-body{padding:10px 16px}
+/* Context badge in bulk */
+.ctx-badge{display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:var(--brand);padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700}
+/* Responsive */
+@media(max-width:768px){.setup-grid{grid-template-columns:1fr}.evaluator-grid{grid-template-columns:1fr}.context-details{grid-template-columns:1fr}.tabs{overflow-x:auto}}
+</style>
+</head>
+<body>
+<input type="radio" name="tab" id="a" checked>
+<input type="radio" name="tab" id="b">
+<input type="radio" name="tab" id="c">
+<input type="radio" name="tab" id="d">
+<input type="radio" name="tab" id="e">
+<input type="radio" name="tab" id="f">
+<div class="tabs">
+<label for="a">A — سنوي/عام</label>
+<label for="b">B — موظف في دورة</label>
+<label for="c">C — موظف في ورشة</label>
+<label for="d">D — تقييم مهاري</label>
+<label for="e">E — جماعي (عام)</label>
+<label for="f">F — جماعي (دورة)</label>
+</div>
+<div class="panels">
+
+<!-- ===== Scenario A: Annual Employee ===== -->
+<div class="panel pa">
+<div class="scenario-tag">الحالة A — تقييم سنوي/عام (target_type = employee)</div>
+<div class="form-header"><h2>📝 التقييم السنوي للموظف</h2><div class="sub">قالب: التقييم السنوي للموظف · نمط: رقمي · دورة: غير مطلوبة</div></div>
+<div class="setup-grid">
+<div class="setup-item"><label>الموظف</label><select><option>عبدالله محمد العتيبي — EMP-001</option></select></div>
+<div class="setup-item"><label>القالب</label><select><option>التقييم السنوي للموظف</option></select></div>
+<div class="setup-item"><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div class="setup-item"><label>نوع التقييم</label><select><option>تقييم سنوي</option></select></div>
+</div>
+<!-- NO course/workshop field — this is the key difference -->
+<div style="background:#f0f5f3;border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center;color:#6c757d;font-size:12px;margin-bottom:16px;">
+ℹ️ هذا القالب من نوع "موظف فردي" — لا يتطلب ربطاً بدورة أو ورشة
+</div>
+<div class="criterion"><div class="criterion-head">الأداء الوظيفي <span class="weight">40%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">إنجاز الأهداف</span><input type="number" value="85" min="0" max="100"></div>
+<div class="section-row"><span class="lbl">جودة العمل</span><input type="number" value="80" min="0" max="100"></div>
+</div></div>
+<div class="criterion"><div class="criterion-head">السلوك والجدارة <span class="weight">30%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">التعاون</span><input type="number" value="90" min="0" max="100"></div>
+<div class="section-row"><span class="lbl">التواصل</span><input type="number" value="85" min="0" max="100"></div>
+</div></div>
+<div class="criterion"><div class="criterion-head">المبادرة والتطوير <span class="weight">30%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">المبادرة</span><input type="number" value="75" min="0" max="100"></div>
+<div class="section-row"><span class="lbl">التطوير الذاتي</span><input type="number" value="80" min="0" max="100"></div>
+</div></div>
+<div class="evaluator-card"><div class="ev-head">👤 بيانات المقيّم</div><div class="ev-body"><div class="evaluator-grid">
+<div><label>اسم المقيّم</label><input value="خالد سعد الغامدي"></div>
+<div><label>صفة المقيّم</label><input value="مدير قسم العمليات"></div>
+<div><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class="full"><label>ملاحظات المقيّم العامة</label><textarea rows="2">أداء ممتاز مع التزام عالٍ بالجودة والوقت.</textarea></div>
+</div></div></div>
+<div class="submit-bar"><button class="btn btn-light">إلغاء</button><button class="btn btn-primary">💾 حفظ وإرسال التقييم</button></div>
+</div>
+
+<!-- ===== Scenario B: Employee in Course ===== -->
+<div class="panel pb">
+<div class="scenario-tag">الحالة B — موظف في دورة (target_type = employee_in_course)</div>
+<div class="form-header"><h2>📚 تقييم موظف في دورة تدريبية</h2><div class="sub">قالب: التقييم الوصفي للدورة · نمط: وصفي · الدورة مطلوبة إلزامياً</div></div>
+<div class="setup-grid">
+<div class="setup-item"><label>الموظف</label><select><option>نورة سعد القحطاني — EMP-002</option></select></div>
+<div class="setup-item"><label>القالب</label><select><option>التقييم الوصفي للدورة</option></select></div>
+<div class="setup-item"><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div class="setup-item"><label>نوع التقييم</label><select><option>تقييم دورة</option></select></div>
+</div>
+<!-- Course selection card — KEY DIFFERENCE -->
+<div class="context-card">
+<div class="ctx-label">📚 الدورة التدريبية <span style="color:var(--red);font-size:10px;">(إلزامي)</span></div>
+<select><option value="0">— اختر الدورة —</option><option selected>دورة إدارة المشاريع — PM-2026-01</option></select>
+<div class="context-details">
+<div class="det"><span>تاريخ البدء</span><strong>2026-10-15</strong></div>
+<div class="det"><span>تاريخ الانتهاء</span><strong>2026-10-20</strong></div>
+<div class="det"><span>الفرع</span><strong>الرياض — المركز الرئيسي</strong></div>
+<div class="det"><span>الحالة</span><strong>✅ مكتملة</strong></div>
+</div>
+</div>
+<div class="criterion"><div class="criterion-head">تقييم الاستفادة <span class="weight">100%</span></div><div class="criterion-body">
+<div class="section-row" style="flex-direction:column;align-items:stretch;"><span class="lbl" style="margin-bottom:6px;">مدى استفادة الموظف</span><textarea rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:12px;">استفادت الموظفة بشكل كبير من محتوى الدورة، خصوصاً في تخطيط الجدول الزمني وإدارة المخاطر.</textarea></div>
+<div class="section-row" style="flex-direction:column;align-items:stretch;margin-top:8px;"><span class="lbl" style="margin-bottom:6px;">التطبيق العملي</span><textarea rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:12px;">ستطبق المهارات في مشروع تطوير النظام القادم.</textarea></div>
+<div class="section-row" style="flex-direction:column;align-items:stretch;margin-top:8px;"><span class="lbl" style="margin-bottom:6px;">التقدير العام</span><select style="padding:8px;border:1px solid var(--gold);border-radius:6px;font-family:'Cairo';"><option>— اختر التقدير —</option><option selected>ممتاز (100)</option><option>جيد جداً (89.99)</option><option>جيد (79.99)</option></select></div>
+</div></div>
+<div class="evaluator-card"><div class="ev-head">👤 بيانات المقيّم</div><div class="ev-body"><div class="evaluator-grid">
+<div><label>اسم المقيّم</label><input value="خالد سعد الغامدي"></div>
+<div><label>صفة المقيّم</label><input value="مدير قسم العمليات"></div>
+<div><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class="full"><label>ملاحظات المقيّم العامة</label><textarea rows="2">توصية بتدريب إضافي على Agile methodologies.</textarea></div>
+</div></div></div>
+<div class="submit-bar"><button class="btn btn-light">إلغاء</button><button class="btn btn-primary">💾 حفظ وإرسال التقييم</button></div>
+</div>
+
+<!-- ===== Scenario C: Employee in Workshop ===== -->
+<div class="panel pc">
+<div class="scenario-tag">الحالة C — موظف في ورشة (target_type = employee_in_workshop)</div>
+<div class="form-header" style="background:linear-gradient(135deg,#0c2823,#1a4a3e);"><h2>🏆 تقييم موظف في ورشة عمل</h2><div class="sub">قالب: التقييم الرقمي للورشة · نمط: رقمي · الورشة مطلوبة إلزامياً</div></div>
+<div class="setup-grid">
+<div class="setup-item"><label>الموظف</label><select><option>خالد فهد الدوسري — EMP-003</option></select></div>
+<div class="setup-item"><label>القالب</label><select><option>التقييم الرقمي للورشة</option></select></div>
+<div class="setup-item"><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div class="setup-item"><label>نوع التقييم</label><select><option>تقييم ورشة</option></select></div>
+</div>
+<div class="context-card" style="border-color:#0d5e52;">
+<div class="ctx-label" style="color:#0d5e52;">🏆 الورشة <span style="color:var(--red);font-size:10px;">(إلزامي)</span></div>
+<select style="border-color:#0d5e52;"><option value="0">— اختر الورشة —</option><option selected>ورشة حل المشكلات الإبداعي — WS-2026-03</option></select>
+<div class="context-details">
+<div class="det"><span>تاريخ البدء</span><strong>2026-11-01</strong></div>
+<div class="det"><span>تاريخ الانتهاء</span><strong>2026-11-03</strong></div>
+<div class="det"><span>الفرع</span><strong>جدة — فرع المنطقة الغربية</strong></div>
+<div class="det"><span>الحالة</span><strong>✅ مكتملة</strong></div>
+</div>
+</div>
+<div class="criterion"><div class="criterion-head">الاختبار النهائي <span class="weight">100%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">درجة الاختبار (0-100)</span><input type="number" value="88" min="0" max="100"></div>
+</div></div>
+<div class="evaluator-card"><div class="ev-head">👤 بيانات المقيّم</div><div class="ev-body"><div class="evaluator-grid">
+<div><label>اسم المقيّم</label><input value="سارة الحربي"></div>
+<div><label>صفة المقيّم</label><input value="مدربة الورشة"></div>
+<div><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class="full"><label>ملاحظات المقيّم العامة</label><textarea rows="2">أداء قوي في حل المشكلات العملية.</textarea></div>
+</div></div></div>
+<div class="submit-bar"><button class="btn btn-light">إلغاء</button><button class="btn btn-primary">💾 حفظ وإرسال التقييم</button></div>
+</div>
+
+<!-- ===== Scenario D: Skill Evaluation ===== -->
+<div class="panel pd">
+<div class="scenario-tag">الحالة D — تقييم مهاري (target_type = skill)</div>
+<div class="form-header"><h2>⭐ التقييم المهاري</h2><div class="sub"><span class="skill-badge">⭐ مهاري</span> قالب: التقييم المهاري · نمط: رقمي · دورة: غير مطلوبة</div></div>
+<div class="setup-grid">
+<div class="setup-item"><label>الموظف</label><select><option>خالد فهد الدوسري — EMP-003</option></select></div>
+<div class="setup-item"><label>القالب</label><select><option>التقييم المهاري</option></select></div>
+<div class="setup-item"><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div class="setup-item"><label>المهارة</label><select><option>تقنية — تحليل البيانات</option></select></div>
+</div>
+<div style="background:linear-gradient(90deg,var(--brand),var(--brand2));color:var(--gold);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;margin-bottom:16px;">⭐ هذا التقييم مهاري — يُعرض في ملف الموظف تحت قسم "المهارات" المستقل</div>
+<div class="criterion"><div class="criterion-head">المهارات التقنية <span class="weight">50%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">إتقان التقنيات</span><input type="number" value="82" min="0" max="100"></div>
+</div></div>
+<div class="criterion"><div class="criterion-head">مهارات التواصل <span class="weight">25%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">العرض التقديمي</span><input type="number" value="78" min="0" max="100"></div>
+</div></div>
+<div class="criterion"><div class="criterion-head">حل المشكلات <span class="weight">25%</span></div><div class="criterion-body">
+<div class="section-row"><span class="lbl">التحليل</span><input type="number" value="85" min="0" max="100"></div>
+</div></div>
+<div class="evaluator-card"><div class="ev-head">👤 بيانات المقيّم</div><div class="ev-body"><div class="evaluator-grid">
+<div><label>اسم المقيّم</label><input value="عبدالله العتيبي"></div>
+<div><label>صفة المقيّم</label><input value="مدير تقني"></div>
+<div><label>تاريخ التقييم</label><input type="date" value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class="full"><label>ملاحظات المقيّم العامة</label><textarea rows="2">مهارات تحليل قوية، يحتاج تطوير في العرض التقديمي.</textarea></div>
+</div></div></div>
+<div class="submit-bar"><button class="btn btn-light">إلغاء</button><button class="btn btn-primary">💾 حفظ وإرسال التقييم</button></div>
+</div>
+
+<!-- ===== Scenario E: Bulk — Employee Template ===== -->
+<div class="panel pe">
+<div class="scenario-tag">الحالة E — تقييم جماعي (قالب عام)</div>
+<div class="form-header"><h2>📊 التقييم الجماعي</h2><div class="sub">قالب: التقييم السنوي للموظف · 3 موظفين · لا دورة مطلوبة</div></div>
+<div class="setup-grid">
+<div class="setup-item"><label>قالب التقييم</label><select><option>التقييم السنوي للموظف</option></select><div style="font-size:9px;color:#6c757d;margin-top:4px;">🔒 يُقفل بعد أول تقييم</div></div>
+<div class="setup-item"><label>التاريخ الموحد</label><input type="date" value="2026-11-08"></div>
+<div class="setup-item"><label>اسم المقيّم</label><input value="خالد الغامدي"></div>
+<div class="setup-item"><label>صفة المقيّم</label><input value="مدير العمليات"></div>
+</div>
+<!-- NO course field — key difference for employee template -->
+<div class="bulk-card"><div class="bulk-card-head"><div class="avatar">ع</div><div><div class="name">عبدالله العتيبي</div><div class="meta">EMP-001 · العمليات · الرياض</div></div></div><div class="bulk-card-body">
+<div class="section-row"><span class="lbl">إنجاز الأهداف (40%)</span><input type="number" value="85" min="0" max="100"></div>
+<div class="section-row"><span class="lbl">جودة العمل (40%)</span><input type="number" value="80" min="0" max="100"></div>
+</div></div>
+<div class="bulk-card"><div class="bulk-card-head"><div class="avatar">ن</div><div><div class="name">نورة القحطاني</div><div class="meta">EMP-002 · تقنية المعلومات · الرياض</div></div></div><div class="bulk-card-body">
+<div class="section-row"><span class="lbl">إنجاز الأهداف (40%)</span><input type="number" value="90" min="0" max="100"></div>
+<div class="section-row"><span class="lbl">جودة العمل (40%)</span><input type="number" value="95" min="0" max="100"></div>
+</div></div>
+<div class="submit-bar"><div style="font-size:12px;color:#6c757d;align-self:center;"><strong style="color:var(--brand);">2</strong> موظفين · <strong style="color:var(--brand);">0</strong> محفوظ · <strong style="color:var(--brand);">2</strong> بانتظار الحفظ</div><button class="btn btn-primary" style="padding:14px 40px;font-size:15px;">💾 حفظ الجميع</button></div>
+</div>
+
+<!-- ===== Scenario F: Bulk — Course Template ===== -->
+<div class="panel pf">
+<div class="scenario-tag">الحالة F — تقييم جماعي (قالب دورة)</div>
+<div class="form-header"><h2>📚 التقييم الجماعي للدورة</h2><div class="sub">قالب: التقييم الرقمي للدورة · دورة محددة · 3 موظفين</div></div>
+<div class="setup-grid">
+<div class="setup-item"><label>قالب التقييم</label><select><option>التقييم الرقمي للدورة</option></select><div style="font-size:9px;color:#6c757d;margin-top:4px;">🔒 يُقفل بعد أول تقييم</div></div>
+<!-- Course field — KEY DIFFERENCE -->
+<div class="setup-item"><label>📚 الدورة التدريبية</label><select><option selected>دورة إدارة المشاريع</option></select><span class="ctx-badge" style="margin-top:4px;">✓ دورة إدارة المشاريع</span></div>
+<div class="setup-item"><label>التاريخ الموحد</label><input type="date" value="2026-11-08"></div>
+<div class="setup-item"><label>اسم المقيّم</label><input value="خالد الغامدي"></div>
+</div>
+<div class="bulk-card"><div class="bulk-card-head"><div class="avatar">ع</div><div><div class="name">عبدالله العتيبي</div><div class="meta">EMP-001 · 📚 دورة إدارة المشاريع</div></div><span class="ctx-badge">📚 دورة محددة</span></div><div class="bulk-card-body">
+<div class="section-row"><span class="lbl">درجة الاختبار (0-100)</span><input type="number" value="88" min="0" max="100"></div>
+</div></div>
+<div class="bulk-card"><div class="bulk-card-head"><div class="avatar">ن</div><div><div class="name">نورة القحطاني</div><div class="meta">EMP-002 · 📚 دورة إدارة المشاريع</div></div><span class="ctx-badge">📚 دورة محددة</span></div><div class="bulk-card-body">
+<div class="section-row"><span class="lbl">درجة الاختبار (0-100)</span><input type="number" value="92" min="0" max="100"></div>
+</div></div>
+<div class="bulk-card"><div class="bulk-card-head"><div class="avatar">خ</div><div><div class="name">خالد الدوسري</div><div class="meta">EMP-003 · 📚 دورة إدارة المشاريع</div></div><span class="ctx-badge">📚 دورة محددة</span></div><div class="bulk-card-body">
+<div class="section-row"><span class="lbl">درجة الاختبار (0-100)</span><input type="number" value="85" min="0" max="100"></div>
+</div></div>
+<div class="submit-bar"><div style="font-size:12px;color:#6c757d;align-self:center;"><strong style="color:var(--brand);">3</strong> موظفين · <strong style="color:var(--brand);">0</strong> محفوظ · <strong style="color:var(--brand);">3</strong> بانتظار الحفظ</div><button class="btn btn-primary" style="padding:14px 40px;font-size:15px;">💾 حفظ الجميع</button></div>
+</div>
+
+</div>
+</body>
+</html>
