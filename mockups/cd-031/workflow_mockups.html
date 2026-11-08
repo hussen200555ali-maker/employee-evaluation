@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD-031 — سير العمل الكامل (End-to-End Workflow Mockups)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+:root{--brand:#0c2823;--brand2:#0d5e52;--gold:#c8943f;--gold-bg:#faefd9;--ink:#1a2e2a;--line:#e0e8e4;--bg:#f5f8f6;--red:#c85b54;--blue:#336da7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;font-size:13px}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;background:var(--brand);padding:8px;position:sticky;top:0;z-index:100}
+.tabs label{cursor:pointer;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);transition:all .2s;white-space:nowrap}
+.tabs label:hover{color:#fff;background:rgba(255,255,255,.08)}
+input[type=radio]{display:none}
+.p{display:none;padding:24px;max-width:880px;margin:0 auto;background:#fff;min-height:70vh;border-radius:0 0 10px 10px;box-shadow:0 4px 16px rgba(0,0,0,.05)}
+#s1:checked~.tabs label[for=s1],#s2:checked~.tabs label[for=s2],#s3:checked~.tabs label[for=s3],#s4:checked~.tabs label[for=s4],#s5:checked~.tabs label[for=s5],#s6:checked~.tabs label[for=s6],#s7:checked~.tabs label[for=s7],#s8:checked~.tabs label[for=s8],#s9:checked~.tabs label[for=s9],#s10:checked~.tabs label[for=s10]{background:#fff;color:var(--brand)}
+#s1:checked~.panels .p1,#s2:checked~.panels .p2,#s3:checked~.panels .p3,#s4:checked~.panels .p4,#s5:checked~.panels .p5,#s6:checked~.panels .p6,#s7:checked~.panels .p7,#s8:checked~.panels .p8,#s9:checked~.panels .p9,#s10:checked~.panels .p10{display:block}
+.tag{display:inline-block;background:var(--gold-bg);color:var(--gold);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;margin-bottom:12px}
+.hdr{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:16px;position:relative}
+.hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold)}
+.hdr h2{font-size:17px;font-weight:800}
+.hdr .sub{font-size:11px;opacity:.8;margin-top:3px}
+.grid{display:grid;gap:10px;margin-bottom:14px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.f label{display:block;font-size:10px;color:#6c757d;margin-bottom:3px;font-weight:600}
+.f select,.f input,.f textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:'Cairo';background:#fff}
+.f select:focus,.f input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 .12rem rgba(200,148,63,.1)}
+.info-card{border:2px solid var(--gold);border-radius:10px;padding:14px;margin-bottom:14px;background:#fffbf3}
+.info-card.green{border-color:var(--brand2);background:#f0f7f4}
+.info-card .ttl{font-weight:700;font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.info-card .ttl.gold{color:var(--gold)}
+.info-card .ttl.green{color:var(--brand2)}
+.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px}
+.info-grid .det{background:#fff;padding:6px 10px;border-radius:5px;border:1px solid var(--line)}
+.info-grid .det span{display:block;color:#6c757d;font-size:9px}
+.info-grid .det strong{font-size:11px}
+table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px}
+th{background:var(--brand);color:#fff;padding:6px 8px;text-align:right;font-weight:700;font-size:10px}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+tr:nth-child(even) td{background:#f5f8f7}
+.badge{padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700}
+.badge-pending{background:#fff3cd;color:#856404}
+.badge-done{background:#d4edda;color:#155724}
+.badge-course{background:var(--gold);color:var(--brand)}
+.badge-skill{background:var(--brand);color:var(--gold)}
+.crit{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;overflow:hidden}
+.crit-h{background:var(--bg);padding:8px 12px;font-weight:700;font-size:12px;color:var(--brand);display:flex;justify-content:space-between}
+.crit-h .w{background:var(--gold-bg);color:var(--gold);padding:1px 8px;border-radius:999px;font-size:10px}
+.crit-b{padding:8px 12px}
+.row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.row .l{font-size:12px;flex:1}
+.row input[type=number]{width:70px;padding:5px 8px;border:1px solid var(--line);border-radius:5px;text-align:center;font-size:12px}
+.row input[type=number]:focus{border-color:var(--gold);outline:none}
+.row textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-family:'Cairo';font-size:11px;resize:vertical}
+.ev-card{border:2px solid var(--gold);border-radius:10px;overflow:hidden;margin:14px 0}
+.ev-card .eh{background:linear-gradient(90deg,#fbf3e2,#f6e8cf);padding:8px 14px;font-weight:700;color:var(--gold);font-size:12px;border-bottom:2px solid var(--gold)}
+.ev-card .eb{padding:12px}
+.ev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ev-grid label{display:block;font-size:10px;color:#6c757d;margin-bottom:2px;font-weight:600}
+.ev-grid input,.ev-grid textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-size:11px;font-family:'Cairo')}
+.ev-grid .full{grid-column:1/-1}
+.bar{position:sticky;bottom:0;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border-top:1px solid var(--line);padding:10px 24px;display:flex;justify-content:flex-end;gap:8px}
+.btn{padding:8px 20px;border-radius:7px;font-size:13px;font-weight:700;font-family:'Cairo';cursor:pointer;border:none;transition:transform .15s}
+.btn-p{background:var(--brand);color:var(--gold)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(12,40,35,.3)}
+.btn-l{background:#e8e8e8;color:#6c757d}
+.bcard{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;transition:transform .2s}
+.bcard:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(12,40,35,.08)}
+.bcard-h{background:var(--bg);padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.bcard-h .av{width:30px;height:30px;border-radius:50%;background:var(--brand);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.bcard-h .nm{font-size:12px;font-weight:700}
+.bcard-h .mt{font-size:10px;color:#6c757d}
+.bcard-b{padding:8px 12px}
+.wf-step{display:flex;align-items:center;gap:6px;font-size:10px;color:#6c757d;margin-bottom:12px}
+.wf-step .step{padding:3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
+.wf-step .step.active{background:var(--brand);color:var(--gold);border-color:var(--brand)}
+.wf-step .arrow{color:var(--line)}
+@media(max-width:768px){.g4,.g3,.g2,.info-grid,.ev-grid{grid-template-columns:1fr}.tabs{overflow-x:auto}}
+</style>
+</head>
+<body>
+<input type=radio name=t id=s1 checked>
+<input type=radio name=t id=s2>
+<input type=radio name=t id=s3>
+<input type=radio name=t id=s4>
+<input type=radio name=t id=s5>
+<input type=radio name=t id=s6>
+<input type=radio name=t id=s7>
+<input type=radio name=t id=s8>
+<input type=radio name=t id=s9>
+<input type=radio name=t id=s10>
+<div class=tabs>
+<label for=s1>1️⃣ إنشاء دورة</label>
+<label for=s2>2️⃣ ربط موظفين</label>
+<label for=s3>3️⃣ تفاصيل الدورة</label>
+<label for=s4>4️⃣ تقييم وصفي</label>
+<label for=s5>5️⃣ تقييم رقمي</label>
+<label for=s6>6️⃣ تقييم ورشة</label>
+<label for=s7>7️⃣ تقييم سنوي</label>
+<label for=s8>8️⃣ جماعي عام</label>
+<label for=s9>9️⃣ جماعي دورة</label>
+<label for=s10>🔟 ملف الموظف</label>
+</div>
+<div class=panels>
+
+<!-- ===== Screen 1: Create Course ===== -->
+<div class=p p1>
+<div class=tag>المسار 1 — دورة تدريبية | شاشة 1/3</div>
+<div class=hdr><h2>📚 إنشاء دورة تدريبية</h2><div class=sub>training/courses/create · ربط بالجهة المنفذة (فرع/قسم)</div></div>
+<div class="wf-step"><span class="step active">إنشاء الدورة</span><span class=arrow>←</span><span class=step>ربط موظفين</span><span class=arrow>←</span><span class=step>تفاصيل الدورة</span></div>
+<div class="grid g2">
+<div class=f><label>📂 التصنيف (Catalog)</label><select><option>— اختر التصنيف —</option><option selected>إدارة المشاريع</option><option>تقنية المعلومات</option><option>الموارد البشرية</option></select></div>
+<div class=f><label>📝 اسم الدورة</label><input value="دورة إدارة المشاريع PM-2026-02"></div>
+</div>
+<div class="grid g2">
+<div class=f><label>🏢 الفرع المنفذ</label><select><option>— اختر الفرع —</option><option selected>الرياض — المركز الرئيسي</option><option>جدة — المنطقة الغربية</option><option>الدمام — المنطقة الشرقية</option></select></div>
+<div class=f><label>📋 القسم (اختياري — "عام" لمستوى الفرع)</label><select><option selected>عام (مستوى الفرع)</option><option>العمليات</option><option>تقنية المعلومات</option><option>المالية</option></select></div>
+</div>
+<div class="grid g2">
+<div class=f><label>📅 تاريخ البدء</label><input type=date value="2026-11-15"></div>
+<div class=f><label>📅 تاريخ الانتهاء</label><input type=date value="2026-11-20"></div>
+</div>
+<div class="grid g2">
+<div class=f><label>👨‍🏫 المدرب</label><input value="د. أحمد المرسي (خارجي)"></div>
+<div class=f><label>📊 حالة الدورة</label><select><option selected>مجدوَلة</option><option>قيد التنفيذ</option><option>مكتملة</option></select></div>
+</div>
+<div class=f style="margin-bottom:14px;"><label>📝 الوصف (اختياري)</label><textarea rows=2>دورة شاملة في أساسيات إدارة المشاريع وفق منهجية PMBOK.</textarea></div>
+<div class=bar><button class="btn btn-l">إلغاء</button><button class="btn btn-p">💾 إنشاء الدورة</button></div>
+</div>
+
+<!-- ===== Screen 2: Enroll Employees ===== -->
+<div class=p p2>
+<div class=tag>المسار 1 — دورة تدريبية | شاشة 2/3</div>
+<div class=hdr><h2>👥 ربط الموظفين بالدورة</h2><div class=sub>training/courses/enroll/5 · دورة إدارة المشاريع PM-2026-02</div></div>
+<div class="wf-step"><span class=step>إنشاء الدورة ✓</span><span class=arrow>←</span><span class="step active">ربط موظفين</span><span class=arrow>←</span><span class=step>تفاصيل الدورة</span></div>
+<div class="info-card"><div class="ttl gold">📚 معلومات الدورة</div><div class="info-grid">
+<div class=det><span>الاسم</span><strong>دورة إدارة المشاريع</strong></div>
+<div class=det><span>الجهة</span><strong>الرياض — عام</strong></div>
+<div class=det><span>التواريخ</span><strong>15-20 نوفمبر 2026</strong></div>
+<div class=det><span>المدرب</span><strong>د. أحمد المرسي</strong></div>
+</div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+<strong style="font-size:13px;">الموظفون المسجلون (3)</strong>
+<button class="btn btn-p" style="padding:6px 16px;font-size:12px;">＋ إضافة موظفين</button>
+</div>
+<table><tr><th>الاسم</th><th>الرقم</th><th>القسم</th><th>الفرع</th><th>حالة التقييم</th><th></th></tr>
+<tr><td>عبدالله العتيبي</td><td>EMP-001</td><td>العمليات</td><td>الرياض</td><td><span class="badge badge-pending">بانتظار</span></td><td><a style="color:var(--red);font-size:10px;cursor:pointer;">إزالة</a></td></tr>
+<tr><td>نورة القحطاني</td><td>EMP-002</td><td>تقنية المعلومات</td><td>الرياض</td><td><span class="badge badge-pending">بانتظار</span></td><td><a style="color:var(--red);font-size:10px;cursor:pointer;">إزالة</a></td></tr>
+<tr><td>خالد الدوسري</td><td>EMP-003</td><td>تقنية المعلومات</td><td>جدة</td><td><span class="badge badge-pending">بانتظار</span></td><td><a style="color:var(--red);font-size:10px;cursor:pointer;">إزالة</a></td></tr>
+</table>
+<div style="border:2px dashed var(--gold);border-radius:8px;padding:12px;margin-top:10px;background:#fffbf3;">
+<strong style="font-size:12px;color:var(--gold);">🔍 بحث وإضافة موظفين (من جميع الفروع)</strong>
+<div style="display:flex;gap:8px;margin-top:8px;">
+<input placeholder="ابحث بالاسم أو الرقم الوظيفي..." style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:12px;">
+<button class="btn btn-p" style="padding:6px 16px;font-size:12px;">بحث</button>
+</div>
+<div style="font-size:10px;color:#6c757d;margin-top:6px;">💡 يمكن إضافة موظفين من أي فرع — التقييم مرتبط بالدورة لا بالفرع</div>
+</div>
+<div class=bar><button class="btn btn-l">رجوع</button><button class="btn btn-p">💾 حفظ القائمة</button></div>
+</div>
+
+<!-- ===== Screen 3: Course Details ===== -->
+<div class=p p3>
+<div class=tag>المسار 1 — دورة تدريبية | شاشة 3/3</div>
+<div class=hdr><h2>📊 تفاصيل الدورة</h2><div class=sub>training/courses/5 · ملخص الأداء + روابط سريعة</div></div>
+<div class="wf-step"><span class=step>إنشاء الدورة ✓</span><span class=arrow>←</span><span class=step>ربط موظفين ✓</span><span class=arrow>←</span><span class="step active">تفاصيل الدورة</span></div>
+<div class="info-card"><div class="ttl gold">📚 معلومات الدورة</div><div class="info-grid">
+<div class=det><span>الاسم</span><strong>دورة إدارة المشاريع</strong></div>
+<div class=det><span>الجهة المنفذة</span><strong>الرياض — عام</strong></div>
+<div class=det><span>التواريخ</span><strong>15-20 نوفمبر 2026</strong></div>
+<div class=det><span>المدرب</span><strong>د. أحمد المرسي</strong></div>
+</div></div>
+<div class="grid g3" style="margin-bottom:14px;">
+<div style="background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:16px;border-radius:10px;text-align:center;"><div style="font-size:28px;font-weight:800;color:var(--gold);">3</div><div style="font-size:11px;opacity:.8;">إجمالي المسجلين</div></div>
+<div style="background:#d4edda;padding:16px;border-radius:10px;text-align:center;border:1px solid #c3e6cb;"><div style="font-size:28px;font-weight:800;color:#155724;">1</div><div style="font-size:11px;color:#155724;">تم التقييم</div></div>
+<div style="background:#fff3cd;padding:16px;border-radius:10px;text-align:center;border:1px solid #ffeeba;"><div style="font-size:28px;font-weight:800;color:#856404;">2</div><div style="font-size:11px;color:#856404;">بانتظار التقييم</div></div>
+</div>
+<table><tr><th>الموظف</th><th>الرقم</th><th>القسم</th><th>حالة التقييم</th><th>الدرجة</th><th></th></tr>
+<tr><td>عبدالله العتيبي</td><td>EMP-001</td><td>العمليات</td><td><span class="badge badge-done">مكتمل</span></td><td><strong style="color:var(--brand);">88.00</strong></td><td><a style="color:var(--gold);font-size:10px;cursor:pointer;">عرض</a></td></tr>
+<tr><td>نورة القحطاني</td><td>EMP-002</td><td>تقنية المعلومات</td><td><span class="badge badge-pending">بانتظار</span></td><td>—</td><td><a style="color:var(--gold);font-size:10px;cursor:pointer;">تقييم</a></td></tr>
+<tr><td>خالد الدوسري</td><td>EMP-003</td><td>تقنية المعلومات</td><td><span class="badge badge-pending">بانتظار</span></td><td>—</td><td><a style="color:var(--gold);font-size:10px;cursor:pointer;">تقييم</a></td></tr>
+</table>
+<div style="background:linear-gradient(90deg,var(--brand),var(--brand2));border-radius:10px;padding:14px;text-align:center;margin-top:10px;">
+<a style="color:var(--gold);font-weight:700;font-size:13px;cursor:pointer;">📊 تقييم جميع الموظفين المتبقين في هذه الدورة ←</a>
+</div>
+</div>
+
+<!-- ===== Screen 4: Descriptive Course Eval Create ===== -->
+<div class=p p4>
+<div class=tag>المسار 2 — تقييم وصفي للدورة | شاشة 1/2</div>
+<div class=hdr><h2>📚 تقييم موظف في دورة — اختيار</h2><div class=sub>evaluations/create · قالب: employee_in_course · وصفي</div></div>
+<div class="grid g2">
+<div class=f><label>📋 القالب</label><select><option selected>التقييم الوصفي للدورة</option></select></div>
+<div class=f><label>📅 تاريخ التقييم</label><input type=date value="2026-11-08"></div>
+</div>
+<div class="info-card"><div class="ttl gold">📚 اختر الدورة التدريبية <span style="color:var(--red);font-size:9px;">(إلزامي)</span></div>
+<select><option value=0>— اختر الدورة —</option><option selected>دورة إدارة المشاريع PM-2026-02 (3 مشاركون)</option></select>
+<div class="info-grid" style="margin-top:10px;">
+<div class=det><span>الجهة المنفذة</span><strong>الرياض — عام</strong></div>
+<div class=det><span>تاريخ البدء</span><strong>2026-11-15</strong></div>
+<div class=det><span>تاريخ الانتهاء</span><strong>2026-11-20</strong></div>
+<div class=det><span>المدرب</span><strong>د. أحمد المرسي</strong></div>
+</div></div>
+<div class=f style="margin-bottom:14px;"><label>👤 اختر الموظف (من المسجلين في الدورة)</label><select><option value=0>— اختر الموظف —</option><option>عبدالله العتيبي — EMP-001 (مكتمل)</option><option selected>نورة القحطاني — EMP-002 (بانتظار)</option><option>خالد الدوسري — EMP-003 (بانتظار)</option></select>
+<div style="font-size:10px;color:#6c757d;margin-top:4px;">💡 تظهر فقط الموظفون المسجلون في الدورة المختارة</div>
+</div>
+<div class=bar><button class="btn btn-l">إلغاء</button><button class="btn btn-p">→ التالي: تعبئة التقييم</button></div>
+</div>
+
+<!-- ===== Screen 5: Descriptive Fill ===== -->
+<div class=p p5>
+<div class=tag>المسار 2 — تقييم وصفي للدورة | شاشة 2/2</div>
+<div class=hdr><h2>📝 تعبئة التقييم الوصفي</h2><div class=sub>نورة القحطاني · دورة إدارة المشاريع · قالب وصفي</div></div>
+<div class="info-card"><div class="ttl gold">📚 الدورة: إدارة المشاريع</div><div class="info-grid">
+<div class=det><span>الموظف</span><strong>نورة القحطاني</strong></div>
+<div class=det><span>الرقم</span><strong>EMP-002</strong></div>
+<div class=det><span>القسم</span><strong>تقنية المعلومات</strong></div>
+<div class=det><span>تاريخ التقييم</span><strong>2026-11-08</strong></div>
+</div></div>
+<div class=crit><div class="crit-h">تقييم الاستفادة <span class=w>100%</span></div><div class="crit-b">
+<div class=row style="flex-direction:column;align-items:stretch;"><span class=l style="margin-bottom:4px;">مدى استفادة الموظف</span><textarea rows=2>استفادت بشكل كبير من محتوى الدورة، خصوصاً تخطيط الجدول الزمني وإدارة المخاطر.</textarea></div>
+<div class=row style="flex-direction:column;align-items:stretch;margin-top:6px;"><span class=l style="margin-bottom:4px;">التطبيق العملي</span><textarea rows=2>ستطبق المهارات في مشروع تطوير النظام القادم.</textarea></div>
+<div class=row style="flex-direction:column;align-items:stretch;margin-top:6px;"><span class=l style="margin-bottom:4px;">التوصيات</span><textarea rows=1>توصية بتدريب إضافي على Agile.</textarea></div>
+<div class=row style="flex-direction:column;align-items:stretch;margin-top:6px;"><span class=l style="margin-bottom:4px;font-weight:700;color:var(--gold);">🏆 التقدير العام</span><select style="padding:6px;border:1px solid var(--gold);border-radius:5px;"><option>— اختر —</option><option selected>ممتاز (100)</option><option>جيد جداً (89.99)</option><option>جيد (79.99)</option></select></div>
+</div></div>
+<div class="ev-card"><div class="eh">👤 بيانات المقيّم</div><div class="eb"><div class="ev-grid">
+<div><label>اسم المقيّم</label><input value="خالد الغامدي"></div>
+<div><label>صفة المقيّم</label><input value="مدير العمليات"></div>
+<div><label>التاريخ</label><input type=date value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class=full><label>ملاحظات</label><textarea rows=1>أداء ممتاز في الدورة.</textarea></div>
+</div></div></div>
+<div class=bar><button class="btn btn-l">إلغاء</button><button class="btn btn-p">💾 حفظ وإرسال</button></div>
+</div>
+
+<!-- ===== Screen 6: Numeric Course Fill ===== -->
+<div class=p p6>
+<div class=tag>المسار 3 — تقييم رقمي للدورة</div>
+<div class=hdr><h2>🔢 تعبئة التقييم الرقمي للدورة</h2><div class=sub>خالد الدوسري · دورة إدارة المشاريع · درجة الاختبار</div></div>
+<div class="info-card"><div class="ttl gold">📚 الدورة: إدارة المشاريع</div><div class="info-grid">
+<div class=det><span>الموظف</span><strong>خالد الدوسري</strong></div>
+<div class=det><span>الرقم</span><strong>EMP-003</strong></div>
+<div class=det><span>القسم</span><strong>تقنية المعلومات</strong></div>
+<div class=det><span>التاريخ</span><strong>2026-11-08</strong></div>
+</div></div>
+<div class=crit><div class="crit-h">الاختبار النهائي <span class=w>100%</span></div><div class="crit-b">
+<div class=row><span class=l">درجة الاختبار (0-100)</span><input type=number value=88 min=0 max=100></div>
+</div></div>
+<div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;margin:10px 0;">
+<span style="font-size:11px;color:#6c757d;">الدرجة النهائية: </span><strong style="font-size:20px;color:var(--brand);">88.00</strong><span style="font-size:11px;color:#6c757d;"> / 100</span>
+</div>
+<div class="ev-card"><div class="eh">👤 بيانات المقيّم</div><div class="eb"><div class="ev-grid">
+<div><label>اسم المقيّم</label><input value="د. أحمد المرسي"></div>
+<div><label>صفة المقيّم</label><input value="المدرب"></div>
+<div><label>التاريخ</label><input type=date value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class=full><label>ملاحظات</label><textarea rows=1>أداء قوي في الاختبار النهائي.</textarea></div>
+</div></div></div>
+<div class=bar><button class="btn btn-l">إلغاء</button><button class="btn btn-p">💾 حفظ وإرسال</button></div>
+</div>
+
+<!-- ===== Screen 7: Workshop Eval ===== -->
+<div class=p p7>
+<div class=tag>المسار 4 — تقييم ورشة</div>
+<div class=hdr style="background:linear-gradient(135deg,#0c2823,#1a4a3e);"><h2>🏆 تقييم موظف في ورشة عمل</h2><div class=sub>سارة الحربي · ورشة حل المشكلات الإبداعي</div></div>
+<div class="info-card green"><div class="ttl green">🏆 الورشة: حل المشكلات الإبداعي <span style="color:var(--red);font-size:9px;">(إلزامي)</span></div>
+<select style="border-color:var(--brand2);"><option selected>ورشة حل المشكلات الإبداعي WS-2026-03 (جدة)</option></select>
+<div class="info-grid" style="margin-top:10px;">
+<div class=det><span>الموظف</span><strong>سارة الحربي</strong></div>
+<div class=det><span>الرقم</span><strong>EMP-004</strong></div>
+<div class=det><span>تواريخ الورشة</span><strong>1-3 نوفمبر 2026</strong></div>
+<div class=det><span>الفرع</span><strong>جدة</strong></div>
+</div></div>
+<div class=crit><div class="crit-h">الاختبار النهائي <span class=w>100%</span></div><div class="crit-b">
+<div class=row><span class=l">درجة الاختبار (0-100)</span><input type=number value=92 min=0 max=100></div>
+</div></div>
+<div class="ev-card"><div class="eh">👤 بيانات المقيّم</div><div class="eb"><div class="ev-grid">
+<div><label>اسم المقيّم</label><input value="د. أحمد المرسي"></div>
+<div><label>صفة المقيّم</label><input value="مدرب الورشة"></div>
+<div><label>التاريخ</label><input type=date value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class=full><label>ملاحظات</label><textarea rows=1>أداء متميز في حل المشكلات العملية.</textarea></div>
+</div></div></div>
+<div class=bar><button class="btn btn-l">إلغاء</button><button class="btn btn-p">💾 حفظ وإرسال</button></div>
+</div>
+
+<!-- ===== Screen 8: Annual Eval ===== -->
+<div class=p p8>
+<div class=tag>المسار 5 — التقييم السنوي</div>
+<div class=hdr><h2>📝 التقييم السنوي للموظف</h2><div class=sub>عبدالله العتيبي · قالب: سنوي · رقمي</div></div>
+<div style="background:#f0f5f3;border:1px dashed var(--line);border-radius:8px;padding:10px;text-align:center;color:#6c757d;font-size:11px;margin-bottom:12px;">ℹ️ هذا القالب من نوع "موظف فردي" — لا يتطلب ربطاً بدورة أو ورشة</div>
+<div class="grid g3">
+<div class=f><label>👤 الموظف</label><select><option selected>عبدالله العتيبي — EMP-001</option></select></div>
+<div class=f><label>📋 القالب</label><select><option selected>التقييم السنوي للموظف</option></select></div>
+<div class=f><label>📅 التاريخ</label><input type=date value="2026-11-08"></div>
+</div>
+<div class=crit><div class="crit-h">الأداء الوظيفي <span class=w>40%</span></div><div class="crit-b">
+<div class=row><span class=l">إنجاز الأهداف</span><input type=number value=85></div>
+<div class=row><span class=l">جودة العمل</span><input type=number value=80></div>
+</div></div>
+<div class=crit><div class="crit-h">السلوك والجدارة <span class=w>30%</span></div><div class="crit-b">
+<div class=row><span class=l">التعاون</span><input type=number value=90></div>
+<div class=row><span class=l">التواصل</span><input type=number value=85></div>
+</div></div>
+<div class=crit><div class="crit-h">المبادرة والتطوير <span class=w>30%</span></div><div class="crit-b">
+<div class=row><span class=l">المبادرة</span><input type=number value=75></div>
+<div class=row><span class=l">التطوير الذاتي</span><input type=number value=80></div>
+</div></div>
+<div class="ev-card"><div class="eh">👤 بيانات المقيّم</div><div class="eb"><div class="ev-grid">
+<div><label>اسم المقيّم</label><input value="خالد الغامدي"></div>
+<div><label>صفة المقيّم</label><input value="مدير العمليات"></div>
+<div><label>التاريخ</label><input type=date value="2026-11-08"></div>
+<div><label>الحالة</label><input value="مكتمل" readonly></div>
+<div class=full><label>ملاحظات</label><textarea rows=1>أداء ممتاز مع التزام عالٍ.</textarea></div>
+</div></div></div>
+<div class=bar><button class="btn btn-l">إلغاء</button><button class="btn btn-p">💾 حفظ وإرسال</button></div>
+</div>
+
+<!-- ===== Screen 9: Bulk — Employee ===== -->
+<div class=p p9>
+<div class=tag>المسار 6 — تقييم جماعي (عام)</div>
+<div class=hdr><h2>📊 التقييم الجماعي</h2><div class=sub>قالب: سنوي · 2 موظفين · لا دورة</div></div>
+<div class="grid g4">
+<div class=f><label>📋 القالب</label><select><option selected>التقييم السنوي للموظف</option></select><div style="font-size:8px;color:#6c757d;margin-top:2px;">🔒 يُقفل بعد أول تقييم</div></div>
+<div class=f><label>📅 التاريخ</label><input type=date value="2026-11-08"></div>
+<div class=f><label>👤 المقيّم</label><input value="خالد الغامدي"></div>
+<div class=f><label>🏷️ الصفة</label><input value="مدير العمليات"></div>
+</div>
+<div class=bcard><div class="bcard-h"><div class=av>ع</div><div><div class=nm>عبدالله العتيبي</div><div class=mt>EMP-001 · العمليات · الرياض</div></div></div><div class=bcard-b>
+<div class=row><span class=l>إنجاز الأهداف (40%)</span><input type=number value=85></div>
+<div class=row><span class=l>جودة العمل (40%)</span><input type=number value=80></div>
+</div></div>
+<div class=bcard><div class="bcard-h"><div class=av>ن</div><div><div class=nm>نورة القحطاني</div><div class=mt>EMP-002 · تقنية المعلومات · الرياض</div></div></div><div class=bcard-b>
+<div class=row><span class=l>إنجاز الأهداف (40%)</span><input type=number value=90></div>
+<div class=row><span class=l>جودة العمل (40%)</span><input type=number value=95></div>
+</div></div>
+<div class=bar><div style="font-size:11px;color:#6c757d;align-self:center;"><strong style="color:var(--brand);">2</strong> موظفين · <strong style="color:var(--brand);">0</strong> محفوظ · <strong style="color:var(--brand);">2</strong> بانتظار</div><button class="btn btn-p" style="padding:12px 32px;font-size:14px;">💾 حفظ الجميع</button></div>
+</div>
+
+<!-- ===== Screen 10: Bulk — Course ===== -->
+<div class=p p10>
+<div class=tag>المسار 6 — تقييم جماعي (دورة)</div>
+<div class=hdr><h2>📚 التقييم الجماعي للدورة</h2><div class=sub>قالب: رقمي للدورة · دورة: إدارة المشاريع · 3 موظفين مسجلين</div></div>
+<div class="grid g4">
+<div class=f><label>📋 القالب</label><select><option selected>التقييم الرقمي للدورة</option></select><div style="font-size:8px;color:#6c757d;margin-top:2px;">🔒 يُقفل</div></div>
+<div class=f><label>📚 الدورة</label><select><option selected>دورة إدارة المشاريع</option></select><span class="badge badge-course" style="margin-top:2px;">✓ دورة محددة</span></div>
+<div class=f><label>📅 التاريخ</label><input type=date value="2026-11-08"></div>
+<div class=f><label>👤 المقيّم</label><input value="خالد الغامدي"></div>
+</div>
+<div style="background:linear-gradient(90deg,var(--brand),var(--brand2));color:var(--gold);padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;margin-bottom:10px;">📚 جميع الموظفين التاليين سيُقيَّمون في دورة "إدارة المشاريع" — تم تحميلهم تلقائياً من المسجلين (pending)</div>
+<div class=bcard><div class="bcard-h"><div class=av>ع</div><div><div class=nm>عبدالله العتيبي</div><div class=mt>EMP-001 · 📚 دورة محددة</div></div><span class="badge badge-course">📚 دورة</span></div><div class=bcard-b>
+<div class=row><span class=l">درجة الاختبار (0-100)</span><input type=number value=88></div>
+</div></div>
+<div class=bcard><div class="bcard-h"><div class=av>ن</div><div><div class=nm>نورة القحطاني</div><div class=mt>EMP-002 · 📚 دورة محددة</div></div><span class="badge badge-course">📚 دورة</span></div><div class=bcard-b>
+<div class=row><span class=l">درجة الاختبار (0-100)</span><input type=number value=92></div>
+</div></div>
+<div class=bcard><div class="bcard-h"><div class=av>خ</div><div><div class=nm>خالد الدوسري</div><div class=mt>EMP-003 · 📚 دورة محددة</div></div><span class="badge badge-course">📚 دورة</span></div><div class=bcard-b>
+<div class=row><span class=l">درجة الاختبار (0-100)</span><input type=number value=85></div>
+</div></div>
+<div class=bar><div style="font-size:11px;color:#6c757d;align-self:center;"><strong style="color:var(--brand);">3</strong> موظفين · <strong style="color:var(--brand);">0</strong> محفوظ · <strong style="color:var(--brand);">3</strong> بانتظار</div><button class="btn btn-p" style="padding:12px 32px;font-size:14px;">💾 حفظ الجميع</button></div>
+</div>
+
+<!-- ===== Screen 10b: Employee Profile ===== -->
+<div class=p p10 style="display:none;">
+<!-- This is a bonus screen showing the employee profile with all evaluation types -->
+</div>
+
+<!-- ===== Bonus: Employee Profile ===== -->
+<div class=p p10>
+<div class=tag>ملف الموظف — النتيجة النهائية</div>
+<div class=hdr><h2>👤 ملف الموظف: نورة القحطاني</h2><div class=sub>EMP-002 · تقنية المعلومات · الرياض · 3 تقييمات</div></div>
+<div class="grid g3" style="margin-bottom:14px;">
+<div style="background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:14px;border-radius:10px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--gold);">90.05</div><div style="font-size:10px;opacity:.8;">متوسط سنوي</div></div>
+<div style="background:#d4edda;padding:14px;border-radius:10px;text-align:center;border:1px solid #c3e6cb;"><div style="font-size:22px;font-weight:800;color:#155724;">100</div><div style="font-size:10px;color:#155724;">تقييم دورة (ممتاز)</div></div>
+<div style="background:var(--gold-bg);padding:14px;border-radius:10px;text-align:center;border:1px solid var(--gold);"><div style="font-size:22px;font-weight:800;color:var(--gold);">82</div><div style="font-size:10px;color:var(--gold);">تقييم مهاري</div></div>
+</div>
+<table><tr><th>النوع</th><th>القالب</th><th>التاريخ</th><th>الدرجة</th><th>التقدير</th><th>الدورة</th></tr>
+<tr><td>📝 سنوي</td><td>التقييم السنوي</td><td>2026-11-08</td><td><strong>90.05</strong></td><td>جيد جدًا</td><td>—</td></tr>
+<tr><td>📚 دورة (وصفي)</td><td>التقييم الوصفي للدورة</td><td>2026-11-08</td><td><strong>100</strong></td><td>ممتاز</td><td>إدارة المشاريع</td></tr>
+<tr><td>⭐ مهاري</td><td>التقييم المهاري</td><td>2026-10-15</td><td><strong>82.00</strong></td><td>جيد</td><td>—</td></tr>
+</table>
+<div class="ev-card" style="margin-top:14px;"><div class="eh">📊 خيارات التقارير</div><div class="eb">
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<button class="btn btn-p" style="font-size:12px;">📄 PDF</button>
+<button class="btn btn-p" style="font-size:12px;">📊 Excel</button>
+<button class="btn btn-p" style="font-size:12px;">📝 Word</button>
+</div>
+<div style="font-size:10px;color:#6c757d;margin-top:8px;">التقرير يشمل: التقييم السنوي + تقييم الدورة + التقييم المهاري + بيانات المقيّم</div>
+</div></div>
+</div>
+
+</div>
+</body>
+</html>
