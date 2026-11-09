@@ -106,22 +106,22 @@
 
 <div class="a4-container">
 <div class="a4-page">
+  <?php
+    // CD-040.5: نوع التقييم يظهر في الشعار بدل HR (i) وفي الشارة (ii)
+    $evalTypeKey = $evaluation->evaluation_type ?? 'annual';
+    $tplTarget = $template['target_type'] ?? '';
+    if ($evalTypeKey === 'course' && $tplTarget === 'employee_in_course') $evalTypeKey = 'course';
+    $typeLabels = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-star']];
+    if ($tplTarget === 'skill') $evalTypeKey = 'skill';
+    if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
+    $typeInfo = $typeLabels[$evalTypeKey] ?? $typeLabels['annual'];
+  ?>
   <header class="doc-header">
-    <div class="header-emblem"><span style="font-size:15px; font-weight:800; color:var(--navy); letter-spacing:.5px;">HR</span></div>
+    <div class="header-emblem"><i class="<?php echo $typeInfo[2]; ?>"></i></div>
     <div class="header-titles">
-      <p class="kingdom">المملكة العربية السعودية</p>
       <p class="company">اسم الشركة — وحدة الموارد البشرية</p>
       <p class="basmala">بسم الله الرحمن الرحيم</p>
       <h1 class="doc-title"><?php echo htmlspecialchars($template['template_name']); ?></h1>
-      <?php
-        $evalTypeKey = $evaluation->evaluation_type ?? 'annual';
-        $tplTarget = $template['target_type'] ?? '';
-        if ($evalTypeKey === 'course' && $tplTarget === 'employee_in_course') $evalTypeKey = 'course';
-        $typeLabels = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-star']];
-        if ($tplTarget === 'skill') $evalTypeKey = 'skill';
-        if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
-        $typeInfo = $typeLabels[$evalTypeKey] ?? $typeLabels['annual'];
-      ?>
       <div style="margin-top:8px;"><span class="eval-type-badge <?php echo $typeInfo[1]; ?>"><i class="<?php echo $typeInfo[2]; ?>"></i> <?php echo $typeInfo[0]; ?></span></div>
     </div>
     <div class="header-meta">
@@ -165,13 +165,8 @@
           <div class="program-cell"><label><i class="fas fa-building"></i> الفرع المنفّذ</label><span><?php echo htmlspecialchars($program->branch_name ?? '—'); ?></span></div>
           <div class="program-cell"><label><i class="fas fa-users"></i> القسم المنفّذ</label><span><?php echo htmlspecialchars($program->department_name ?? '—'); ?></span></div>
           <div class="program-cell"><label><i class="fas fa-user-tie"></i> المسؤول</label><span><?php echo htmlspecialchars($program->responsible_person ?? '—'); ?></span></div>
-          <div class="program-cell"><label><i class="fas fa-folder-open"></i> الكتالوج</label><span><?php echo htmlspecialchars($program->catalog_title ?? '—'); ?></span></div>
+          <div class="program-cell"><label><i class="fas fa-tag"></i> نوع البرنامج</label><span><?php echo ($program->type ?? '') === 'workshop' ? 'ورشة' : 'دورة'; ?></span></div>
         </div>
-        <?php if (!empty($program->id) && empty($program->is_legacy_snapshot)): ?>
-        <div class="program-foot"><a href="<?php echo APP_URL . '/training/programs/' . (int)$program->id; ?>"><i class="fas fa-external-link-alt"></i> عرض تفاصيل البرنامج</a></div>
-        <?php elseif (!empty($program->is_legacy_snapshot)): ?>
-        <div class="program-foot" style="color:#6b7280;font-size:11px;">بيانات الدورة من اللقطة التاريخية (قبل نظام البرامج)</div>
-        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>
