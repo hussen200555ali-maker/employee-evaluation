@@ -111,6 +111,9 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-text-btn{border:1px solid var(--cd041-border);background:#fff;padding:4px 9px;border-radius:6px;cursor:pointer;font-size:13px;line-height:1;}
 .cd041-text-btn:hover{border-color:var(--cd041-gold);}
 .cd041-text-btn.has{background:#fdf3e2;border-color:var(--cd041-gold);color:var(--cd041-brand);}
+.cd041-notes-btn{border:1px solid var(--cd041-border);background:#fff;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px;line-height:1;margin-right:2px;vertical-align:middle;}
+.cd041-notes-btn:hover{border-color:var(--cd041-gold);}
+.cd041-notes-btn.has{background:#fdf3e2;border-color:var(--cd041-gold);color:var(--cd041-brand);}
 .cd041-grade-sel{border:1px solid var(--cd041-border);border-radius:6px;padding:4px 6px;font-size:11px;font-family:'Cairo',sans-serif;background:#fff;max-width:100px;}
 .cd041-grade-readonly{font-weight:700;color:var(--cd041-brand);font-size:12px;padding:4px 6px;display:inline-block;min-width:48px;}
 .cd041-score{font-weight:800;color:var(--cd041-brand);font-size:13px;}
@@ -624,17 +627,24 @@ function cd041_renderHead(){
 function cd041_cellHtml(col, empId){
     var t=cd041_type(col.type||col.evaluation_type);
     var r=(cd041_results[empId]||{})[col.id]||{};
+    // CD-041.2: notes 📝 icon — only when allow_notes is enabled in the template
+    var allowNotes = (col.allow_notes===undefined||col.allow_notes===null)?true:(parseInt(col.allow_notes)===1||col.allow_notes===true);
+    var notesBtn = function(){
+        if(!allowNotes) return '';
+        var has = r.notes && r.notes.trim();
+        return ' <button type="button" class="cd041-notes-btn '+(has?'has':'')+'" onclick="cd041_openNotesModal('+empId+','+col.id+')" title="ملاحظات">📝</button>';
+    };
     if(t==='percentage'){
         var v=r.score||''; var pct=v!==''?Math.max(0,Math.min(100,parseFloat(v)||0)):0;
-        return '<input type="number" class="cd041-input-mini" min="0" max="100" step="1" value="'+cd041_esc(v)+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'pct\')"><div class="cd041-progress" id="cd041-bar-'+empId+'-'+col.id+'"><span style="width:'+pct+'%"></span></div>';
+        return '<input type="number" class="cd041-input-mini" min="0" max="100" step="1" value="'+cd041_esc(v)+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'pct\')"><div class="cd041-progress" id="cd041-bar-'+empId+'-'+col.id+'"><span style="width:'+pct+'%"></span></div>'+notesBtn();
     }
     if(t==='numeric'){
         var mv=col.max_value||100;
-        return '<input type="number" class="cd041-input-mini" min="0" max="'+mv+'" step="0.5" value="'+cd041_esc(r.score||'')+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'num\')">';
+        return '<input type="number" class="cd041-input-mini" min="0" max="'+mv+'" step="0.5" value="'+cd041_esc(r.score||'')+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'num\')">'+notesBtn();
     }
     if(t==='boolean'){
         var on = r.score==='1', off = r.score==='0';
-        return '<div class="cd041-bool"><button type="button" class="'+(on?'on-yes':'')+'" onclick="cd041_onBool('+empId+','+col.id+',1,this)">نعم</button><button type="button" class="'+(off?'on-no':'')+'" onclick="cd041_onBool('+empId+','+col.id+',0,this)">لا</button></div>';
+        return '<div class="cd041-bool"><button type="button" class="'+(on?'on-yes':'')+'" onclick="cd041_onBool('+empId+','+col.id+',1,this)">نعم</button><button type="button" class="'+(off?'on-no':'')+'" onclick="cd041_onBool('+empId+','+col.id+',0,this)">لا</button></div>'+notesBtn();
     }
     if(t==='textarea'){
         var has = r.text && r.text.trim();
@@ -798,6 +808,22 @@ function cd041_updateSummary(){
 }
 
 /* ===== text modal ===== */
+function cd041_openNotesModal(empId, secId){
+    var col = cd041_columns.filter(function(c){return c.id===secId;})[0];
+    var emp = cd041_employees.filter(function(e){return e.id===empId;})[0];
+    if(!col||!emp) return;
+    cd041_modal_ctx = {empId:empId, secId:secId, mode:'notes'};
+    document.getElementById('cd041-modal-title').textContent = '📝 ملاحظات: '+cd041_short(col.name,30);
+    document.getElementById('cd041-modal-meta').textContent = 'الموظف: '+emp.full_name+' ('+emp.emp_code+')';
+    var r=(cd041_results[empId]||{})[secId]||{};
+    var ph = col.notes_placeholder || 'اكتب ملاحظاتك هنا...';
+    var ta=document.getElementById('cd041-modal-text'); ta.value=r.notes||''; ta.readOnly=false;
+    ta.placeholder=ph;
+    document.getElementById('cd041-modal-cc').textContent=ta.value.length+'/2000';
+    document.getElementById('cd041-modal-all-wrap').style.display='';
+    document.getElementById('cd041-modal-all').checked=false;
+    document.getElementById('cd041-modal').classList.add('open'); ta.focus();
+}
 function cd041_openTextModal(empId, secId){
     var col = cd041_columns.filter(function(c){return c.id===secId;})[0];
     var emp = cd041_employees.filter(function(e){return e.id===empId;})[0];
@@ -824,6 +850,17 @@ function cd041_saveModal(){
             cd041_toast('تم تطبيق النص على الكل','ok');
         } else {
             cd041_setResult(ctx.empId, ctx.secId, 'text', txt);
+            cd041_updateRow(ctx.empId);
+        }
+        cd041_renderMatrix();
+    } else if(ctx.mode==='notes'){
+        var nts=document.getElementById('cd041-modal-text').value;
+        var allN=document.getElementById('cd041-modal-all').checked;
+        if(allN){
+            cd041_employees.forEach(function(emp){ cd041_setResult(emp.id, ctx.secId, 'notes', nts); cd041_updateRow(emp.id); });
+            cd041_toast('تم تطبيق الملاحظات على الكل','ok');
+        } else {
+            cd041_setResult(ctx.empId, ctx.secId, 'notes', nts);
             cd041_updateRow(ctx.empId);
         }
         cd041_renderMatrix();
