@@ -50,7 +50,7 @@ function cd039_render_section($section, $criterion_id, $savedAnswers, $gradingSc
     $mv    = isset($section['max_value']) ? (int)$section['max_value'] : 100;
     $mn    = isset($section['min_value']) ? (int)$section['min_value'] : 0;
     $weight= isset($section['section_weight']) ? (float)$section['section_weight'] : 0;
-    $allowNotes = !in_array($type, ['textarea','overall_grade'], true);
+    $allowNotes = !in_array($type, ['textarea','overall_grade'], true) && (int)($section['allow_notes'] ?? 1) === 1;
 
     $desc = !empty($section['section_description']) ? '<div class="cd039-fd">'.cd039_esc($section['section_description']).'</div>' : '';
     $out = '<div class="cd039-field" data-section-id="'.$sid.'" data-criterion-id="'.$criterion_id.'" data-type="'.cd039_esc($type).'">';
@@ -120,9 +120,11 @@ function cd039_render_section($section, $criterion_id, $savedAnswers, $gradingSc
             $out .= '<div class="cd039-text"><input type="text" class="cd039-eval" name="'.$name.'[score]" placeholder="أدخل القيمة" value="'.cd039_esc($raw).'"></div>';
     }
 
-    // notes field (except textarea/overall_grade)
+    // notes field (except textarea/overall_grade; respects allow_notes from builder)
     if($allowNotes){
-        $out .= '<div class="cd039-notes"><label>📝 ملاحظات وشواهد</label><textarea name="'.$name.'[notes]" rows="2" placeholder="اكتب ملاحظاتك هنا...">'.cd039_esc($notes).'</textarea></div>';
+        $notesReq = (int)($section['notes_required'] ?? 0) === 1;
+        $notesPh = !empty($section['notes_placeholder']) ? $section['notes_placeholder'] : 'اكتب ملاحظاتك هنا...';
+        $out .= '<div class="cd039-notes"><label>📝 ملاحظات وشواهد'.($notesReq ? ' <span class="cd039-req">*</span>' : '').'</label><textarea name="'.$name.'[notes]" rows="2" placeholder="'.cd039_esc($notesPh).'"'.($notesReq ? ' required' : '').'>'.cd039_esc($notes).'</textarea></div>';
     }
     $out .= '</div>';
     return $out;

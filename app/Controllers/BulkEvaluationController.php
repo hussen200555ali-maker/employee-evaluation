@@ -104,6 +104,10 @@ final class BulkEvaluationController extends Controller
                     'min_value'      => isset($section['min_value']) ? (float)$section['min_value'] : null,
                     'max_value'      => isset($section['max_value']) ? (float)$section['max_value'] : null,
                     'options'        => $opts,
+                    // CD-040.4 fix: الواجهة كانت تُظهر الملاحظات دائمًا لأن هذه الحقول لم تُرسَل أصلًا
+                    'allow_notes'       => isset($section['allow_notes']) ? (int)$section['allow_notes'] : 1,
+                    'notes_required'    => isset($section['notes_required']) ? (int)$section['notes_required'] : 0,
+                    'notes_placeholder' => $section['notes_placeholder'] ?? '',
                 ];
                 // CD-024: for overall_grade, resolve the grading scale rows server-side
                 if ($type === 'overall_grade' && is_array($opts) && !empty($opts['scale_name'])) {

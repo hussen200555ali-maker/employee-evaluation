@@ -739,7 +739,10 @@ function cd040_renderSection(sec,cid){
     case 'overall_grade':var scale=sec.scale_name||'السلم الخماسي';var grades=sec.grades||[];var opts=grades.map(function(g){return '<option value="'+cd040_esc(g.label)+'">'+cd040_esc(g.label)+' ('+g.value+')</option>';}).join('');html+='<div class="cd040-overall-inline"><div class="cd040-oh"><div class="cd040-og"><div class="cd040-oi">★</div><div><div class="cd040-ot">التقدير العام</div><div class="cd040-os">سلم: '+cd040_esc(scale)+'</div></div></div>'+cd040_badge('overall_grade')+'</div><select name="'+name+'[grade_label]"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';break;
     default:html+='<div class="cd040-text"><input type="text" name="'+name+'[score]" placeholder="أدخل القيمة"></div>';
   }
-  if(type!=='textarea'&&type!=='overall_grade'){html+='<div class="cd040-notes"><label>📝 ملاحظات</label><textarea name="'+name+'[notes]" rows="2" placeholder="ملاحظاتك..."></textarea></div>';}
+  var secAllowNotes=(sec.allow_notes===undefined||sec.allow_notes===null)?true:(sec.allow_notes===true||parseInt(sec.allow_notes)===1);
+  var secNotesReq=(sec.notes_required===true||parseInt(sec.notes_required)===1);
+  var secNotesPh=sec.notes_placeholder?cd040_esc(sec.notes_placeholder):'ملاحظاتك...';
+  if(type!=='textarea'&&type!=='overall_grade'&&secAllowNotes){html+='<div class="cd040-notes"><label>📝 ملاحظات'+(secNotesReq?' <span class="cd040-req">*</span>':'')+'</label><textarea name="'+name+'[notes]" rows="2" placeholder="'+secNotesPh+'"'+(secNotesReq?' required':'')+'></textarea></div>';}
   html+='</div>';return html;
 }
 function cd040_prefillAnswers(){
