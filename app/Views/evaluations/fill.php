@@ -321,19 +321,7 @@ body {
                     <?php endforeach; endif; ?>
                 </select>
                 <div id="workshopInfo" class="mt-2" style="display:none;background:#fffbf3;border:1px solid #c8943f;border-radius:8px;padding:10px;font-size:.85rem"></div>
-<script>
-function showProgramInfo(sel, infoId){
-  var o = sel.options[sel.selectedIndex]; var box = document.getElementById(infoId);
-  if(!o || !o.value){ if(box) box.style.display='none'; return; }
-  if(box){ box.style.display='block';
-    box.innerHTML = '<div style="font-weight:700;color:#0c2823;margin-bottom:4px">📋 معلومات البرنامج</div>'+
-      '<div>🏢 الجهة المنفّذة: <b>'+(o.dataset.branch||'—')+'</b></div>'+
-      '<div>📅 التواريخ: <b>'+(o.dataset.dates||'—')+'</b></div>'+
-      '<div>👤 المسؤول: <b>'+(o.dataset.trainer||'—')+'</b></div>';
-  }
-}
-</script>
-                <small class="text-muted">يرتبط هذا التقييم بالورشة المختارة.</small>
+                <small class="text-muted">يرتبط هذا التقييم بالبرنامج المختار.</small>
             </div>
         </div>
     </div>
@@ -638,8 +626,20 @@ function showProgramInfo(sel, infoId){
     const evaluationTemplate = <?php echo json_encode($template, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK); ?>;
 </script>
 
-<?php 
-require_once APP_ROOT . '/app/Views/layouts/footer.php'; 
+<script>
+// CD-037: showProgramInfo — معرّفة مرة واحدة (للدورة والورشة)
+function showProgramInfo(sel, infoId){
+  var o = sel.options[sel.selectedIndex]; var box = document.getElementById(infoId);
+  if(!o || !o.value){ if(box) box.style.display='none'; return; }
+  if(box){ box.style.display='block';
+    box.innerHTML = '<div style="font-weight:700;color:#0c2823;margin-bottom:4px">📋 معلومات البرنامج</div>'+
+      '<div>🏢 الجهة المنفّذة: <b>'+(o.dataset.branch||'—')+'</b></div>'+
+      '<div>📅 التواريخ: <b>'+(o.dataset.dates||'—')+'</b></div>'+
+      '<div>👤 المسؤول: <b>'+(o.dataset.trainer||'—')+'</b></div>';
+  }
+}
+</script>
+<?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; 
 ?>
 
 <script>

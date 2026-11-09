@@ -416,8 +416,10 @@ function saveSingle(empId) {
     // CD-029: أضف context_id إن وُجد (دورة/ورشة)
     var ctxSelect = document.getElementById('contextSelect');
     if (ctxSelect && ctxSelect.value > 0) {
+        var _tplSel = document.getElementById('templateSelect');
+        var _tgt = _tplSel ? (_tplSel.options[_tplSel.selectedIndex].getAttribute('data-target') || 'employee') : 'employee';
         formData.append('context_id', ctxSelect.value);
-        formData.append('context_type', ctxSelect.closest('#contextSelectWrap') ? 'course' : 'course');
+        formData.append('context_type', _tgt === 'employee_in_workshop' ? 'workshop' : 'course');
     }
     formData.append('evaluation_date', document.getElementById('evalDate').value);
     formData.append('evaluator_name', document.getElementById('evaluatorName').value);
@@ -513,7 +515,9 @@ function saveAll() {
     // CD-029: أضف context_id للحمولة إن وُجد
     var ctxSel = document.getElementById('contextSelect');
     var ctxId = (ctxSel && ctxSel.value > 0) ? parseInt(ctxSel.value) : null;
-    var ctxType = ctxId ? 'course' : null; // TODO: detect workshop
+    var _tplSel = document.getElementById('templateSelect');
+    var _tgt = _tplSel ? (_tplSel.options[_tplSel.selectedIndex].getAttribute('data-target') || 'employee') : 'employee';
+    var ctxType = ctxId ? (_tgt === 'employee_in_workshop' ? 'workshop' : 'course') : null;
 
     var payload = JSON.stringify({
         _token: csrfToken,

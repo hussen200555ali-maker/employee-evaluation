@@ -217,6 +217,20 @@ final class BulkEvaluationController extends Controller
             $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
             $this->saveResults($evaluationId, $results, $templateId);
 
+            // CD-037: context + sync program_participants (parity with bulkSave)
+            $ctxId = (int)($_POST['context_id'] ?? 0);
+            $ctxType = (string)($_POST['context_type'] ?? '');
+            if ($ctxId > 0 && ($ctxType === 'course' || $ctxType === 'workshop')) {
+                $db = Database::getInstance();
+                $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
+                $db->bind(':ctype', $ctxType);
+                $db->bind(':cid', $ctxId);
+                $db->bind(':eid', $evaluationId);
+                $db->execute();
+                $score = (new \App\Models\Evaluation())->calculateFinalScore($evaluationId);
+                (new \App\Models\ProgramParticipant())->markCompleted($ctxId, $employeeId, (float)($score ?? 0));
+            }
+
             $this->json([
                 'success'       => true,
                 'evaluation_id' => $evaluationId,
