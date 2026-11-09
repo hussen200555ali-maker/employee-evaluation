@@ -99,6 +99,9 @@ class EvaluationController extends Controller {
             'branches'       => $branches,
             'evaluatorName'  => $evaluatorName,
             'evaluatorTitle' => $evaluatorTitle,
+            // CD-040.3.1: سلالم التقديرات للبطاقة السفلية (final_grade_id) —
+            // كانت مفقودة فظهرت القائمة فارغة في وضع الإنشاء
+            'gradingScales'  => (new \App\Models\GradingScale())->getActive(),
         ];
 
         $this->view('evaluations/create', $data);

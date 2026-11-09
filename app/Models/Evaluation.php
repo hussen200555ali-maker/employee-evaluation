@@ -442,11 +442,12 @@ class Evaluation extends Model {
      */
     private function calculateDescriptiveScore(int $evaluationId, array $template): ?float {
         // CD-040.3: اقرأ grade_label من جدول evaluations مباشرة (لا من evaluation_answers)
+        // CD-040.3.1: اسم العمود الفعلي final_grade_label (لا grade_label)
         $evaluation = $this->findById($evaluationId);
-        if (!$evaluation || empty($evaluation->grade_label)) {
+        if (!$evaluation || empty($evaluation->final_grade_label)) {
             return null;
         }
-        $gradeLabel = (string)$evaluation->grade_label;
+        $gradeLabel = (string)$evaluation->final_grade_label;
 
         // ابحث عن scale_name من قسم overall_grade في القالب (إن وُجد لقالب قديم)
         $scaleName = 'السلم الخماسي';

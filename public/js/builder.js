@@ -537,9 +537,9 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
                 formStructure.criteria.forEach(c => (c.sections || []).forEach(s => { if (s.sectionType === 'overall_grade') overallGradeCount++; }));
                 if (overallGradeCount > 1) { e.preventDefault(); alert('لا يُسمح بإضافة "التقدير العام" إلا مرة واحدة في القالب.'); return; }
 
-                // القالب الوصفي: لا شرط 100%، لكن يُشترط وجود "التقدير العام"
+                // القالب الوصفي: لا شرط 100%، ولا شرط "التقدير العام"
+                // CD-040.3.1: التقدير العام أصبح «ناتج نظام» تلقائي — لا يُشترط وجوده كقسم
                 if (evalMode === 'descriptive') {
-                    if (overallGradeCount < 1) { e.preventDefault(); alert('القالب الوصفي يجب أن يحتوي على "التقدير العام" ليُحفظ.'); return; }
                     return; // لا فحص أوزان للقوالب الوصفية
                 }
 
