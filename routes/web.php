@@ -135,6 +135,7 @@ $router->post('api/employees/quick-add', 'App\Controllers\BulkEvaluationControll
 $router->post('evaluations/save-single', 'App\Controllers\BulkEvaluationController@saveSingle');
 $router->post('evaluations/bulk-save', 'App\Controllers\BulkEvaluationController@bulkSave');
 $router->post('evaluations/store', 'App\Controllers\EvaluationController@store');
+$router->post('evaluations/save-unified', 'App\Controllers\EvaluationController@saveUnified');
 $router->get('evaluations/:id/fill', 'App\Controllers\EvaluationController@fill');
 $router->post('evaluations/submit', 'App\Controllers\EvaluationController@submit');
 $router->get('evaluations/show/:id', 'App\Controllers\EvaluationController@show');

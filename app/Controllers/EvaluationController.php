@@ -71,9 +71,34 @@ class EvaluationController extends Controller {
      */
     public function create() {
         Auth::enforce('evaluations.create');
-        
+
+        // CD-040: pass templates, branches, evaluator info for the unified page
+        $db = \App\Core\Database::getInstance();
+        $db->query('SELECT id, template_name, evaluation_mode, evaluation_frequency, target_type
+                    FROM form_templates WHERE is_active = 1 ORDER BY template_name');
+        $templates = $db->fetchAll();
+
+        $db->query('SELECT id, name FROM branches ORDER BY name');
+        $branches = $db->fetchAll();
+
+        $evaluatorName = '';
+        $evaluatorTitle = '';
+        $user = Auth::user();
+        if ($user && !empty($user->employee_id)) {
+            $empModel = new Employee();
+            $emp = $empModel->findById((int)$user->employee_id);
+            if ($emp) {
+                $evaluatorName = $emp->full_name;
+                $evaluatorTitle = $emp->position_title ?? '';
+            }
+        }
+
         $data = [
-            'pageTitle' => 'بدء تقييم موظف جديد'
+            'pageTitle'      => 'بدء تقييم جديد',
+            'templates'      => $templates,
+            'branches'       => $branches,
+            'evaluatorName'  => $evaluatorName,
+            'evaluatorTitle' => $evaluatorTitle,
         ];
 
         $this->view('evaluations/create', $data);
@@ -300,17 +325,31 @@ class EvaluationController extends Controller {
             return;
         }
 
+        // CD-040: load templates list for the unified selector (single template pre-selected)
+        $db = \App\Core\Database::getInstance();
+        $db->query('SELECT id, template_name, evaluation_mode, evaluation_frequency, target_type
+                    FROM form_templates WHERE is_active = 1 ORDER BY template_name');
+        $templates = $db->fetchAll();
+
+        $db->query('SELECT id, name FROM branches ORDER BY name');
+        $branches = $db->fetchAll();
+
         $data = [
-            'pageTitle' => 'تعبئة استمارة التقييم: ' . htmlspecialchars($evaluation->employee_name),
-            'evaluation' => $evaluation,
-            'evaluator' => $evaluator,
-            'template' => $template,
-            'savedAnswers' => $savedAnswers,
-            'gradingScales' => (new \App\Models\GradingScale())->getActive(),
+            'pageTitle'      => 'تعديل استمارة التقييم: ' . htmlspecialchars($evaluation->employee_name),
+            'evaluation'     => $evaluation,
+            'evaluator'      => $evaluator,
+            'template'       => $template,
+            'savedAnswers'   => $savedAnswers,
+            'gradingScales'  => (new \App\Models\GradingScale())->getActive(),
+            'templates'      => $templates,
+            'branches'       => $branches,
+            'evaluatorName'  => $evaluation->evaluator_name ?? ($evaluator->full_name ?? ''),
+            'evaluatorTitle' => $evaluation->evaluator_title ?? ($evaluator->position_title ?? ''),
         ];
 
-        $this->view('evaluations/fill', $data);
-    } 
+        // CD-040: render the SAME unified create.php view in edit mode
+        $this->view('evaluations/create', $data);
+    }
     
     /**
      * =================================================================
@@ -455,6 +494,210 @@ class EvaluationController extends Controller {
             $this->redirect("/evaluations/{$evaluationId}/fill");
         }
     }
+
+    /**
+     * =================================================================
+     * CD-040: حفظ موحّد — ينشئ تقييمًا جديدًا أو يحدّث مسودة موجودة في طلب واحد
+     * POST /evaluations/save-unified (AJAX, returns JSON)
+     * =================================================================
+     */
+    public function saveUnified() {
+        header('Content-Type: application/json; charset=utf-8');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'طريقة غير مسموحة'], 405);
+            return;
+        }
+
+        $perm = 'evaluations.create';
+        $existingId = (int)($_POST['evaluation_id'] ?? 0);
+        if ($existingId > 0) {
+            $perm = 'evaluations.fill';
+        }
+        Auth::enforce($perm);
+        Auth::validateCsrfToken($_POST['_token'] ?? $_POST['_csrf'] ?? '');
+
+        $employeeId   = (int)($_POST['employee_id'] ?? 0);
+        $templateId   = (int)($_POST['template_id'] ?? 0);
+        $evalDate     = trim((string)($_POST['evaluation_date'] ?? date('Y-m-d')));
+        $results      = $_POST['results'] ?? [];
+        $evaluatorName  = trim((string)($_POST['evaluator_name'] ?? ''));
+        $evaluatorTitle = trim((string)($_POST['evaluator_title'] ?? ''));
+        $contextId    = (int)($_POST['context_id'] ?? 0);
+        $contextType  = (string)($_POST['context_type'] ?? '');
+
+        if ($employeeId < 1 || $templateId < 1 || empty($results)) {
+            $this->json(['error' => 'بيانات ناقصة: الموظف والقالب والإجابات مطلوبة'], 400);
+            return;
+        }
+
+        try {
+            $db = \App\Core\Database::getInstance();
+            $evalModel = new Evaluation();
+
+            if ($existingId > 0) {
+                // UPDATE existing draft
+                $evaluation = $evalModel->findById($existingId);
+                if (!$evaluation) {
+                    $this->json(['error' => 'التقييم غير موجود'], 404);
+                    return;
+                }
+                if ($evaluation->status !== 'draft') {
+                    $this->json(['error' => 'لا يمكن تعديل تقييم غير مسودة'], 400);
+                    return;
+                }
+                if (!$this->canEditAssignedEvaluation($evaluation)) {
+                    $this->json(['error' => 'هذا التقييم غير مسند إليك'], 403);
+                    return;
+                }
+                $evaluationId = $existingId;
+                $evalModel->saveEvaluationResults($evaluationId, $results);
+                // refresh evaluator fields
+                $db->query('UPDATE evaluations SET evaluator_name=:en, evaluator_title=:et, evaluation_date=:ed WHERE id=:id');
+                $db->bind(':en', $evaluatorName);
+                $db->bind(':et', $evaluatorTitle);
+                $db->bind(':ed', $evalDate);
+                $db->bind(':id', $evaluationId);
+                $db->execute();
+            } else {
+                // CREATE new
+                $empModel = new Employee();
+                $emp = $empModel->findById($employeeId);
+                if (!$emp) {
+                    $this->json(['error' => 'الموظف غير موجود'], 404);
+                    return;
+                }
+                // resolve evaluator_employee_id from current user if not external
+                $user = Auth::user();
+                $evaluatorEmpId = $user && !empty($user->employee_id) ? (int)$user->employee_id : null;
+                if (!$evaluatorName && $evaluatorEmpId) {
+                    $evalEmp = $empModel->findById($evaluatorEmpId);
+                    if ($evalEmp) {
+                        $evaluatorName = $evalEmp->full_name;
+                        $evaluatorTitle = $evaluatorTitle ?: ($evalEmp->position_title ?? '');
+                    }
+                }
+                // template target → evaluation_type
+                $db->query('SELECT target_type FROM form_templates WHERE id=:id');
+                $db->bind(':id', $templateId);
+                $tpl = $db->fetch();
+                $evalType = 'annual';
+                if ($tpl) {
+                    $tt = $tpl->target_type;
+                    if ($tt === 'course' || $tt === 'employee_in_course') $evalType = 'course';
+                    elseif ($tt === 'workshop' || $tt === 'employee_in_workshop') $evalType = 'workshop';
+                }
+                $db->query(
+                    'INSERT INTO evaluations
+                        (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id,
+                         evaluator_employee_id, evaluator_name, evaluator_title,
+                         employee_name, employee_code, branch_name, department_name, position_name,
+                         entity_type, entity_id, created_by_user_id, created_at)
+                     VALUES
+                        (:tpl, "draft", :date, :etype, :emp,
+                         :eval_emp, :eval_name, :eval_title,
+                         :emp_name, :emp_code, :branch, :dept, :pos,
+                         "employee", :entity, :user, NOW())'
+                );
+                $db->bind(':tpl', $templateId);
+                $db->bind(':date', $evalDate);
+                $db->bind(':etype', $evalType);
+                $db->bind(':emp', $employeeId);
+                $db->bind(':entity', $employeeId);
+                $db->bind(':eval_emp', $evaluatorEmpId);
+                $db->bind(':eval_name', $evaluatorName);
+                $db->bind(':eval_title', $evaluatorTitle);
+                $db->bind(':emp_name', $emp->full_name);
+                $db->bind(':emp_code', $emp->emp_code);
+                $db->bind(':branch', $emp->branch_name ?? '');
+                $db->bind(':dept', $emp->department_name ?? '');
+                $db->bind(':pos', $emp->position_title ?? '');
+                $db->bind(':user', (int)Auth::id());
+                $db->execute();
+                $evaluationId = (int)$db->lastInsertId();
+                $evalModel->saveEvaluationResults($evaluationId, $results);
+            }
+
+            // context (course/workshop) + sync program_participants
+            if ($contextId > 0 && in_array($contextType, ['course', 'workshop'], true)) {
+                $db->query('UPDATE evaluations SET context_type=:ct, context_id=:cid WHERE id=:eid');
+                $db->bind(':ct', $contextType);
+                $db->bind(':cid', $contextId);
+                $db->bind(':eid', $evaluationId);
+                $db->execute();
+            }
+
+            // compute final score + finalize status
+            $finalScore = $evalModel->calculateFinalScore($evaluationId);
+            $isUnit = false; // unified page is employee-only
+            $nextStatus = $isUnit ? 'pending_review' : 'completed';
+
+            // descriptive/mixed: try overall grade answer first, else final_grade_id
+            $template = (new Template())->getTemplateWithStructure($templateId);
+            $mode = $template['evaluation_mode'] ?? 'numeric';
+            $manualGrade = null;
+            if (in_array($mode, ['descriptive', 'mixed'], true)) {
+                $overallAnswer = $this->extractOverallGradeAnswer($template, $results);
+                if ($overallAnswer !== null) {
+                    $numericValue = (new \App\Models\GradingScale())->getNumericValueForLabel(
+                        $overallAnswer['scale_name'],
+                        $overallAnswer['grade_label']
+                    );
+                    if ($numericValue !== null) {
+                        $manualGrade = (object)[
+                            'grade_label'   => $overallAnswer['grade_label'],
+                            'numeric_value' => $numericValue,
+                            'scale_name'    => $overallAnswer['scale_name'],
+                        ];
+                    }
+                }
+                if (!$manualGrade) {
+                    $gradeId = filter_var($_POST['final_grade_id'] ?? null, FILTER_VALIDATE_INT);
+                    $manualGrade = ($gradeId !== false && $gradeId > 0)
+                        ? (new \App\Models\GradingScale())->findActiveById($gradeId)
+                        : null;
+                }
+            }
+
+            if ($manualGrade) {
+                $evalModel->updateScoreGradeAndStatus(
+                    $evaluationId,
+                    $finalScore,
+                    $manualGrade->grade_label,
+                    (float)$manualGrade->numeric_value,
+                    $nextStatus
+                );
+            } elseif ($finalScore !== null) {
+                $evalModel->updateScoreAndStatus($evaluationId, $finalScore, $nextStatus);
+            } else {
+                $evalModel->updateStatus($evaluationId, $nextStatus);
+            }
+
+            // sync program_participants
+            if ($contextId > 0 && in_array($contextType, ['course', 'workshop'], true)) {
+                (new \App\Models\ProgramParticipant())->markCompleted(
+                    $contextId,
+                    $employeeId,
+                    (float)($finalScore ?? 0)
+                );
+            }
+
+            Audit::log('EVALUATION_SAVED_UNIFIED', $evaluationId, 'evaluations', [
+                'employee_id' => $employeeId,
+                'template_id' => $templateId,
+                'mode' => $existingId > 0 ? 'update' : 'create',
+            ]);
+
+            $this->json([
+                'success'       => true,
+                'evaluation_id' => $evaluationId,
+                'final_score'   => $finalScore,
+                'message'       => 'تم حفظ التقييم بنجاح',
+            ]);
+        } catch (\Throwable $e) {
+            $this->json(['error' => 'فشل الحفظ: ' . $e->getMessage()], 500);
+        }
+    }
+
     /**
      * =================================================================
      * دالة جديدة: عرض تفاصيل تقييم مكتمل
