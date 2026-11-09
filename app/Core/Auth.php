@@ -245,6 +245,11 @@ class Auth {
         if (strpos($uri, 'api/') === 0) {
             return;
         }
+        // CD-041: bulk-save يرسل JSON (لا $_POST) ويتحقق من CSRF داخل المتحكم
+        // (Auth::validateCsrfToken) — تخطّي التحقق العام لتجنب 403 كاذبة.
+        if (strpos($uri, 'evaluations/bulk-save') === 0) {
+            return;
+        }
 
         $token = $_POST['_token'] ?? $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_SERVER['HTTP_X_CSRFTOKEN'] ?? '';
         if (!self::validateCsrfToken($token)) {
