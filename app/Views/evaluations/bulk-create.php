@@ -112,9 +112,10 @@ header('Expires: 0');
             <select id="contextSelect"><option value="0">— اختر —</option></select>
             <span id="contextBadge" style="display:none;font-size:10px;background:#c8943f;color:#0c2823;padding:2px 8px;border-radius:10px;font-weight:700;"></span>
         </div>
-        <div><label>التاريخ الموحد</label><input type="date" id="evalDate" value="<?= date('Y-m-d') ?>"></div>
-        <div><label>اسم المقيّم</label><input type="text" id="evaluatorName" value="<?= htmlspecialchars($evaluatorName ?? '') ?>"></div>
+        <div><label>التاريخ الموحد</label><input type="date" id="evalDate" value="<?= date('Y-m-d') ?>" required></div>
+        <div><label>اسم المقيّم</label><input type="text" id="evaluatorName" value="<?= htmlspecialchars($evaluatorName ?? '') ?>" required></div>
         <div><label>صفة المقيّم</label><input type="text" id="evaluatorTitle" value="<?= htmlspecialchars($evaluatorTitle ?? '') ?>"></div>
+        <div><label>ملاحظات المقيّم</label><input type="text" id="evaluatorNotes" maxlength="2000" placeholder="ملاحظات اختيارية"></div>
     </div>
 
     <!-- Search + Quick Add -->
@@ -164,44 +165,59 @@ var csrfToken = '<?= htmlspecialchars($csrfToken ?? '') ?>';
 var templateSchema = null;
 var templateLocked = false;
 var employeeCards = [];
+var contextLoadToken = 0;
 
 // Template selection → load schema + context field
 document.getElementById('templateSelect').addEventListener('change', function() {
     if (templateLocked) { alert('القالب مُقفل. لا يمكن تغييره بعد إدخال تقييمات.'); this.value = templateSchema ? templateSchema.id : 0; return; }
     var id = parseInt(this.value);
-    if (id === 0) { templateSchema = null; document.getElementById('contextSelectWrap').style.display='none'; return; }
+    var contextRequestId = ++contextLoadToken;
+    var ctxWrap = document.getElementById('contextSelectWrap');
+    var ctxSelect = document.getElementById('contextSelect');
+    var ctxBadge = document.getElementById('contextBadge');
+    ctxSelect.innerHTML = '<option value="0">— اختر —</option>';
+    ctxSelect.required = false;
+    ctxBadge.style.display = 'none';
+    if (id === 0) { templateSchema = null; ctxWrap.style.display='none'; return; }
 
     // CD-029: إظهار/إخفاء حقل الدورة حسب target_type
     var selectedOpt = this.options[this.selectedIndex];
     var target = selectedOpt.getAttribute('data-target') || 'employee';
-    var ctxWrap = document.getElementById('contextSelectWrap');
     var ctxLabel = document.getElementById('contextLabel');
-    var ctxSelect = document.getElementById('contextSelect');
-    var ctxBadge = document.getElementById('contextBadge');
 
-    if (target === 'employee_in_course') {
+    if (target === 'employee_in_course' || target === 'course') {
         ctxLabel.textContent = '📚 البرنامج (دورة)';
         ctxWrap.style.display = '';
+        ctxSelect.required = true;
         ctxSelect.innerHTML = '<option value="0">— اختر البرنامج (دورة) —</option>';
         fetch(appUrl + '/api/training-programs/list/course').then(r => r.json()).then(function(list) {
+            if (contextRequestId !== contextLoadToken) return;
             (Array.isArray(list) ? list : []).forEach(function(p) {
                 var opt = document.createElement('option');
                 opt.value = p.id; opt.textContent = p.title || ('برنامج #' + p.id);
+                opt.dataset.branch = [p.branch_name, p.department_name].filter(Boolean).join(' — ');
+                opt.dataset.dates = [p.start_date, p.end_date].filter(Boolean).join(' → ');
+                opt.dataset.responsible = p.responsible_person || '';
                 ctxSelect.appendChild(opt);
             });
-        }).catch(function() { ctxSelect.innerHTML = '<option value="0">— لا توجد برامج —</option>'; });
+        }).catch(function() { if (contextRequestId === contextLoadToken) ctxSelect.innerHTML = '<option value="0">— لا توجد برامج —</option>'; });
         ctxBadge.style.display = 'none';
-    } else if (target === 'employee_in_workshop') {
+    } else if (target === 'employee_in_workshop' || target === 'workshop') {
         ctxLabel.textContent = '🏆 البرنامج (ورشة)';
         ctxWrap.style.display = '';
+        ctxSelect.required = true;
         ctxSelect.innerHTML = '<option value="0">— اختر البرنامج (ورشة) —</option>';
         fetch(appUrl + '/api/training-programs/list/workshop').then(r => r.json()).then(function(list) {
+            if (contextRequestId !== contextLoadToken) return;
             (Array.isArray(list) ? list : []).forEach(function(p) {
                 var opt = document.createElement('option');
                 opt.value = p.id; opt.textContent = p.title || ('برنامج #' + p.id);
+                opt.dataset.branch = [p.branch_name, p.department_name].filter(Boolean).join(' — ');
+                opt.dataset.dates = [p.start_date, p.end_date].filter(Boolean).join(' → ');
+                opt.dataset.responsible = p.responsible_person || '';
                 ctxSelect.appendChild(opt);
             });
-        }).catch(function() { ctxSelect.innerHTML = '<option value="0">— لا توجد برامج —</option>'; });
+        }).catch(function() { if (contextRequestId === contextLoadToken) ctxSelect.innerHTML = '<option value="0">— لا توجد برامج —</option>'; });
         ctxBadge.style.display = 'none';
     } else {
         ctxWrap.style.display = 'none';
@@ -218,8 +234,12 @@ document.getElementById('templateSelect').addEventListener('change', function() 
 document.getElementById('contextSelect').addEventListener('change', function() {
     var badge = document.getElementById('contextBadge');
     if (this.value > 0) {
-        var name = this.options[this.selectedIndex].text;
-        badge.textContent = '✓ ' + name;
+        var option = this.options[this.selectedIndex];
+        var details = [];
+        if (option.dataset.branch) details.push('الجهة: ' + option.dataset.branch);
+        if (option.dataset.dates) details.push('التاريخ: ' + option.dataset.dates);
+        if (option.dataset.responsible) details.push('المسؤول: ' + option.dataset.responsible);
+        badge.textContent = '✓ ' + option.text + (details.length ? ' | ' + details.join(' | ') : '');
         badge.style.display = '';
         // CD-032: سحب الموظفين pending من الدورة تلقائياً
         loadPendingEmployees(parseInt(this.value));
@@ -231,9 +251,9 @@ document.getElementById('contextSelect').addEventListener('change', function() {
 // CD-032: سحب الموظفين المسجلين (pending) من الدورة المختارة
 function loadPendingEmployees(courseId) {
     if (!courseId || courseId < 1) return;
-    fetch(appUrl + '/api/courses/' + courseId + '/pending-employees').then(r => r.json()).then(function(emps) {
+    fetch(appUrl + '/api/training-programs/' + courseId + '/pending-employees').then(r => r.json()).then(function(emps) {
         var list = Array.isArray(emps) ? emps : [];
-        if (list.length === 0) { alert('لا يوجد موظفون بانتظار التقييم في هذه الدورة.'); return; }
+        if (list.length === 0) { alert('لا يوجد موظفون بانتظار التقييم في هذا البرنامج.'); return; }
         // إضافة كل موظف كبطاقة
         list.forEach(function(e) {
             if (!employeeCards.find(function(c) { return c.id === e.id; })) {
@@ -406,6 +426,11 @@ function selectScale(btn) {
 
 function saveSingle(empId) {
     if (!templateSchema) { alert('اختر قالباً أولاً'); return; }
+    if (!document.getElementById('evaluatorName').value.trim() || !document.getElementById('evalDate').value) { alert('أدخل اسم المقيّم وتاريخ التقييم'); return; }
+    var selectedTarget = document.getElementById('templateSelect').options[document.getElementById('templateSelect').selectedIndex].getAttribute('data-target') || 'employee';
+    if (['employee_in_course','course','employee_in_workshop','workshop'].indexOf(selectedTarget) !== -1 && (!document.getElementById('contextSelect').value || document.getElementById('contextSelect').value === '0')) {
+        alert('اختر البرنامج التدريبي قبل الحفظ'); return;
+    }
     var results = collectResults(empId);
     if (!results) return;
 
@@ -419,11 +444,12 @@ function saveSingle(empId) {
         var _tplSel = document.getElementById('templateSelect');
         var _tgt = _tplSel ? (_tplSel.options[_tplSel.selectedIndex].getAttribute('data-target') || 'employee') : 'employee';
         formData.append('context_id', ctxSelect.value);
-        formData.append('context_type', _tgt === 'employee_in_workshop' ? 'workshop' : 'course');
+        formData.append('context_type', (_tgt === 'employee_in_workshop' || _tgt === 'workshop') ? 'workshop' : 'course');
     }
     formData.append('evaluation_date', document.getElementById('evalDate').value);
     formData.append('evaluator_name', document.getElementById('evaluatorName').value);
     formData.append('evaluator_title', document.getElementById('evaluatorTitle').value);
+    formData.append('evaluator_notes', document.getElementById('evaluatorNotes').value);
     for (var key in results) {
         var entry = results[key];
         if (entry && typeof entry === 'object') {
@@ -503,6 +529,11 @@ function saveAll() {
     });
     if (unsaved.length === 0) { alert('لا توجد بطاقات غير محفوظة'); return; }
     if (!templateSchema) { alert('اختر قالباً أولاً'); return; }
+    if (!document.getElementById('evaluatorName').value.trim() || !document.getElementById('evalDate').value) { alert('أدخل اسم المقيّم وتاريخ التقييم'); return; }
+    var selectedTarget = document.getElementById('templateSelect').options[document.getElementById('templateSelect').selectedIndex].getAttribute('data-target') || 'employee';
+    if (['employee_in_course','course','employee_in_workshop','workshop'].indexOf(selectedTarget) !== -1 && (!document.getElementById('contextSelect').value || document.getElementById('contextSelect').value === '0')) {
+        alert('اختر البرنامج التدريبي قبل الحفظ'); return;
+    }
 
     var evaluations = [];
     unsaved.forEach(function(emp) {
@@ -517,7 +548,7 @@ function saveAll() {
     var ctxId = (ctxSel && ctxSel.value > 0) ? parseInt(ctxSel.value) : null;
     var _tplSel = document.getElementById('templateSelect');
     var _tgt = _tplSel ? (_tplSel.options[_tplSel.selectedIndex].getAttribute('data-target') || 'employee') : 'employee';
-    var ctxType = ctxId ? (_tgt === 'employee_in_workshop' ? 'workshop' : 'course') : null;
+    var ctxType = ctxId ? ((_tgt === 'employee_in_workshop' || _tgt === 'workshop') ? 'workshop' : 'course') : null;
 
     var payload = JSON.stringify({
         _token: csrfToken,
@@ -525,6 +556,7 @@ function saveAll() {
         evaluation_date: document.getElementById('evalDate').value,
         evaluator_name: document.getElementById('evaluatorName').value,
         evaluator_title: document.getElementById('evaluatorTitle').value,
+        evaluator_notes: document.getElementById('evaluatorNotes').value,
         context_id: ctxId,
         context_type: ctxType,
         evaluations: evaluations

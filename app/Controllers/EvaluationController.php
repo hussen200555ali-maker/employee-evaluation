@@ -324,6 +324,7 @@ class EvaluationController extends Controller {
         }
 
         Auth::enforce('evaluations.fill');
+        Auth::validateCsrfToken($_POST['_token'] ?? $_POST['_csrf'] ?? '');
 
         $evaluationId = (int)$_POST['evaluation_id'];
         $results = $_POST['results'] ?? [];
@@ -348,31 +349,29 @@ class EvaluationController extends Controller {
             return;
         }
 
-        // CD-029: ربط التقييم بالدورة/الورشة — إلزامي لـ employee_in_course/workshop
+        // CD-037: require and validate the unified program for training templates.
         $targetType = $template['target_type'] ?? 'employee';
-        $contextType = null;
-        $contextId = null;
-        if ($targetType === 'employee_in_course') {
-            $contextId = (int)($_POST['context_course_id'] ?? 0);
-            if ($contextId < 1) {
-                Flash::set('يجب اختيار الدورة التدريبية قبل الحفظ.', 'error');
-                $this->redirect("/evaluations/{$evaluationId}/fill");
-                return;
-            }
-            $contextType = 'course';
-        } elseif ($targetType === 'employee_in_workshop') {
-            $contextId = (int)($_POST['context_workshop_id'] ?? 0);
-            if ($contextId < 1) {
-                Flash::set('يجب اختيار الورشة قبل الحفظ.', 'error');
-                $this->redirect("/evaluations/{$evaluationId}/fill");
-                return;
-            }
-            $contextType = 'workshop';
+        $contextService = new \App\Services\EvaluationProgramContextService();
+        $submittedContextId = in_array($targetType, ['employee_in_course', 'course'], true)
+            ? (int)($_POST['context_course_id'] ?? $_POST['context_id'] ?? 0)
+            : (in_array($targetType, ['employee_in_workshop', 'workshop'], true)
+                ? (int)($_POST['context_workshop_id'] ?? $_POST['context_id'] ?? 0)
+                : (int)($_POST['context_id'] ?? 0));
+        $submittedContextType = trim((string)($_POST['context_type'] ?? ''));
+        if ($submittedContextType === '') {
+            $submittedContextType = \App\Services\EvaluationProgramContextService::contextTypeForTargetType((string)$targetType) ?? '';
         }
-        // حفظ context في التقييم إن وُجد
-        if ($contextType && $contextId) {
-            $this->saveEvaluationContext($evaluationId, $contextType, $contextId);
+        try {
+            $context = $contextService->resolveContext((string)$targetType, $submittedContextId, $submittedContextType);
+        } catch (\InvalidArgumentException $e) {
+            Flash::set($e->getMessage(), 'error');
+            $this->redirect("/evaluations/{$evaluationId}/fill");
+            return;
         }
+        $evaluationType = \App\Services\EvaluationProgramContextService::evaluationTypeForTargetType(
+            (string)$targetType,
+            (string)($evaluation->evaluation_type ?? 'annual')
+        );
 
         $manualGrade = null;
         $mode = $template['evaluation_mode'] ?? 'numeric';
@@ -406,16 +405,34 @@ class EvaluationController extends Controller {
             }
         }
 
-        $success = $evaluationModel->saveEvaluationResults($evaluationId, $results);
+        $evaluatorName = trim((string)($_POST['evaluator_name'] ?? ''));
+        $evaluatorTitle = trim((string)($_POST['evaluator_title'] ?? ''));
+        $evaluatorNotes = trim((string)($_POST['evaluator_notes'] ?? ''));
+        $evaluationDate = trim((string)($_POST['evaluation_date'] ?? $evaluation->evaluation_date ?? ''));
+        $dateObject = \DateTimeImmutable::createFromFormat('!Y-m-d', $evaluationDate);
+        if ($evaluatorName === '' || !$dateObject || $dateObject->format('Y-m-d') !== $evaluationDate) {
+            Flash::set('أدخل اسم المقيّم وتاريخ تقييم صالحاً.', 'error');
+            $this->redirect("/evaluations/{$evaluationId}/fill");
+            return;
+        }
 
-        if ($success) {
-            $isDescriptive = ($template['evaluation_mode'] ?? 'numeric') === 'descriptive';
-            // CD-026: للقوالب الوصفية، final_score على مقياس 0-100 (max_value) لا 1-5
-            $finalScore = $isDescriptive
-                ? $evaluationModel->calculateFinalScore($evaluationId)
-                : $evaluationModel->calculateFinalScore($evaluationId);
-            $isUnit = in_array($evaluation->entity_type ?? 'employee', ['branch','department']);
-            $nextStatus = $isUnit ? 'pending_review' : 'completed';
+        $db = Database::getInstance();
+        $isUnit = in_array($evaluation->entity_type ?? 'employee', ['branch','department'], true);
+        $nextStatus = $isUnit ? 'pending_review' : 'completed';
+        $db->beginTransaction();
+        try {
+            $db->query('UPDATE evaluations SET evaluator_name = :name, evaluator_title = :title, notes = :notes, evaluation_date = :date WHERE id = :id');
+            $db->bind(':name', $evaluatorName);
+            $db->bind(':title', $evaluatorTitle);
+            $db->bind(':notes', $evaluatorNotes);
+            $db->bind(':date', $evaluationDate);
+            $db->bind(':id', $evaluationId);
+            $db->execute();
+
+            if (!$evaluationModel->saveEvaluationResults($evaluationId, $results, false)) {
+                throw new \RuntimeException('تعذر حفظ إجابات التقييم.');
+            }
+            $finalScore = $evaluationModel->calculateFinalScore($evaluationId);
             if ($manualGrade) {
                 $updated = $evaluationModel->updateScoreGradeAndStatus(
                     $evaluationId,
@@ -429,31 +446,31 @@ class EvaluationController extends Controller {
             } else {
                 $updated = $evaluationModel->updateStatus($evaluationId, $nextStatus);
             }
-
             if (!$updated) {
-                Flash::set('تم حفظ الإجابات، لكن تعذر تحديث نتيجة التقييم وحالته. يرجى المحاولة مرة أخرى.', 'error');
-                $this->redirect("/evaluations/{$evaluationId}/fill");
-                return;
-            }
-            Audit::log('EVALUATION_SUBMITTED', $evaluationId, 'evaluations');
-
-            // CD-036/CD-037: تحديث program_participants (الجدول الموحَّد) عند إكمال تقييم برنامج
-            // context_id يشير الآن إلى training_programs.id (بعد الترحيل v4.1)
-            if ($contextType && $contextId) {
-                (new \App\Models\ProgramParticipant())->markCompleted(
-                    $contextId,
-                    (int)$evaluation->evaluated_employee_id,
-                    (float)($finalScore ?? 0)
-                );
+                throw new \RuntimeException('تعذر تحديث نتيجة التقييم وحالته.');
             }
 
-            if ($isUnit) Flash::set('تم حفظ تقييم الوحدة وإرساله للمراجعة.', 'success');
-            else Flash::set('تم حفظ وإرسال التقييم بنجاح!', 'success');
-            $this->redirect('/employees');
-        } else {
-            Flash::set('حدث خطأ أثناء حفظ التقييم.', 'error');
+            $contextService->persist(
+                $evaluationId,
+                (int)$evaluation->evaluated_employee_id,
+                $evaluationType,
+                $context,
+                (float)($finalScore ?? 0)
+            );
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->getPdo()->inTransaction()) {
+                $db->rollBack();
+            }
+            Flash::set('فشل حفظ التقييم وربطه بالبرنامج: ' . $e->getMessage(), 'error');
             $this->redirect("/evaluations/{$evaluationId}/fill");
+            return;
         }
+
+        Audit::log('EVALUATION_SUBMITTED', $evaluationId, 'evaluations');
+        if ($isUnit) Flash::set('تم حفظ تقييم الوحدة وإرساله للمراجعة.', 'success');
+        else Flash::set('تم حفظ وإرسال التقييم بنجاح!', 'success');
+        $this->redirect('/employees');
     }
     /**
      * =================================================================
@@ -683,40 +700,6 @@ class EvaluationController extends Controller {
             }
         }
         return null;
-    }
-
-    /**
-     * CD-029: حفظ context_type + context_id في جدول evaluations.
-     */
-    private function saveEvaluationContext(int $evaluationId, string $contextType, int $contextId): void {
-        $db = Database::getInstance();
-        $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
-        $db->bind(':ctype', $contextType);
-        $db->bind(':cid', $contextId);
-        $db->bind(':eid', $evaluationId);
-        $db->execute();
-    }
-
-    /**
-     * CD-029: تحديث/إدراج سجل مشاركة الموظف في دورة → status='completed'.
-     */
-    private function syncCourseParticipant(int $courseId, int $employeeId): void {
-        $db = Database::getInstance();
-        // تحقق من وجود السجل
-        $db->query('SELECT id FROM course_participants WHERE course_id = :cid AND employee_id = :eid LIMIT 1');
-        $db->bind(':cid', $courseId);
-        $db->bind(':eid', $employeeId);
-        $existing = $db->fetch();
-        if ($existing) {
-            $db->query('UPDATE course_participants SET status = "completed", completed_at = NOW() WHERE id = :id');
-            $db->bind(':id', (int)$existing->id);
-            $db->execute();
-        } else {
-            $db->query('INSERT INTO course_participants (course_id, employee_id, status, enrolled_at, completed_at) VALUES (:cid, :eid, "completed", NOW(), NOW())');
-            $db->bind(':cid', $courseId);
-            $db->bind(':eid', $employeeId);
-            $db->execute();
-        }
     }
 
     /**

@@ -170,12 +170,6 @@ class TrainingProgramController extends Controller {
         ]);
     }
 
-    /** CD-037: JSON list of programs by type (for bulk-create context select). */
-    public function apiPrograms($type = 'course') {
-        $type = ($type === 'workshop') ? 'workshop' : 'course';
-        $this->json((new TrainingProgram())->all($type));
-    }
-
     /* ============ CD-036.3 : Registry (index) + edit/update/destroy ============ */
 
     public function index() {

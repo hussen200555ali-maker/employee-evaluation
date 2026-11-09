@@ -172,7 +172,7 @@ class Evaluation extends Model {
         return $this->db->fetch();
     }
     
-      public function saveEvaluationResults($evaluationId, $results) {
+      public function saveEvaluationResults($evaluationId, $results, bool $manageTransaction = true) {
         // --- ط§ظ„ط®ط·ظˆط© 1: ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط© ط§ظ„ظ„ط§ط²ظ…ط© ظ„ظ„ظ…ط¹ط§ظ„ط¬ط© ---
 
         // ط£ظˆظ„ط§ظ‹طŒ ظ†ط­طھط§ط¬ ط¥ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ط§ظ„طھظ‚ظٹظٹظ… ظ†ظپط³ظ‡ ظ„ظ…ط¹ط±ظپط© ط§ظ„ظ‚ط§ظ„ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ….
@@ -208,7 +208,9 @@ class Evaluation extends Model {
 
         // ظ†ط³طھط®ط¯ظ… Transaction ظ„ط¶ظ…ط§ظ† ط£ظ† ط¬ظ…ظٹط¹ ط¹ظ…ظ„ظٹط§طھ ط§ظ„ط­ظپط¸ طھطھظ… ظ…ط¹ط§ظ‹ ظƒظˆط­ط¯ط© ظˆط§ط­ط¯ط©.
         // ط¥ط°ط§ ظپط´ظ„طھ ط£ظٹ ط¹ظ…ظ„ظٹط©طŒ ظٹطھظ… ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظƒظ„ ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ط³ط§ط¨ظ‚ط© (rollback).
-        $this->db->beginTransaction();
+        if ($manageTransaction) {
+            $this->db->beginTransaction();
+        }
         try {
             // ط£- ط­ط°ظپ ط§ظ„ط¥ط¬ط§ط¨ط§طھ ط§ظ„ظ‚ط¯ظٹظ…ط©: ظ‚ط¨ظ„ ط¥ط¶ط§ظپط© ط§ظ„ط¥ط¬ط§ط¨ط§طھ ط§ظ„ط¬ط¯ظٹط¯ط©طŒ ظ…ظ† ط§ظ„ط£ظپط¶ظ„ ط­ط°ظپ ط£ظٹ ط¥ط¬ط§ط¨ط§طھ ظ‚ط¯ظٹظ…ط©
             // ظ‚ط¯ طھظƒظˆظ† ظ…ظˆط¬ظˆط¯ط© ظ„ظ‡ط°ط§ ط§ظ„طھظ‚ظٹظٹظ…. ظ‡ط°ط§ ظٹظ…ظ†ط¹ طھظƒط±ط§ط± ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¥ط°ط§ ظ‚ط§ظ… ط§ظ„ظ…ط³طھط®ط¯ظ… ط¨ط¥ط¹ط§ط¯ط© ط§ظ„ط­ظپط¸.
@@ -292,13 +294,17 @@ class Evaluation extends Model {
             }
 
             // ط¥ط°ط§ ظ†ط¬ط­طھ ظƒظ„ ط§ظ„ط¹ظ…ظ„ظٹط§طھطŒ ظ‚ظ… ط¨طھط£ظƒظٹط¯ ط§ظ„ط­ظپط¸ ط§ظ„ظ†ظ‡ط§ط¦ظٹ.
-            $this->db->commit();
+            if ($manageTransaction) {
+                $this->db->commit();
+            }
             return true;
 
         } catch (\PDOException $e) {
             // ط¥ط°ط§ ط­ط¯ط« ط£ظٹ ط®ط·ط£ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط£ط«ظ†ط§ط، ط§ظ„ط¹ظ…ظ„ظٹط©...
             // 1. طھط±ط§ط¬ط¹ ط¹ظ† ظƒظ„ ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„طھظٹ طھظ…طھ ط¯ط§ط®ظ„ ط§ظ„ظ€ transaction.
-            $this->db->rollBack();
+            if ($manageTransaction && $this->db->getPdo()->inTransaction()) {
+                $this->db->rollBack();
+            }
             // 2. ط³ط¬ظ„ ط±ط³ط§ظ„ط© ط§ظ„ط®ط·ط£ ظپظٹ ط³ط¬ظ„ط§طھ ط§ظ„ط®ط§ط¯ظ… ظ„ظ…ط³ط§ط¹ط¯طھظƒ ط¹ظ„ظ‰ طھطµط­ظٹط­ظ‡ط§ ظ„ط§ط­ظ‚ط§ظ‹.
             error_log("Evaluation Save Error for evaluation_id {$evaluationId}: " . $e->getMessage());
             // 3. ط£ط¹ط¯ ط§ظ„ظ‚ظٹظ…ط© false ظ„ظ„ط¥ط´ط§ط±ط© ط¥ظ„ظ‰ ظپط´ظ„ ط§ظ„ط¹ظ…ظ„ظٹط©.

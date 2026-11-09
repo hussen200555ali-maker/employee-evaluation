@@ -11,6 +11,7 @@ $typeLabels = [
     'periodic' => 'التقييم الدوري',
     'course' => 'تقييمات الدورات',
     'workshop' => 'تقييمات الورش',
+    'skill' => 'التقييم المهاري',
 ];
 ?>
 <div class="container py-4" dir="rtl">

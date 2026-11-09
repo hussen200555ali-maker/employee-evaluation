@@ -57,6 +57,38 @@ final class BulkEvaluationController extends Controller
         ]);
     }
 
+    /** GET /api/training-programs/list/:type — programs visible to evaluators. */
+    public function apiPrograms(string $type = 'course'): void
+    {
+        Auth::enforce('evaluations.create');
+        $type = $type === 'workshop' ? 'workshop' : 'course';
+        $this->json((new \App\Models\TrainingProgram())->all($type));
+    }
+
+    /** GET /api/training-programs/:id — JSON details for evaluator info cards. */
+    public function apiShow(int $id): void
+    {
+        Auth::enforce('evaluations.create');
+        $program = $id > 0 ? (new \App\Models\TrainingProgram())->find($id) : null;
+        if (!$program) {
+            $this->json(['error' => 'البرنامج غير موجود'], 404);
+            return;
+        }
+        $this->json($program);
+    }
+
+    /** GET /api/training-programs/:id/pending-employees — active pending participants. */
+    public function apiPendingEmployees(int $id): void
+    {
+        Auth::enforce('evaluations.create');
+        $program = $id > 0 ? (new \App\Models\TrainingProgram())->find($id) : null;
+        if (!$program) {
+            $this->json(['error' => 'البرنامج غير موجود'], 404);
+            return;
+        }
+        $this->json((new \App\Models\ProgramParticipant())->pendingForProgram($id));
+    }
+
     /**
      * GET /api/templates/:id/schema — return template structure as JSON.
      */
@@ -207,29 +239,48 @@ final class BulkEvaluationController extends Controller
         $results    = $_POST['results'] ?? [];
         $evaluatorName  = trim((string)($_POST['evaluator_name'] ?? ''));
         $evaluatorTitle = trim((string)($_POST['evaluator_title'] ?? ''));
+        $evaluatorNotes = trim((string)($_POST['evaluator_notes'] ?? ''));
 
         if ($employeeId < 1 || $templateId < 1 || empty($results)) {
             $this->json(['error' => 'بيانات ناقصة'], 400);
             return;
         }
+        if ($evaluatorName === '' || !$this->isValidEvaluationDate($evalDate)) {
+            $this->json(['error' => 'اسم المقيّم وتاريخ تقييم صالح مطلوبان'], 400);
+            return;
+        }
+
+        $db = Database::getInstance();
+        $db->query('SELECT target_type FROM form_templates WHERE id = :id AND is_active = 1');
+        $db->bind(':id', $templateId);
+        $template = $db->fetch();
+        if (!$template) {
+            $this->json(['error' => 'قالب التقييم غير موجود أو غير نشط'], 400);
+            return;
+        }
+
+        $contextService = new \App\Services\EvaluationProgramContextService($db);
+        try {
+            $context = $contextService->resolveContext(
+                (string)$template->target_type,
+                (int)($_POST['context_id'] ?? 0),
+                trim((string)($_POST['context_type'] ?? ''))
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->json(['error' => $e->getMessage()], 400);
+            return;
+        }
 
         try {
-            $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
+            $db->beginTransaction();
+            $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle, $evaluatorNotes);
             $this->saveResults($evaluationId, $results, $templateId);
-
-            // CD-037: context + sync program_participants (parity with bulkSave)
-            $ctxId = (int)($_POST['context_id'] ?? 0);
-            $ctxType = (string)($_POST['context_type'] ?? '');
-            if ($ctxId > 0 && ($ctxType === 'course' || $ctxType === 'workshop')) {
-                $db = Database::getInstance();
-                $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
-                $db->bind(':ctype', $ctxType);
-                $db->bind(':cid', $ctxId);
-                $db->bind(':eid', $evaluationId);
-                $db->execute();
-                $score = (new \App\Models\Evaluation())->calculateFinalScore($evaluationId);
-                (new \App\Models\ProgramParticipant())->markCompleted($ctxId, $employeeId, (float)($score ?? 0));
-            }
+            $score = (new \App\Models\Evaluation())->calculateFinalScore($evaluationId);
+            $evaluationType = \App\Services\EvaluationProgramContextService::evaluationTypeForTargetType(
+                (string)$template->target_type
+            );
+            $contextService->persist($evaluationId, $employeeId, $evaluationType, $context, (float)($score ?? 0));
+            $db->commit();
 
             $this->json([
                 'success'       => true,
@@ -237,6 +288,9 @@ final class BulkEvaluationController extends Controller
                 'message'       => 'تم حفظ التقييم بنجاح',
             ]);
         } catch (\Throwable $e) {
+            if ($db->getPdo()->inTransaction()) {
+                $db->rollBack();
+            }
             $this->json(['error' => 'فشل الحفظ: ' . $e->getMessage()], 500);
         }
     }
@@ -262,17 +316,45 @@ final class BulkEvaluationController extends Controller
         }
 
         $templateId = (int)($data['template_id'] ?? 0);
-        $evalDate   = $data['evaluation_date'] ?? date('Y-m-d');
-        $evaluatorName  = $data['evaluator_name'] ?? '';
-        $evaluatorTitle = $data['evaluator_title'] ?? '';
+        $evalDate   = trim((string)($data['evaluation_date'] ?? date('Y-m-d')));
+        $evaluatorName  = trim((string)($data['evaluator_name'] ?? ''));
+        $evaluatorTitle = trim((string)($data['evaluator_title'] ?? ''));
+        $evaluatorNotes = trim((string)($data['evaluator_notes'] ?? ''));
         $evaluations    = $data['evaluations'];
 
         if ($templateId < 1) {
             $this->json(['error' => 'قالب غير محدد'], 400);
             return;
         }
+        if ($evaluatorName === '' || !$this->isValidEvaluationDate($evalDate)) {
+            $this->json(['error' => 'اسم المقيّم وتاريخ تقييم صالح مطلوبان'], 400);
+            return;
+        }
 
         $db = Database::getInstance();
+        $db->query('SELECT target_type FROM form_templates WHERE id = :id AND is_active = 1');
+        $db->bind(':id', $templateId);
+        $template = $db->fetch();
+        if (!$template) {
+            $this->json(['error' => 'قالب التقييم غير موجود أو غير نشط'], 400);
+            return;
+        }
+
+        $contextService = new \App\Services\EvaluationProgramContextService($db);
+        try {
+            $context = $contextService->resolveContext(
+                (string)$template->target_type,
+                (int)($data['context_id'] ?? 0),
+                trim((string)($data['context_type'] ?? ''))
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->json(['error' => $e->getMessage()], 400);
+            return;
+        }
+        $evaluationType = \App\Services\EvaluationProgramContextService::evaluationTypeForTargetType(
+            (string)$template->target_type
+        );
+
         $db->beginTransaction();
         $saved = 0;
         $errors = [];
@@ -288,33 +370,19 @@ final class BulkEvaluationController extends Controller
                 }
 
                 try {
-                    $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
+                    $db->getPdo()->exec('SAVEPOINT cd037_bulk_employee');
+                    $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle, $evaluatorNotes);
                     $this->saveResults($evaluationId, $results, $templateId);
-
-                    // CD-029: حفظ context_id إن وُجد (دورة/ورشة)
-                    $bulkContextId = (int)($data['context_id'] ?? 0);
-                    $bulkContextType = (string)($data['context_type'] ?? '');
-                    if ($bulkContextId > 0 && $bulkContextType) {
-                        $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
-                        $db->bind(':ctype', $bulkContextType);
-                        $db->bind(':cid', $bulkContextId);
-                        $db->bind(':eid', $evaluationId);
-                        $db->execute();
-
-                        // CD-036/CD-037: تحديث program_participants (الجدول الموحَّد)
-                        // bulkContextId يشير الآن إلى training_programs.id (بعد الترحيل v4.1)
-                        if ($bulkContextType === 'course' || $bulkContextType === 'workshop') {
-                            $score = (new \App\Models\Evaluation())->calculateFinalScore($evaluationId);
-                            (new \App\Models\ProgramParticipant())->markCompleted(
-                                $bulkContextId,
-                                $employeeId,
-                                (float)($score ?? 0)
-                            );
-                        }
-                    }
+                    $score = (new \App\Models\Evaluation())->calculateFinalScore($evaluationId);
+                    $contextService->persist($evaluationId, $employeeId, $evaluationType, $context, (float)($score ?? 0));
+                    $db->getPdo()->exec('RELEASE SAVEPOINT cd037_bulk_employee');
 
                     $saved++;
                 } catch (\Throwable $e) {
+                    if ($db->getPdo()->inTransaction()) {
+                        $db->getPdo()->exec('ROLLBACK TO SAVEPOINT cd037_bulk_employee');
+                        $db->getPdo()->exec('RELEASE SAVEPOINT cd037_bulk_employee');
+                    }
                     $errors[] = "موظف ID {$employeeId}: " . $e->getMessage();
                 }
             }
@@ -335,7 +403,13 @@ final class BulkEvaluationController extends Controller
 
     // === Private helpers ===
 
-    private function createEvaluation(int $employeeId, int $templateId, string $date, string $evalName, string $evalTitle): int
+    private function isValidEvaluationDate(string $date): bool
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        return $parsed !== false && $parsed->format('Y-m-d') === $date;
+    }
+
+    private function createEvaluation(int $employeeId, int $templateId, string $date, string $evalName, string $evalTitle, string $evalNotes = ''): int
     {
         $db = Database::getInstance();
         $userId = (int)Auth::id();
@@ -348,12 +422,8 @@ final class BulkEvaluationController extends Controller
         $db->query('SELECT target_type FROM form_templates WHERE id = :id');
         $db->bind(':id', $templateId);
         $tpl = $db->fetch();
-        $evalType = 'annual';
-        if ($tpl) {
-            $targetType = $tpl->target_type;
-            if ($targetType === 'course') $evalType = 'course';
-            elseif ($targetType === 'workshop') $evalType = 'workshop';
-        }
+        if (!$tpl) throw new \RuntimeException('قالب التقييم غير موجود');
+        $evalType = \App\Services\EvaluationProgramContextService::evaluationTypeForTargetType((string)$tpl->target_type);
 
         // Get employee snapshot data
         $empModel = new Employee();
@@ -365,12 +435,12 @@ final class BulkEvaluationController extends Controller
                 (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id,
                  evaluator_employee_id, evaluator_name, evaluator_title,
                  employee_name, employee_code, branch_name, department_name, position_name,
-                 entity_type, entity_id, created_by_user_id, created_at)
+                 entity_type, entity_id, notes, created_by_user_id, created_at)
              VALUES
                 (:tpl, "draft", :date, :etype, :emp,
                  :eval_emp, :eval_name, :eval_title,
                  :emp_name, :emp_code, :branch, :dept, :pos,
-                 "employee", :entity, :user, NOW())'
+                 "employee", :entity, :notes, :user, NOW())'
         );
         $db->bind(':tpl', $templateId);
         $db->bind(':date', $date);
@@ -385,6 +455,7 @@ final class BulkEvaluationController extends Controller
         $db->bind(':branch', $emp->branch_name ?? '');
         $db->bind(':dept', $emp->department_name ?? '');
         $db->bind(':pos', $emp->position_title ?? '');
+        $db->bind(':notes', $evalNotes);
         $db->bind(':user', $userId);
         $db->execute();
 

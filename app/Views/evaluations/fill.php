@@ -602,7 +602,7 @@ body {
                     <div class="col-12">
                         <label class="form-label fw-bold small">ملاحظات المقيّم العامة</label>
                         <textarea class="form-control" name="evaluator_notes" rows="2"
-                                  placeholder="ملاحظات شاملة عن أداء الموظف..."></textarea>
+                                  placeholder="ملاحظات شاملة عن أداء الموظف..."><?= htmlspecialchars($evaluation->notes ?? '') ?></textarea>
                     </div>
                 </div>
             </div>

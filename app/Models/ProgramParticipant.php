@@ -53,6 +53,19 @@ class ProgramParticipant extends Model {
         return $this->db->fetchAll() ?: [];
     }
 
+    /** Pending active employees for the unified bulk-evaluation selector. */
+    public function pendingForProgram(int $programId): array {
+        $this->db->query("SELECT e.id, e.full_name, e.emp_code, d.name AS department_name, b.name AS branch_name
+            FROM program_participants pp
+            JOIN employees e ON e.id = pp.employee_id
+            LEFT JOIN departments d ON d.id = e.department_id
+            LEFT JOIN branches b ON b.id = e.branch_id
+            WHERE pp.program_id = :pid AND pp.status = 'pending' AND e.is_active = 1
+            ORDER BY e.full_name");
+        $this->db->bind(':pid', $programId);
+        return $this->db->fetchAll() ?: [];
+    }
+
     /** Sync from an evaluation submission (CD-029). */
     public function markCompleted(int $programId, int $employeeId, float $finalScore): bool {
         $this->db->query("INSERT INTO program_participants

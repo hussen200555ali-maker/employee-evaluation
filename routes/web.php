@@ -148,8 +148,9 @@ $router->get('employees/:id/evaluations', 'App\Controllers\EmployeeController@sh
 $router->get('employees/:id/evaluations/:year', 'App\Controllers\EmployeeController@showEmployeeEvaluationsByYear');
 
 // CD-037: API لجلب بيانات البرنامج التدريبي (لعرض بطاقة المعلومات في fill/bulk)
-$router->get('api/training-programs/:id', 'App\Controllers\TrainingProgramController@show');
-$router->get('api/training-programs/list/:type', 'App\Controllers\TrainingProgramController@apiPrograms');
+$router->get('api/training-programs/:id/pending-employees', 'App\Controllers\BulkEvaluationController@apiPendingEmployees');
+$router->get('api/training-programs/:id', 'App\Controllers\BulkEvaluationController@apiShow');
+$router->get('api/training-programs/list/:type', 'App\Controllers\BulkEvaluationController@apiPrograms');
 
 // CD-034: ما زال مؤرشفًا (خارج نطاق CD-037) — Excel + الوحدات + المرن + الجدولة
 /*

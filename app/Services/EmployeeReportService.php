@@ -28,7 +28,7 @@ class EmployeeReportService
             "SELECT e.id, e.evaluation_type, e.evaluation_date, e.status,
                     e.final_score, e.final_grade_label, e.final_grade_value,
                     e.context_type, e.context_id, tp.title AS program_name,
-                    t.template_name
+                    t.template_name, t.target_type AS template_target_type
              FROM evaluations e
              LEFT JOIN form_templates t ON t.id = e.template_id
              LEFT JOIN training_programs tp ON tp.id = e.context_id
@@ -48,16 +48,24 @@ class EmployeeReportService
                 : $this->averagesEngine->gradeValueForScore($record->final_score, $scale);
             $record->grade_label = $record->final_grade_label
                 ?: $this->averagesEngine->gradeLabelForScore($record->final_score, $scale);
-            $record->evaluation_type_label = $this->evaluationTypeLabel($record->evaluation_type);
+            $record->evaluation_type_label = $this->evaluationTypeLabel(
+                $record->evaluation_type,
+                $record->template_target_type ?? null
+            );
         }
 
         $averages = [];
-        foreach (['overall', 'annual', 'periodic', 'course', 'workshop'] as $type) {
+        foreach (['overall', 'annual', 'periodic', 'course', 'workshop', 'skill'] as $type) {
             $matchingRecords = $type === 'overall'
                 ? $records
                 : array_values(array_filter(
                     $records,
-                    static fn(object $record): bool => $record->evaluation_type === $type
+                    static fn(object $record): bool => match ($type) {
+                        'skill' => ($record->template_target_type ?? null) === 'skill',
+                        'annual' => $record->evaluation_type === 'annual'
+                            && ($record->template_target_type ?? null) !== 'skill',
+                        default => $record->evaluation_type === $type,
+                    }
                 ));
             $averages[$type] = $this->averagesEngine->summarize($matchingRecords, $scale);
         }
@@ -86,8 +94,11 @@ class EmployeeReportService
         return $this->db->fetchAll();
     }
 
-    private function evaluationTypeLabel(?string $type): string
+    private function evaluationTypeLabel(?string $type, ?string $templateTargetType = null): string
     {
+        if ($templateTargetType === 'skill') {
+            return 'مهاري';
+        }
         return match ($type) {
             'annual' => 'سنوي',
             'periodic' => 'دوري',
