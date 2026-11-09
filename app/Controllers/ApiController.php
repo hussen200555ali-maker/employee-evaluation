@@ -71,6 +71,17 @@ class ApiController extends Controller {
     }
 
     /**
+     * CD-041: قائمة المناصب المتاحة (JSON) للاستخدام في الإضافة السريعة.
+     * GET /api/positions
+     */
+    public function positions() {
+        Auth::enforce('evaluations.create');
+        $db = \App\Core\Database::getInstance();
+        $db->query('SELECT id, title FROM positions ORDER BY title');
+        $this->json($db->fetchAll());
+    }
+
+    /**
      * =================================================================
      * دالة جديدة: لجلب القوالب بناءً على منصب الموظف
      * =================================================================
