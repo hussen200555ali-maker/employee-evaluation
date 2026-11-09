@@ -130,10 +130,11 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                 </button>
                 <ul class="sidebar-category-body">
                     <?php if (Auth::userHasPermission('evaluations.create')): ?>
-                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/create"><i class="fas fa-pen-square fa-fw me-2"></i> صفحة الإدخال</a></li>
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/create"><i class="fas fa-pen-square fa-fw me-2"></i> التقييم الفردي</a></li>
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/bulk-create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/bulk-create"><i class="fas fa-table fa-fw me-2"></i> التقييم الجماعي</a></li>
                     <?php endif; ?>
                     <?php if (Auth::userHasPermission('reports.view.all')): ?>
-                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations') && !$__isActive('/evaluations/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> ملفات أداء الموظفين<?php if ($__pendingEvals !== null && $__pendingEvals > 0): ?> <span class="badge bg-warning text-dark ms-1"><?php echo $__pendingEvals; ?></span><?php endif; ?></a></li>
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations') && !$__isActive('/evaluations/create') && !$__isActive('/evaluations/bulk-create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> ملفات أداء الموظفين<?php if ($__pendingEvals !== null && $__pendingEvals > 0): ?> <span class="badge bg-warning text-dark ms-1"><?php echo $__pendingEvals; ?></span><?php endif; ?></a></li>
                     <?php endif; ?>
                 </ul>
             </li>
