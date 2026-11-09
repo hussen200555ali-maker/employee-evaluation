@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD-039 — التطبيق الديناميكي: تعبئة التقييم حسب بنية القالب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#0c2823;--brand2:#0d5e52;--brand-d:#07201c;--gold:#c8943f;--gold-d:#a87830;--gold-bg:#faefd9;--ink:#1a2e2a;--line:#e0e8e4;--bg:#f5f8f6;--surf:#fff;--muted:#6c757d;--ok:#1b6b32;--ok-bg:#e6f4ea;--err:#c62828;--err-bg:#fdecea}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;font-size:14px}
+.p{max-width:900px;margin:0 auto;padding:16px}
+.hdr{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:16px 22px;border-radius:12px;margin-bottom:14px;position:relative}
+.hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold)}
+.hdr h2{font-size:17px;font-weight:800}
+.hdr .sub{font-size:11px;opacity:.8;margin-top:3px}
+.topbar{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.topbar-grid{display:grid;grid-template-columns:2fr 1.5fr;gap:10px}
+.tb-field label{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-bottom:3px}
+.tb-field select,.tb-field input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:13px;background:#fff}
+.tb-field select:focus,.tb-field input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 .12rem rgba(200,148,63,.12)}
+.dyn-area{min-height:200px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card.gold{border:2px solid var(--gold)}
+.ttl{font-weight:800;color:var(--brand);font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.ttl.gold{color:var(--gold)}
+.prog-info{background:#fffbf3;border:1px solid var(--gold);border-radius:8px;padding:10px;margin-top:8px;opacity:0;transition:opacity .3s}
+.prog-info.show{opacity:1}
+.pi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pi-item{background:#fff;padding:6px 10px;border-radius:5px;border:1px solid var(--line)}
+.pi-item label{display:block;font-size:9px;color:var(--muted)}
+.pi-item strong{font-size:11px}
+/* === Criteria Sections — Enterprise (CD-038 v2 → CD-039 dynamic) === */
+.criteria-stack{display:flex;flex-direction:column;gap:14px}
+.sec{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(12,40,35,.04);transition:box-shadow .25s}
+.sec:hover{box-shadow:0 6px 22px rgba(12,40,35,.09)}
+.sec-h{display:flex;align-items:center;gap:12px;padding:14px 18px;background:linear-gradient(180deg,#fbfdfc,#f1f7f3);border-bottom:1px solid var(--line);position:relative}
+.sec-h::before{content:'';position:absolute;right:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),var(--gold-d))}
+.sec-no{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--brand);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;box-shadow:0 2px 6px rgba(12,40,35,.18)}
+.sec-t{flex:1;min-width:0}
+.sec-ttl{font-weight:800;color:var(--brand);font-size:14px;line-height:1.35}
+.sec-sub{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
+.sec-w{flex:0 0 auto;background:var(--gold-bg);color:var(--gold);padding:5px 13px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid rgba(200,148,63,.28)}
+.sec-body{padding:4px 18px}
+.field{padding:14px 0;border-bottom:1px dashed var(--line)}
+.field:last-child{border-bottom:none}
+.field-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:9px}
+.field-name{font-size:13px;font-weight:700;color:var(--ink);line-height:1.5}
+.field-desc{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
+.field-type{flex:0 0 auto;font-size:10px;color:#5a6b62;background:#f1f5f3;border:1px solid var(--line);padding:3px 9px;border-radius:6px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.field-type .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.perc-ctrl{display:flex;align-items:center;gap:12px}
+.perc-input-wrap{position:relative;flex:0 0 auto}
+.perc-input-wrap input{width:78px;padding:8px 24px 8px 8px;border:1px solid var(--line);border-radius:8px;text-align:center;font-size:15px;font-weight:800;font-family:'Cairo';color:var(--brand);background:#fff}
+.perc-input-wrap input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgba(200,148,63,.15)}
+.perc-input-wrap .sign{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);font-weight:700}
+.perc-track{flex:1;height:10px;background:var(--bg);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.perc-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-d));border-radius:6px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+.perc-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px;padding:0 2px;letter-spacing:.5px}
+.num-ctrl{display:flex;align-items:center;gap:10px}
+.num-ctrl input{width:88px;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center;font-size:15px;font-weight:800;font-family:'Cairo';color:var(--brand);background:#fff}
+.num-ctrl input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgba(200,148,63,.15)}
+.num-max{font-size:12px;color:var(--muted);font-weight:600}
+.grade-ctrl select{width:100%;max-width:340px;padding:9px 14px 9px 32px;border:1px solid var(--line);border-radius:8px;font-family:'Cairo';font-size:13px;font-weight:600;background:#fff;color:var(--ink);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 14px center}
+.grade-ctrl select:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgba(200,148,63,.15)}
+.text-ctrl textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-family:'Cairo';font-size:13px;line-height:1.65;resize:vertical;min-height:74px;background:#fcfcfc;color:var(--ink);transition:border-color .2s,box-shadow .2s,background .2s}
+.text-ctrl textarea:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgba(200,148,63,.15);background:#fff}
+.bool-ctrl{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:4px;gap:4px}
+.bool-opt{padding:8px 24px;border:none;border-radius:7px;background:transparent;font-family:'Cairo';font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.bool-opt:hover{color:var(--brand);background:rgba(255,255,255,.6)}
+.bool-opt.sel-yes{background:var(--ok-bg);color:var(--ok);box-shadow:0 1px 3px rgba(27,107,50,.25)}
+.bool-opt.sel-no{background:var(--err-bg);color:var(--err);box-shadow:0 1px 3px rgba(198,40,40,.22)}
+.overall-card{background:linear-gradient(135deg,#fffbf3,#faf3e3);border:1.5px solid var(--gold);border-radius:12px;padding:16px;position:relative;overflow:hidden;box-shadow:0 2px 10px rgba(200,148,63,.1)}
+.overall-card::before{content:'';position:absolute;top:-20px;left:-20px;width:100px;height:100px;background:radial-gradient(circle,rgba(200,148,63,.18),transparent 70%);pointer-events:none}
+.overall-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;position:relative}
+.overall-title-grp{display:flex;align-items:center;gap:10px}
+.overall-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;box-shadow:0 3px 8px rgba(200,148,63,.3)}
+.overall-ttl{font-weight:800;color:var(--brand);font-size:14px}
+.overall-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.overall-card select{width:100%;padding:11px 14px 11px 32px;border:1px solid var(--gold);border-radius:8px;font-family:'Cairo';font-size:14px;font-weight:700;background:#fff;color:var(--brand);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c8943f' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 14px center}
+.overall-card select:focus{outline:none;box-shadow:0 0 0 3px rgba(200,148,63,.18)}
+.live{background:var(--brand);color:var(--gold);border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.live .lbl{font-size:11px;opacity:.8}
+.live .val{font-size:24px;font-weight:800}
+.live .gr{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--gold);color:var(--brand)}
+.ev{border:2px solid var(--gold);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.ev-h{background:linear-gradient(90deg,#fbf3e2,#f6e8cf);padding:8px 14px;font-weight:700;color:var(--gold);font-size:12px;border-bottom:2px solid var(--gold)}
+.ev-b{padding:10px 14px}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ev-field label{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.ev-field input,.ev-field textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-family:'Cairo';font-size:12px}
+.ev-field input:focus,.ev-field textarea:focus{border-color:var(--gold);outline:none}
+.ev-field.full{grid-column:1/-1}
+.bar{position:sticky;bottom:0;background:rgba(245,248,246,.97);backdrop-filter:blur(6px);border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:flex-end;gap:8px}
+.btn{padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;font-family:'Cairo';cursor:pointer;border:none;transition:transform .15s}
+.btn-p{background:var(--brand);color:var(--gold)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(12,40,35,.3)}
+.btn-l{background:#e8e8e8;color:var(--muted)}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1b6b32;color:#fff;padding:12px 22px;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.badge{display:inline-block;background:var(--gold-bg);color:var(--gold);padding:2px 10px;border-radius:999px;font-size:10px;font-weight:700;margin-bottom:8px}
+.filter-bar{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:10px;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line)}
+.filter-field label{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-bottom:3px}
+.filter-field select,.filter-field input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:12px;background:#fff}
+.filter-field select:focus,.filter-field input:focus{border-color:var(--gold);outline:none}
+.filter-count{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;padding:4px 8px;background:var(--gold-bg);border-radius:6px;display:inline-block}
+.btn-clear{padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--muted);font-family:'Cairo';font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-clear:hover{border-color:var(--gold);color:var(--gold)}
+.emp-search-wrap{position:relative}
+.emp-search-wrap input{width:100%;padding:9px 32px 9px 11px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:13px;background:#fff}
+.emp-search-wrap input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 .12rem rgba(200,148,63,.12)}
+.search-icon{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5;pointer-events:none}
+.emp-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:0 0 8px 8px;box-shadow:0 4px 14px rgba(0,0,0,.1);z-index:100;max-height:240px;overflow-y:auto;display:none}
+.emp-results.show{display:block}
+.emp-result{padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;transition:background .15s}
+.emp-result:hover{background:var(--gold-bg)}
+.emp-result .nm{font-weight:700;color:var(--brand)}
+.emp-result .meta{font-size:10px;color:var(--muted);margin-top:2px}
+.emp-selected{margin-top:6px;padding:8px 12px;background:var(--gold-bg);border:1px solid var(--gold);border-radius:6px;font-size:12px;display:none}
+.emp-selected.show{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.emp-selected .nm{font-weight:700;color:var(--brand)}
+.emp-selected .code{color:var(--muted);font-size:11px}
+.emp-selected a{font-size:11px;color:#c85b54;text-decoration:none;font-weight:700;white-space:nowrap}
+.quick-add-inline{background:var(--surf);border:2px solid var(--gold);border-radius:10px;margin-top:10px;display:none;overflow:hidden;box-shadow:0 4px 16px rgba(12,40,35,.1)}
+.quick-add-inline.show{display:block}
+.qa-header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:10px 16px;border-bottom:2px solid var(--gold)}
+.qa-header .qa-ttl{font-weight:800;font-size:14px}
+.qa-card{background:#fff;padding:10px 14px;border-bottom:1px solid var(--line)}
+.qa-card:last-of-type{border-bottom:none}
+.qa-card-ttl{font-weight:700;color:var(--brand);font-size:12px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.qa-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.qa-field label{display:block;font-size:11px;color:var(--brand);font-weight:600;margin-bottom:3px}
+.qa-input-wrap{position:relative;display:flex;align-items:center}
+.qa-input-wrap select,.qa-input-wrap input{width:100%;padding:8px 28px 8px 10px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:12px;background:#fff}
+.qa-input-wrap select:focus,.qa-input-wrap input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 2px rgba(200,148,63,.1)}
+.qa-icon{position:absolute;right:8px;font-size:12px;opacity:.3;pointer-events:none}
+.qa-btns{padding:8px 14px;background:var(--bg);display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--line)}
+.qa-btns .btn-p{padding:8px 18px;font-size:12px}
+.qa-btns .btn-clear{padding:8px 16px;font-size:12px}
+.req{color:var(--gold);font-weight:800}
+.placeholder{text-align:center;color:var(--muted);padding:40px;font-size:14px}
+@media(max-width:768px){.topbar-grid,.pi-grid,.ev-grid,.filter-bar,.qa-grid{grid-template-columns:1fr}.perc-ctrl{flex-wrap:wrap}.perc-track{flex-basis:100%}.grade-ctrl select{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="p">
+
+<div class="hdr">
+  <h2>📝 تعبئة التقييم — تطبيق ديناميكي حسب بنية القالب</h2>
+  <div class="sub">CD-039 · الواجهة تُبنى ديناميكيًا من أقسام ومعايير القالب بأنواع حقولها</div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-grid">
+    <div class="tb-field">
+      <label>📋 القالب</label>
+      <select id="templateSelect" onchange="onTemplateChange(this)">
+        <option value="">— اختر القالب —</option>
+        <option value="annual_full">📝 تقييم سنوي شامل (أنواع مختلطة)</option>
+        <option value="course_descriptive">📚 تقييم دورة (وصفي)</option>
+        <option value="workshop_numeric">🏆 تقييم ورشة (رقمي)</option>
+      </select>
+    </div>
+    <div class="tb-field">
+      <label>👤 الموظف</label>
+      <div class="emp-search-wrap">
+        <input type="text" id="empSearch" placeholder="ابحث بالاسم أو الرقم الوظيفي..." oninput="searchEmployees(this.value)">
+        <span class="search-icon">🔍</span>
+        <div class="emp-results" id="empResults"></div>
+      </div>
+      <div class="emp-filters" style="display:flex;gap:6px;margin-top:6px">
+        <select id="empBranchFilter" style="width:auto;flex:1;font-size:11px;padding:6px 8px" onchange="onEmpBranchFilter()">
+          <option value="">🏢 كل الفروع</option>
+          <option value="الرياض">الرياض</option>
+          <option value="جدة">جدة</option>
+          <option value="الدمام">الدمام</option>
+        </select>
+        <select id="empDeptFilter" style="width:auto;flex:1;font-size:11px;padding:6px 8px" disabled onchange="onEmpDeptFilter()">
+          <option value="">📋 كل الأقسام</option>
+        </select>
+      </div>
+      <div class="emp-selected" id="empSelected">
+        <div><span class="nm" id="empSelName"></span> <span class="code" id="empSelCode"></span></div>
+        <a href="#" onclick="clearEmployee();return false">✕ تغيير</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="quick-add-inline" id="quickAddEmp">
+  <div class="qa-header"><div class="qa-ttl">＋ إضافة موظف جديد للتقييم</div></div>
+  <div class="qa-card">
+    <div class="qa-card-ttl"><span>🪪</span> المعلومات الأساسية</div>
+    <div class="qa-grid">
+      <div class="qa-field"><label>الرقم الوظيفي</label><div class="qa-input-wrap"><span class="qa-icon">#</span><input type="text" id="qaCode" placeholder="EMP-001"></div></div>
+      <div class="qa-field"><label>الاسم الكامل <span class="req">*</span></label><div class="qa-input-wrap"><span class="qa-icon">👤</span><input type="text" id="qaName" placeholder="الاسم الرباعي"></div></div>
+      <div class="qa-field"><label>المنصب <span class="req">*</span></label><div class="qa-input-wrap"><span class="qa-icon">👤</span><select id="qaPosition"><option value="">— اختر —</option><option>محلل نظم</option><option>محاسب</option><option>مهندس</option><option>أخصائي</option><option>مدير</option></select></div></div>
+    </div>
+  </div>
+  <div class="qa-card">
+    <div class="qa-card-ttl"><span>💼</span> المعلومات الوظيفية</div>
+    <div class="qa-grid">
+      <div class="qa-field"><label>الفرع</label><div class="qa-input-wrap"><span class="qa-icon">🏢</span><select id="qaBranch" onchange="onQaBranchChange()"><option value="">— اختر —</option><option>الرياض</option><option>جدة</option><option>الدمام</option></select></div></div>
+      <div class="qa-field"><label>القسم</label><div class="qa-input-wrap"><span class="qa-icon">👥</span><select id="qaDept" disabled><option value="">— اختر —</option></select></div></div>
+    </div>
+  </div>
+  <div class="qa-btns">
+    <button class="btn-clear" onclick="hideQuickAdd()">إلغاء</button>
+    <button class="btn btn-p" onclick="saveQuickAdd()">✅ إضافة واختيار</button>
+  </div>
+</div>
+
+<div class="dyn-area" id="dynArea">
+  <div class="placeholder" id="placeholder">اختر قالبًا من الأعلى — ستُبنى حقول التقييم ديناميكيًا من أقسام القالب ومعاييره بأنواع حقولها…</div>
+</div>
+
+<div class="ev">
+  <div class="ev-h">👤 بيانات المُقيِّم</div>
+  <div class="ev-b">
+    <div class="ev-grid">
+      <div class="ev-field" style="position:relative">
+        <label>اسم المُقيِّم</label>
+        <input type="text" id="evalSearch" placeholder="ابحث بالاسم أو الرقم الوظيفي..." oninput="searchEvaluators(this.value)" style="padding-right:30px">
+        <span style="position:absolute;right:8px;top:50%;transform:translateY(0);margin-top:16px;font-size:14px;opacity:.5;pointer-events:none">🔍</span>
+        <div class="emp-results" id="evalResults"></div>
+        <div class="emp-selected" id="evalSelected">
+          <div><span class="nm" id="evalSelName"></span> <span class="code" id="evalSelCode"></span></div>
+          <a href="#" onclick="clearEvaluator();return false">✕ تغيير</a>
+        </div>
+      </div>
+      <div class="ev-field"><label>صفة المُقيِّم</label><input type="text" id="evalTitle" placeholder="صفة المُقيِّم..."></div>
+      <div class="ev-field"><label>تاريخ التقييم</label><input type="date" value="2026-11-09"></div>
+      <div class="ev-field full"><label>ملاحظات تفصيلية</label><textarea rows="3" placeholder="أدخل ملاحظات تفصيلية..."></textarea></div>
+    </div>
+  </div>
+</div>
+
+<div class="bar">
+  <button class="btn btn-l" onclick="resetAll()">↺ تفريغ</button>
+  <button class="btn btn-p" onclick="submitEval()">💾 حفظ وإرسال التقييم</button>
+</div>
+
+</div>
+<div class="toast" id="toast">✅ تم حفظ التقييم بنجاح!</div>
+
+<script>
+/* ============================================================
+   CD-039 — TEMPLATE DEFINITIONS (mirror of template-builder output)
+   Each template: {id, name, target_type, sections[]}
+   Each section: {title, description, weight, criteria[]}
+   Each criterion: {title, description, field_type, max_value, weight, options?}
+   field_type ∈ {percentage, numeric, grade, textarea, overall_grade, boolean}
+   ============================================================ */
+var TEMPLATES = {
+  annual_full: {
+    id:1, name:'📝 تقييم سنوي شامل', target_type:'annual',
+    sections:[
+      {title:'الأداء الكمي', description:'قياس نسبة تحقيق المؤشرات الكمية الرئيسية', weight:30, criteria:[
+        {title:'تحقيق الأهداف المحددة', description:'نسبة الأهداف المنجزة خلال العام', field_type:'percentage', max_value:100},
+        {title:'جودة العمل المنجز', description:'مستوى الجودة الإجمالي للمخرجات', field_type:'percentage', max_value:100}
+      ]},
+      {title:'الكفاءة المهنية', description:'تقييم المهارات والكفاءات الوظيفية', weight:40, criteria:[
+        {title:'إتقان المهارات التقنية', description:'مستوى الإتقان من ١ إلى ١٠', field_type:'numeric', max_value:10},
+        {title:'مستوى التواصل والتعاون', description:'تقدير نوعي لمهارات التواصل', field_type:'grade', options:['ممتاز','جيد جدًا','جيد','مقبول','ضعيف']},
+        {title:'الالتزام بمعايير الجودة', description:'هل يلتزم بمعايير الجودة المعتمدة؟', field_type:'boolean'}
+      ]},
+      {title:'التقييم النصي التفصيلي', description:'ملاحظات نوعية تدعم التقييم الكمي', weight:30, criteria:[
+        {title:'نقاط القوة البارزة', description:'أبرز نقاط القوة في أداء الموظف', field_type:'textarea'},
+        {title:'نقاط التطوير المقترحة', description:'جوانب يحتاج الموظف لتطويرها', field_type:'textarea'}
+      ]}
+    ],
+    overall:{title:'التقدير العام النهائي', description:'يُحدّد يدويًا من قبل المُقيِّم', options:['ممتاز (٩٠–١٠٠)','جيد جدًا (٨٠–٨٩)','جيد (٧٠–٧٩)','مقبول (٦٠–٦٩)']}
+  },
+  course_descriptive: {
+    id:2, name:'📚 تقييم دورة — وصفي', target_type:'course',
+    sections:[
+      {title:'التقييم العام للأداء في الدورة', description:'تقييم وصفي تفصيلي لاستفادة الموظف وتطبيقه', weight:100, criteria:[
+        {title:'مدى استفادة الموظف من الدورة', description:'وصف تفصيلي للاستفادة الفعلية', field_type:'textarea'},
+        {title:'تطبيق المهارات المكتسبة', description:'كيف طبّق ما تعلمه في العمل', field_type:'textarea'}
+      ]}
+    ],
+    overall:{title:'التقدير العام للدورة', description:'إلزامي — يُحدّد بناءً على التقييم الوصفي', options:['ممتاز (٩٠–١٠٠)','جيد جدًا (٨٠–٨٩)','جيد (٧٠–٧٩)','مقبول (٦٠–٦٩)']}
+  },
+  workshop_numeric: {
+    id:3, name:'🏆 تقييم ورشة — رقمي', target_type:'workshop',
+    sections:[
+      {title:'التطبيق العملي', description:'قياس التطبيق والمشاركة في الورشة', weight:50, criteria:[
+        {title:'درجة التطبيق العملي', description:'من ٠ إلى ١٠٠', field_type:'numeric', max_value:100},
+        {title:'المشاركة التفاعلية', description:'من ٠ إلى ١٠٠', field_type:'numeric', max_value:100}
+      ]},
+      {title:'مهارات حل المشكلات', description:'سرعة البديهة وجودة الحلول', weight:50, criteria:[
+        {title:'سرعة البديهة', description:'من ٠ إلى ١٠٠', field_type:'numeric', max_value:100},
+        {title:'جودة الحلول المقترحة', description:'من ٠ إلى ١٠٠', field_type:'numeric', max_value:100}
+      ]}
+    ],
+    overall:null
+  }
+};
+
+/* Program data for course/workshop context */
+var PROGRAMS = {
+  course:[
+    {id:21,title:'إدارة المشاريع',branch:'الرياض',dept:'تقنية المعلومات',dates:'2026-11-15 → 2026-11-19',trainer:'د. خالد العتيبي'},
+    {id:24,title:'تحليل البيانات',branch:'الرياض',dept:'المالية',dates:'2026-12-01 → 2026-12-05',trainer:'أ. سارة الحربي'},
+    {id:25,title:'Excel المتقدم',branch:'الدمام',dept:'الهندسة',dates:'2026-12-10 → 2026-12-12',trainer:'م. فهد القحطاني'}
+  ],
+  workshop:[
+    {id:31,title:'التواصل الفعّال',branch:'الرياض',dept:'الموارد البشرية',dates:'2026-11-20 → 2026-11-22',trainer:'د. منى الزهراني'},
+    {id:33,title:'القيادة التحويلية',branch:'الدمام',dept:'العمليات',dates:'2026-12-08 → 2026-12-09',trainer:'أ. تركي البقمي'}
+  ]
+};
+
+var employees = [
+  {id:1,name:'أحمد محمد العتيبي',code:'EMP-101',branch:'الرياض',dept:'تقنية المعلومات',position:'محلل نظم'},
+  {id:2,name:'أحمد خالد الغامدي',code:'EMP-102',branch:'الرياض',dept:'المالية',position:'محاسب أول'},
+  {id:3,name:'أحمد عبدالله الشهري',code:'EMP-103',branch:'جدة',dept:'التسويق',position:'أخصائي تسويق'},
+  {id:4,name:'سارة خالد الحربي',code:'EMP-104',branch:'الرياض',dept:'الموارد البشرية',position:'مدير موارد'},
+  {id:5,name:'فهد عبدالله القحطاني',code:'EMP-105',branch:'الدمام',dept:'الهندسة',position:'مهندس مشروعات'}
+];
+var selectedEmployee=null;
+var evaluators = employees.slice();
+var selectedEvaluator=null;
+var branchDepts={'الرياض':['تقنية المعلومات','المالية','الموارد البشرية','العمليات'],'جدة':['التسويق','المالية'],'الدمام':['الهندسة','العمليات']};
+
+/* ============================================================
+   DYNAMIC RENDERER — builds criteria UI from template structure
+   This is the JS port of what fill.php will do server-side.
+   ============================================================ */
+function toArabic(n){return String(n).replace(/[0-9]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'[+d];});}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function gradeText(s){if(s>=90)return 'ممتاز';if(s>=80)return 'جيد جدًا';if(s>=70)return 'جيد';if(s>=60)return 'مقبول';return s>0?'ضعيف':'—';}
+
+var TYPE_META={
+  percentage:{dot:'#1b6b32',label:'نسبة مئوية'},
+  numeric:{dot:'#1565c0',label:'رقمي'},
+  grade:{dot:'#c8943f',label:'تقدير'},
+  textarea:{dot:'#7b1fa2',label:'نصي'},
+  boolean:{dot:'#c62828',label:'نعم / لا'},
+  overall_grade:{dot:'var(--gold)',label:'تقدير عام'}
+};
+
+function typeBadge(ft){var m=TYPE_META[ft]||TYPE_META.numeric;return '<span class="field-type"><span class="dot" style="background:'+m.dot+'"></span>'+m.label+'</span>';}
+
+function controlHtml(c, si, ci){
+  var nm='crit['+si+']['+ci+']';
+  var mv=c.max_value||100;
+  switch(c.field_type){
+    case 'percentage':
+      return '<div class="perc-ctrl"><div class="perc-input-wrap"><input type="number" class="score-input" data-max="'+mv+'" name="'+nm+'" min="0" max="'+mv+'" value="" oninput="updateBar(this);calcLive()"><span class="sign">٪</span></div><div class="perc-track"><div class="perc-fill" style="width:0%"></div></div></div><div class="perc-scale"><span>٠</span><span>'+toArabic(Math.round(mv/2))+'</span><span>'+toArabic(mv)+'</span></div>';
+    case 'numeric':
+      return '<div class="num-ctrl"><input type="number" class="score-input" data-max="'+mv+'" name="'+nm+'" min="0" max="'+mv+'" value="" oninput="calcLive()"><span class="num-max">من '+toArabic(mv)+'</span></div>';
+    case 'grade':
+      var opts=(c.options||['ممتاز','جيد جدًا','جيد','مقبول','ضعيف']).map(function(o){return '<option value="'+esc(o)+'">'+esc(o)+'</option>';}).join('');
+      return '<div class="grade-ctrl"><select name="'+nm+'"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';
+    case 'textarea':
+      return '<div class="text-ctrl"><textarea name="'+nm+'" placeholder="اكتب..."></textarea></div>';
+    case 'boolean':
+      return '<div class="bool-ctrl"><button type="button" class="bool-opt" onclick="selectBool(this)" data-val="yes">✓ نعم</button><button type="button" class="bool-opt" onclick="selectBool(this)" data-val="no">✕ لا</button><input type="hidden" name="'+nm+'" value=""></div>';
+    case 'overall_grade':
+      return ''; /* handled at template level via overall-card */
+    default:
+      return '<div class="text-ctrl"><textarea name="'+nm+'"></textarea></div>';
+  }
+}
+
+function criterionHtml(c, si, ci){
+  if(c.field_type==='overall_grade') return ''; /* deferred to template-level overall-card */
+  var desc=c.description?'<div class="field-desc">'+esc(c.description)+'</div>':'';
+  return '<div class="field"><div class="field-h"><div><div class="field-name">'+esc(c.title)+'</div>'+desc+'</div>'+typeBadge(c.field_type)+'</div>'+controlHtml(c,si,ci)+'</div>';
+}
+
+function overallCardHtml(o, key){
+  if(!o) return '';
+  var opts=(o.options||[]).map(function(op){return '<option value="'+esc(op)+'">'+esc(op)+'</option>';}).join('');
+  return '<div class="overall-card"><div class="overall-h"><div class="overall-title-grp"><div class="overall-icon">★</div><div><div class="overall-ttl">'+esc(o.title)+'</div><div class="overall-sub">'+esc(o.description||'')+'</div></div></div>'+typeBadge('overall_grade')+'</div><select name="'+key+'"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';
+}
+
+function programPickerHtml(target_type){
+  var isCourse = target_type==='course';
+  var idPrefix = isCourse?'course':'ws';
+  return '<div class="card gold"><div class="ttl gold">'+(isCourse?'📚 الدورة':'🏆 الورشة')+' — إلزامي</div>'+
+    '<select id="'+idPrefix+'Select" onchange="showProgInfo(this,\''+idPrefix+'\')"></select>'+
+    '<div class="prog-info" id="'+idPrefix+'Info"><div class="ttl" style="font-size:11px;margin-bottom:6px">📋 المعلومات</div><div class="pi-grid">'+
+    '<div class="pi-item"><label>🏢 الجهة</label><strong id="'+idPrefix+'Branch">—</strong></div>'+
+    '<div class="pi-item"><label>📅 التواريخ</label><strong id="'+idPrefix+'Dates">—</strong></div>'+
+    '<div class="pi-item"><label>👤 المدرب</label><strong id="'+idPrefix+'Trainer">—</strong></div></div></div></div>';
+}
+
+function renderTemplate(tplKey){
+  var tpl=TEMPLATES[tplKey]; if(!tpl) return '';
+  var typeList = [];
+  tpl.sections.forEach(function(s){s.criteria.forEach(function(c){if(typeList.indexOf(c.field_type)<0)typeList.push(c.field_type);});});
+  var html='<div class="badge">'+esc(tpl.name)+' · أنواع: '+typeList.map(function(t){return TYPE_META[t].label;}).join('، ')+'</div>';
+  // program picker for course/workshop
+  if(tpl.target_type==='course'||tpl.target_type==='workshop'){
+    html += programPickerHtml(tpl.target_type);
+  }
+  html += '<div class="criteria-stack">';
+  var si=0;
+  tpl.sections.forEach(function(sec){
+    si++;
+    var body='';
+    var hasField=false;
+    sec.criteria.forEach(function(c,ci){ if(c.field_type!=='overall_grade'){body+=criterionHtml(c,si-1,ci); hasField=true;} });
+    html += '<div class="sec"><div class="sec-h"><span class="sec-no">'+toArabic(si)+'</span><div class="sec-t"><div class="sec-ttl">'+esc(sec.title)+'</div>'+(sec.description?'<div class="sec-sub">'+esc(sec.description)+'</div>':'')+'</div>'+(sec.weight!=null?'<span class="sec-w">الوزن '+toArabic(sec.weight)+'٪</span>':'')+'</div><div class="sec-body">'+body+'</div></div>';
+  });
+  // overall-grade summary card (template-level)
+  html += overallCardHtml(tpl.overall, 'overall_grade');
+  html += '</div>';
+  // live score if quantitative fields exist
+  if(typeList.indexOf('percentage')>=0||typeList.indexOf('numeric')>=0){
+    html += '<div class="live"><div><div class="lbl">الدرجة المحسوبة آليًا</div><div class="val" id="liveScore">0</div></div><div class="gr" id="liveGrade">—</div></div>';
+  }
+  return html;
+}
+
+function onTemplateChange(sel){
+  var key=sel.value;
+  var area=document.getElementById('dynArea');
+  if(!key){ area.innerHTML='<div class="placeholder">اختر قالبًا من الأعلى — ستُبنى حقول التقييم ديناميكيًا من أقسام القالب ومعاييره بأنواع حقولها…</div>'; return; }
+  area.innerHTML=renderTemplate(key);
+  // populate program picker if present
+  if(key==='course_descriptive') populatePrograms('course','courseSelect','courseCount');
+  if(key==='workshop_numeric') populatePrograms('workshop','wsSelect','wsCount');
+  calcLive();
+}
+
+function populatePrograms(type, selId, countId){
+  var sel=document.getElementById(selId); if(!sel) return;
+  var list=PROGRAMS[type]||[];
+  sel.innerHTML='<option value="">— اختر —</option>';
+  list.forEach(function(p){
+    var o=document.createElement('option'); o.value=p.id;
+    o.textContent=p.title+' — '+p.branch+'/'+p.dept+' — '+p.dates;
+    o.dataset.branch=p.branch+' — '+p.dept; o.dataset.dates=p.dates; o.dataset.trainer=p.trainer;
+    sel.appendChild(o);
+  });
+}
+
+function showProgInfo(sel, prefix){
+  var o=sel.options[sel.selectedIndex]; var box=document.getElementById(prefix+'Info');
+  if(!o||!o.value){box.classList.remove('show');return;}
+  box.classList.add('show');
+  document.getElementById(prefix+'Branch').textContent=o.dataset.branch;
+  document.getElementById(prefix+'Dates').textContent=o.dataset.dates;
+  document.getElementById(prefix+'Trainer').textContent=o.dataset.trainer;
+}
+
+/* live score — normalizes mixed scales via data-max */
+function calcLive(){
+  var area=document.getElementById('dynArea');
+  var inputs=area.querySelectorAll('.score-input');
+  var sum=0,n=0;
+  inputs.forEach(function(i){var v=parseFloat(i.value)||0;var max=parseFloat(i.getAttribute('data-max'))||100;if(max>0){sum+=(v/max)*100;n++;}});
+  var avg=n>0?Math.round(sum/n*10)/10:0;
+  var sv=document.getElementById('liveScore'); if(sv) sv.textContent=avg.toFixed(1);
+  var gv=document.getElementById('liveGrade'); if(gv) gv.textContent=gradeText(avg);
+}
+
+function updateBar(input){
+  var max=parseFloat(input.getAttribute('data-max'))||100;
+  var v=Math.min(max,Math.max(0,parseFloat(input.value)||0));
+  var pct=(v/max)*100;
+  var ctrl=input.closest('.perc-ctrl'); var fill=ctrl?ctrl.querySelector('.perc-fill'):null;
+  if(fill) fill.style.width=pct+'%';
+  calcLive();
+}
+
+function selectBool(btn){
+  var wrap=btn.parentElement;
+  var opts=wrap.querySelectorAll('.bool-opt');
+  opts.forEach(function(s){s.classList.remove('sel-yes','sel-no');});
+  var isYes=btn.getAttribute('data-val')==='yes';
+  btn.classList.add(isYes?'sel-yes':'sel-no');
+  var hidden=wrap.querySelector('input[type=hidden]'); if(hidden) hidden.value=isYes?'yes':'no';
+}
+
+/* === Employee / Evaluator search (proven from CD-038) === */
+function searchEmployees(q){
+  q=q.trim(); var box=document.getElementById('empResults');
+  if(!q){box.classList.remove('show');box.innerHTML='';return;}
+  var branch=document.getElementById('empBranchFilter').value, dept=document.getElementById('empDeptFilter').value;
+  var results=employees.filter(function(e){
+    var n=e.name.toLowerCase().includes(q.toLowerCase()),c=e.code.toLowerCase().includes(q.toLowerCase());
+    if(!n&&!c)return false; if(branch&&e.branch!==branch)return false; if(dept&&e.dept!==dept)return false; return true;
+  });
+  if(results.length===0){
+    box.innerHTML='<div style="padding:10px;color:var(--muted);text-align:center;font-size:12px">لا توجد نتائج</div><div class="emp-result" style="border-top:2px solid var(--gold);background:#fffbf3;text-align:center" onclick="showQuickAdd()"><div class="nm" style="color:var(--gold)">＋ إضافة موظف جديد</div><div class="meta">الموظف غير مسجل — أضف بياناته</div></div>';
+    box.classList.add('show');return;
+  }
+  box.innerHTML='<div style="padding:4px 10px;font-size:10px;color:var(--muted);background:var(--gold-bg)">'+results.length+' نتيجة</div>'+results.map(function(e){return '<div class="emp-result" onclick="selectEmployee('+e.id+')"><div class="nm">'+e.name+' <span style="font-size:10px;color:var(--muted);font-weight:400">('+e.code+')</span></div><div class="meta">'+e.branch+' / '+e.dept+' — '+e.position+'</div></div>';}).join('');
+  box.classList.add('show');
+}
+function onEmpBranchFilter(){
+  var bf=document.getElementById('empBranchFilter'),df=document.getElementById('empDeptFilter'),b=bf.value;
+  df.innerHTML='<option value="">📋 كل الأقسام</option>';
+  if(b&&branchDepts[b]){branchDepts[b].forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=d;df.appendChild(o);});df.disabled=false;}else{df.disabled=true;}
+  df.value=''; var q=document.getElementById('empSearch').value; if(q)searchEmployees(q);
+}
+function onEmpDeptFilter(){var q=document.getElementById('empSearch').value;if(q)searchEmployees(q);}
+function selectEmployee(id){var e=employees.find(function(x){return x.id===id;});if(!e)return;selectedEmployee=e;document.getElementById('empSearch').value='';document.getElementById('empResults').classList.remove('show');document.getElementById('empSelName').textContent=e.name;document.getElementById('empSelCode').textContent='('+e.code+')';document.getElementById('empSelected').classList.add('show');}
+function clearEmployee(){selectedEmployee=null;document.getElementById('empSearch').value='';document.getElementById('empSelected').classList.remove('show');document.getElementById('empResults').classList.remove('show');hideQuickAdd();}
+function showQuickAdd(){document.getElementById('empResults').classList.remove('show');document.getElementById('empSearch').value='';document.getElementById('quickAddEmp').classList.add('show');}
+function hideQuickAdd(){document.getElementById('quickAddEmp').classList.remove('show');}
+function onQaBranchChange(){var bf=document.getElementById('qaBranch'),df=document.getElementById('qaDept'),b=bf.value;df.innerHTML='<option value="">القسم</option>';if(b&&branchDepts[b]){branchDepts[b].forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=d;df.appendChild(o);});df.disabled=false;}else{df.disabled=true;}}
+function saveQuickAdd(){
+  var name=document.getElementById('qaName').value.trim(),code=document.getElementById('qaCode').value.trim(),branch=document.getElementById('qaBranch').value,dept=document.getElementById('qaDept').value,position=document.getElementById('qaPosition').value.trim();
+  if(!name||!code||!branch){alert('الاسم والرقم الوظيفي والفرع مطلوبة');return;}
+  if(!position){alert('المنصب الوظيفي مطلوب');return;}
+  var newId=employees.length>0?Math.max.apply(null,employees.map(function(e){return e.id;}))+1:1;
+  var ne={id:newId,name:name,code:code,branch:branch,dept:dept||'عام',position:position};
+  employees.push(ne);hideQuickAdd();selectEmployee(newId);showToast('✅ تم إضافة الموظف "'+name+'" واختياره','#1b6b32');
+  document.getElementById('qaName').value='';document.getElementById('qaCode').value='';document.getElementById('qaBranch').value='';document.getElementById('qaDept').value='';document.getElementById('qaDept').disabled=true;document.getElementById('qaPosition').value='';
+}
+function searchEvaluators(q){
+  q=q.trim();var box=document.getElementById('evalResults');if(!q){box.classList.remove('show');box.innerHTML='';return;}
+  var results=evaluators.filter(function(e){var n=e.name.toLowerCase().includes(q.toLowerCase()),c=e.code.toLowerCase().includes(q.toLowerCase());return n||c;});
+  if(results.length===0){box.innerHTML='<div style="padding:10px;color:var(--muted);text-align:center;font-size:12px">لا توجد نتائج</div>';box.classList.add('show');return;}
+  box.innerHTML='<div style="padding:4px 10px;font-size:10px;color:var(--muted);background:var(--gold-bg)">'+results.length+' نتيجة</div>'+results.map(function(e){return '<div class="emp-result" onclick="selectEvaluator('+e.id+')"><div class="nm">'+e.name+' <span style="font-size:10px;color:var(--muted);font-weight:400">('+e.code+')</span></div><div class="meta">'+e.branch+' / '+e.dept+' — '+e.position+'</div></div>';}).join('');
+  box.classList.add('show');
+}
+function selectEvaluator(id){var e=evaluators.find(function(x){return x.id===id;});if(!e)return;selectedEvaluator=e;document.getElementById('evalSearch').value='';document.getElementById('evalResults').classList.remove('show');document.getElementById('evalSelName').textContent=e.name;document.getElementById('evalSelCode').textContent='('+e.code+')';document.getElementById('evalSelected').classList.add('show');document.getElementById('evalTitle').value=e.position;}
+function clearEvaluator(){selectedEvaluator=null;document.getElementById('evalSearch').value='';document.getElementById('evalSelected').classList.remove('show');document.getElementById('evalResults').classList.remove('show');document.getElementById('evalTitle').value='';}
+
+document.addEventListener('click',function(e){if(!e.target.closest('.emp-search-wrap')){var box=document.getElementById('empResults');if(box)box.classList.remove('show');}});
+
+function submitEval(){
+  var tpl=document.getElementById('templateSelect');
+  if(!tpl.value){showToast('⚠️ اختر القالب أولًا!','#c85b54');return;}
+  // collect criteria values
+  var data={template:tpl.value, employee:selectedEmployee, evaluator:selectedEvaluator, criteria:{}};
+  document.querySelectorAll('#dynArea [name^="crit["]').forEach(function(i){data.criteria[i.name]=i.value;});
+  var ov=document.querySelector('#dynArea [name="overall_grade"]'); if(ov) data.criteria.overall_grade=ov.value;
+  console.log('CD-039 submit payload:', data);
+  showToast('✅ تم حفظ التقييم بنجاح! (الحمولة في الكونسول)','#1b6b32');
+}
+function showToast(msg,color){var t=document.getElementById('toast');t.textContent=msg;t.style.background=color||'#1b6b32';t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+function resetAll(){document.getElementById('dynArea').innerHTML='<div class="placeholder">اختر قالبًا من الأعلى — ستُبنى حقول التقييم ديناميكيًا من أقسام القالب ومعاييره بأنواع حقولها…</div>';document.getElementById('templateSelect').value='';showToast('↺ تم تفريغ النموذج','#6c757d');}
+</script>
+</body>
+</html>
