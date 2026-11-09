@@ -30,11 +30,13 @@
 .section-num{ width:28px; height:28px; background:var(--navy); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0;}
 .section-head h2{ margin:0; font-size:13.5px; font-weight:800; color:var(--navy); letter-spacing:.2px;}
 .section-head .line{ flex:1; height:1px; background:var(--border-light); margin-right:8px;}
-.info-card{ background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden;}
-.info-grid{ display:grid; grid-template-columns:1fr 1fr; }
-.info-cell{ padding:10px 14px; display:flex; flex-direction:column; gap:3px; border-bottom:1px solid #f1f3f5; border-left:1px solid #f1f3f5;}
-.info-cell:nth-child(even){ border-left:none;}
-.info-cell:nth-last-child(-n+2){ border-bottom:none;}
+/* CD-040.6: بطاقة الموظف بنفس تصميم بطاقة البرنامج (ذهبي + 3 أعمدة) */
+.info-card{ background:linear-gradient(135deg,#fffbf3 0%,#fff 65%); border:2px solid #c5a880; border-radius:10px; overflow:hidden; box-shadow:0 8px 24px rgba(197,168,128,.18); position:relative; }
+.info-grid{ display:grid; grid-template-columns:repeat(3,1fr); }
+.info-cell{ padding:10px 14px; display:flex; flex-direction:column; gap:3px; border-bottom:1px solid #f1f3f5; border-left:1px solid #f1f3f5; transition:background .2s; }
+.info-cell:hover{ background:#fef9ec; }
+.info-cell:nth-child(3n){ border-left:none;}
+.info-cell:nth-last-child(-n+3){ border-bottom:none;}
 .info-cell label{ font-size:10px; font-weight:700; color:var(--muted); letter-spacing:.4px; text-transform:uppercase; display:flex; align-items:center; gap:5px; justify-content:center;}
 .info-cell label i{ color:var(--gold); font-size:10px;}
 .info-cell span{ font-size:13px; font-weight:600; color:var(--text); text-align:center; display:block; width:100%;}

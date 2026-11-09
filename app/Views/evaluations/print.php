@@ -27,11 +27,11 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
 .section-num{ width:18px; height:18px; background:var(--navy); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; flex-shrink:0;}
 .section-head h2{ margin:0; font-size:10.5px; font-weight:800; color:var(--navy);}
 .section-head .line{ flex:1; height:1px; background:#e8eaed;}
-.info-card{ border:1px solid var(--border); border-radius:6px; overflow:hidden;}
-.info-grid{ display:grid; grid-template-columns:1fr 1fr; }
+.info-card{ background:linear-gradient(135deg,#fffbf3 0%,#fff 65%); border:1.5px solid var(--gold); border-radius:6px; overflow:hidden; }
+.info-grid{ display:grid; grid-template-columns:repeat(3,1fr); }
 .info-cell{ padding:4px 8px; display:flex; flex-direction:column; gap:1px; border-bottom:1px solid #f1f3f5; border-left:1px solid #f1f3f5;}
-.info-cell:nth-child(even){ border-left:none;}
-.info-cell:nth-last-child(-n+2){ border-bottom:none;}
+.info-cell:nth-child(3n){ border-left:none;}
+.info-cell:nth-last-child(-n+3){ border-bottom:none;}
 .info-cell label{ font-size:7.5px; font-weight:700; color:var(--muted); display:flex; align-items:center; gap:3px; justify-content:center;}
 .info-cell label i{ color:var(--gold); font-size:7.5px;}
 .info-cell span{ font-size:10px; font-weight:600; color:var(--text); text-align:center; display:block; width:100%;}
