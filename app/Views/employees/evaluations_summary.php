@@ -213,7 +213,7 @@ if (!empty($evaluationsByYear)) {
         'periodic' => ['دوري', 'fas fa-repeat', '#eab308', 'eval-type-periodic'],
         'course' => ['دورة', 'fas fa-graduation-cap', '#3b82f6', 'eval-type-course'],
         'workshop' => ['ورشة', 'fas fa-chalkboard-teacher', '#8b5cf6', 'eval-type-workshop'],
-        'skill' => ['مهاري', 'fas fa-star', '#f97316', 'eval-type-skill'],
+        'skill' => ['مهاري', 'fas fa-bullseye', '#f97316', 'eval-type-skill'],
       ];
     ?>
     <div class="kpi-strip" style="margin-top:0;">

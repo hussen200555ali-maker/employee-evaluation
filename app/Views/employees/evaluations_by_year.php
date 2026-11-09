@@ -180,7 +180,7 @@ $minScore = $scores ? min($scores) : null;
             $tk = $ev->evaluation_type ?? 'annual';
             $typeCounts[$tk] = ($typeCounts[$tk] ?? 0) + 1;
           }
-          $typeTabs = ['all' => ['الكل', 'fas fa-layer-group'], 'annual' => ['سنوي', 'fas fa-calendar'], 'periodic' => ['دوري', 'fas fa-repeat'], 'course' => ['دورة', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'fas fa-star']];
+          $typeTabs = ['all' => ['الكل', 'fas fa-layer-group'], 'annual' => ['سنوي', 'fas fa-calendar'], 'periodic' => ['دوري', 'fas fa-repeat'], 'course' => ['دورة', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'fas fa-bullseye']];
         ?>
         <?php foreach ($typeTabs as $k => $t): if (!empty($typeCounts[$k]) || $k === 'all'): ?>
         <button type="button" class="eval-type-tab<?php echo $k === 'all' ? ' active' : ''; ?>" data-filter="<?php echo $k; ?>" onclick="filterByType(this, '<?php echo $k; ?>')"><i class="<?php echo $t[1]; ?>"></i> <?php echo $t[0]; ?> <span class="cnt"><?php echo $typeCounts[$k] ?? 0; ?></span></button>
@@ -194,7 +194,7 @@ $minScore = $scores ? min($scores) : null;
             if ($tplTarget === 'skill') $evalTypeKey = 'skill';
             if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
             if ($tplTarget === 'employee_in_course' || $tplTarget === 'course') $evalTypeKey = $evalTypeKey === 'annual' ? 'course' : $evalTypeKey;
-            $typeMap = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-star']];
+            $typeMap = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-bullseye']];
             $ti = $typeMap[$evalTypeKey] ?? $typeMap['annual'];
           ?>
           <div class="eval-card" data-eval-id="<?php echo $eval->id; ?>" data-template="<?php echo htmlspecialchars($eval->template_name); ?>" data-eval-type="<?php echo $evalTypeKey; ?>">

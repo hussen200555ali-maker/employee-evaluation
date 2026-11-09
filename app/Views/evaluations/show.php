@@ -21,7 +21,7 @@
 .header-titles .basmala{ font-family:'Amiri',serif; font-size:13px; color:#2d3a4f; margin:0; font-style:italic;}
 .header-titles .doc-title{ font-size:17px; font-weight:800; color:var(--navy); margin:6px 0 0; letter-spacing:.3px; position:relative; display:inline-block; padding-bottom:6px;}
 .header-titles .doc-title::after{ content:''; position:absolute; bottom:0; left:15%; right:15%; height:2.5px; background: linear-gradient(90deg, transparent, var(--gold), transparent); border-radius:2px;}
-.header-meta{ min-width:155px; text-align:left; font-size:10.5px; line-height:1.65; color:#334155; background:#f8fafc; border:1px solid var(--border-light); border-radius:8px; padding:8px 10px;}
+.header-meta{ min-width:155px; text-align:right; font-size:10.5px; line-height:1.65; color:#334155; background:#f8fafc; border:1px solid var(--border-light); border-radius:8px; padding:8px 10px;}
 .header-meta p{ margin:1px 0;}
 .header-meta strong{ color:var(--navy); font-weight:700;}
 .doc-body{ padding:18px 22px 10px;}
@@ -113,7 +113,7 @@
     $evalTypeKey = $evaluation->evaluation_type ?? 'annual';
     $tplTarget = $template['target_type'] ?? '';
     if ($evalTypeKey === 'course' && $tplTarget === 'employee_in_course') $evalTypeKey = 'course';
-    $typeLabels = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-star']];
+    $typeLabels = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-bullseye']];
     if ($tplTarget === 'skill') $evalTypeKey = 'skill';
     if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
     $typeInfo = $typeLabels[$evalTypeKey] ?? $typeLabels['annual'];
@@ -124,12 +124,11 @@
       <p class="company">اسم الشركة — وحدة الموارد البشرية</p>
       <p class="basmala">بسم الله الرحمن الرحيم</p>
       <h1 class="doc-title"><?php echo htmlspecialchars($template['template_name']); ?></h1>
-      <div style="margin-top:8px;"><span class="eval-type-badge <?php echo $typeInfo[1]; ?>"><i class="<?php echo $typeInfo[2]; ?>"></i> <?php echo $typeInfo[0]; ?></span></div>
     </div>
     <div class="header-meta">
       <p><strong>التاريخ:</strong> <?php echo date('Y/m/d', strtotime($evaluation->evaluation_date)); ?></p>
       <?php if(isset($hijriDate) && $hijriDate): ?>
-        <p><strong>هجري:</strong> <?php echo "{$hijriDate->day} {$hijriDate->month_name} {$hijriDate->year}"; ?></p>
+        <p><strong>الموافق:</strong> <?php echo "{$hijriDate->day} {$hijriDate->month_name} {$hijriDate->year}"; ?></p>
         <p><strong>اليوم:</strong> <?php echo htmlspecialchars($hijriDate->weekday); ?></p>
       <?php else: ?>
         <p><strong>الرقم:</strong> <?php echo htmlspecialchars($evaluation->employee_code); ?></p>
@@ -159,7 +158,7 @@
       <div class="program-card">
         <div class="program-card-head">
           <h3><i class="<?php echo ($program->type ?? '') === 'workshop' ? 'fas fa-chalkboard-teacher' : 'fas fa-graduation-cap'; ?>"></i> <?php echo ($program->type ?? '') === 'workshop' ? 'الورشة التدريبية' : 'الدورة التدريبية'; ?></h3>
-          <?php if (!empty($program->status)): ?><span class="program-status"><?php echo htmlspecialchars($program->status); ?></span><?php endif; ?>
+          <?php if (false && !empty($program->status)): ?><span class="program-status"><?php echo htmlspecialchars($program->status); ?></span><?php endif; ?>
         </div>
         <div class="program-grid">
           <div class="program-cell"><label><i class="fas fa-book-open"></i> عنوان البرنامج</label><span><?php echo htmlspecialchars($program->title ?? '—'); ?></span></div>
@@ -207,7 +206,7 @@
       </div>
       <div class="signature-area">
         <div class="sig-box"><div class="sig-line"></div><div class="sig-label">توقيع المقيّم</div><div class="sig-sub"><?php echo htmlspecialchars($evaluation->evaluator_name ?? ''); ?></div></div>
-        <div class="sig-box"><div class="sig-line"></div><div class="sig-label">توقيع مسؤول النظام</div><div class="sig-sub"><?php echo htmlspecialchars(\App\Core\Auth::user()->username); ?></div></div>
+        <div class="sig-box"><div class="sig-line"></div><div class="sig-label">توقيع مسؤول النظام</div><div class="sig-sub"></div></div>
         <div class="sig-box"><div class="sig-line"></div><div class="sig-label">الختم الرسمي</div><div class="sig-sub" style="color:#94a3b8;">—</div></div>
       </div>
     </div>
@@ -215,7 +214,7 @@
 
   <footer class="doc-footer">
     <div class="left"><span class="dot"></span> وثيقة سرية — للاستخدام الداخلي فقط</div>
-    <div>المستخدم: <?php echo htmlspecialchars(\App\Core\Auth::user()->username); ?> · <?php echo date('Y/m/d H:i'); ?></div>
+    <div>مستخدم #<?php echo (int)\App\Core\Auth::user()->id; ?> · <?php echo date('Y/m/d H:i'); ?></div>
   </footer>
 </div>
 </div>
