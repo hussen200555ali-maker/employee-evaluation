@@ -71,12 +71,12 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
 .eval-person .lbl{ font-size:8px; font-weight:700; color:var(--muted); margin-bottom:2px; display:flex; align-items:center; justify-content:center; gap:3px;}
 .eval-person .lbl i{ color:var(--gold);}
 .eval-person .val{ font-size:10px; font-weight:700; color:var(--navy);}
-.signature-area{ display:flex; justify-content:space-between; gap:8px; margin-top:8px; padding-top:6px; border-top:1px dashed #d6d9e0;}
-.sig-box{ text-align:center; flex:1;}
-.sig-line{ width:100px; height:1px; background:var(--navy); margin:12px auto 4px; position:relative;}
-.sig-line::after{ content:'✦'; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:0 3px; color:var(--gold); font-size:6px;}
+.signature-area{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; padding-top:6px; border-top:1px dashed #d6d9e0;}
+.sig-box{ text-align:center; padding:6px 4px 4px; border:1px dashed #d6d9e0; border-radius:5px; background:#fafbfc; min-height:46px; display:flex; flex-direction:column; justify-content:flex-end;}
+.sig-line{ width:100%; height:1px; background:var(--navy); margin:8px auto 4px; position:relative;}
+.sig-line::after{ content:'✦'; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fafbfc; padding:0 3px; color:var(--gold); font-size:6px;}
 .sig-label{ font-size:9px; font-weight:700; color:var(--navy);}
-.sig-sub{ font-size:8px; color:var(--muted);}
+.sig-sub{ font-size:8px; color:var(--muted); min-height:1.2em;}
 .doc-footer{ border-top:1px solid var(--navy); margin-top:10px; padding-top:6px; display:flex; justify-content:space-between; font-size:8px; color:var(--muted);}
 @media print{ body{background:#fff;} }
 </style>
