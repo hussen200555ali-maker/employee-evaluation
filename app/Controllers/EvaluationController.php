@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Auth;
 use App\Core\Flash;
 use App\Core\Audit; // استيراد فئة التدقيق
+use App\Core\Database; // CD-037: Database::getInstance() في saveEvaluationContext/sync*
 use App\Models\Evaluation; // سنقوم بإنشاء هذا المودل
 use App\Models\Employee;   // نحتاجه لجلب بيانات الموظف
 use App\Models\Template; // <-- ▼▼▼ هذا هو السطر الصحيح ▼▼▼

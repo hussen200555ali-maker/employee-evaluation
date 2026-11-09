@@ -26,7 +26,7 @@ final class BulkEvaluationController extends Controller
         $db = Database::getInstance();
 
         // Load available templates
-        $db->query('SELECT id, template_name, evaluation_mode, evaluation_frequency
+        $db->query('SELECT id, template_name, evaluation_mode, evaluation_frequency, target_type
                     FROM form_templates ORDER BY template_name');
         $templates = $db->fetchAll();
 
