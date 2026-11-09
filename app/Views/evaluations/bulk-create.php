@@ -888,20 +888,22 @@ function cd041_saveAll(){
     if(!document.getElementById('cd041-date').value){ cd041_toast('اختر التاريخ','err'); return; }
     if(!document.getElementById('cd041-evaluator').value.trim()){ cd041_toast('أدخل اسم المقيم','err'); return; }
     var payload=cd041_buildPayload();
-    var btn=event.target; var old=btn.innerHTML; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جارٍ الحفظ...'; btn.disabled=true;
+    var btn=document.querySelector('button[onclick*="cd041_saveAll"]') || [...document.querySelectorAll('button')].find(function(b){return (b.textContent||'').trim()==='حفظ الكل';});
+    var old=btn ? btn.innerHTML : '';
+    if(btn){ btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جارٍ الحفظ...'; btn.disabled=true; }
     fetch(CD041_APP_URL+'/evaluations/bulk-save',{
         method:'POST',
         headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
         body: JSON.stringify(payload)
     }).then(function(r){return r.json();}).then(function(res){
-        btn.innerHTML=old; btn.disabled=false;
+        if(btn){ btn.innerHTML=old; btn.disabled=false; }
         if(res && res.success){
             cd041_toast((res.message||'تم الحفظ')+' ('+(res.saved||0)+' تقييم)','ok');
         } else {
             cd041_toast((res&&res.message)?res.message:'فشل الحفظ','err');
             if(res && res.errors){ console.warn('CD-041 save errors', res.errors); }
         }
-    }).catch(function(){ btn.innerHTML=old; btn.disabled=false; cd041_toast('خطأ في الاتصال بالخادم','err'); });
+    }).catch(function(){ if(btn){ btn.innerHTML=old; btn.disabled=false; } cd041_toast('خطأ في الاتصال بالخادم','err'); });
 }
 
 /* ===== init ===== */
