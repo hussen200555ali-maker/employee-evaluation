@@ -24,7 +24,7 @@ if (!empty($cd040_saved_answers)) {
 $cd040_grading_json = [];
 if (!empty($cd040_grading_scales)) {
     foreach ($cd040_grading_scales as $gs) {
-        $cd040_grading_json[] = ['id'=>(int)$gs->id,'scale_name'=>$gs->scale_name ?? '','grade_label'=>$gs->grade_label ?? '','numeric_value'=>(float)($gs->numeric_value ?? 0)];
+        $cd040_grading_json[] = ['id'=>(int)$gs->id,'scale_name'=>$gs->scale_name ?? '','grade_label'=>$gs->grade_label ?? '','numeric_value'=>(float)($gs->numeric_value ?? 0),'max_value'=>(float)($gs->max_value ?? 0),'min_value'=>(float)($gs->min_value ?? 0)];
     }
 }
 ?>
@@ -214,17 +214,6 @@ if (!empty($cd040_grading_scales)) {
   </div>
 </div>
 
-<!-- ====== التقدير العام اليدوي ====== -->
-<div class="cd040-card cd040-gold-card" id="manualGradeCard" style="display:none">
-  <div class="cd040-ttl gold">⭐ التقدير العام (يدوي)</div>
-  <select name="final_grade_id" class="cd040-select" id="finalGradeSelect">
-    <option value="">— اختر التقدير العام —</option>
-    <?php foreach ($cd040_grading_scales as $gs): ?>
-      <option value="<?= (int)$gs->id ?>"><?= htmlspecialchars(($gs->scale_name ?? '').' — '.($gs->grade_label ?? '')) ?></option>
-    <?php endforeach; ?>
-  </select>
-</div>
-
 <!-- ====== المعايير الديناميكية ====== -->
 <div class="cd040-stack" id="criteriaStack">
   <div class="cd040-placeholder" id="criteriaPlaceholder">اختر قالبًا من الأعلى لعرض حقول التقييم…</div>
@@ -234,6 +223,39 @@ if (!empty($cd040_grading_scales)) {
 <div class="cd040-live" id="liveScoreBar" style="display:none">
   <div><div class="cd040-lbl">الدرجة المحسوبة آليًا</div><div class="cd040-val" id="liveScore">٠٫٠</div></div>
   <div class="cd040-gr" id="liveGrade">—</div>
+</div>
+
+<!-- ====== التقدير العام — أسفل الاستمارة (ناتج نظام) ====== -->
+<div class="cd040-overall-hero" id="manualGradeCard" style="display:none">
+  <div class="cd040-OH-top">
+    <div class="cd040-OH-trophy" aria-hidden="true">🏆</div>
+    <div class="cd040-OH-head">
+      <div class="cd040-OH-title">⭐ التقدير العام <span class="cd040-OH-final">— النتيجة النهائية</span></div>
+      <div class="cd040-OH-desc" id="overallGradeDesc">اختر تقييمك النهائي لأداء الموظف — يُحفظ مباشرةً كدرجة نهائية في التقييم.</div>
+    </div>
+    <div class="cd040-OH-badge">ناتج النظام</div>
+  </div>
+  <div class="cd040-OH-body">
+    <label class="cd040-OH-label" for="finalGradeSelect">🏅 اختر التقدير العام <span class="cd040-req">*</span></label>
+    <div class="cd040-OH-select-wrap">
+      <select name="final_grade_id" class="cd040-OH-select" id="finalGradeSelect" onchange="cd040_onGradeChange(this)">
+        <option value="">— اختر التقدير العام —</option>
+        <?php foreach ($cd040_grading_scales as $gs): ?>
+          <option value="<?= (int)$gs->id ?>" data-max="<?= (float)($gs->max_value ?? 0) ?>" data-min="<?= (float)($gs->min_value ?? 0) ?>" data-label="<?= htmlspecialchars($gs->grade_label ?? '') ?>" data-scale="<?= htmlspecialchars($gs->scale_name ?? '') ?>" <?= ($cd040_evaluation->final_grade_label ?? '') === ($gs->grade_label ?? '') ? 'selected' : '' ?>><?= htmlspecialchars(($gs->scale_name ?? '').' — '.($gs->grade_label ?? '')) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="cd040-OH-pills" id="overallGradePills" role="radiogroup" aria-label="التقدير العام">
+      <?php foreach ($cd040_grading_scales as $gs): ?>
+        <button type="button" class="cd040-OH-pill<?= ($cd040_evaluation->final_grade_label ?? '') === ($gs->grade_label ?? '') ? ' active' : '' ?>" data-id="<?= (int)$gs->id ?>" data-max="<?= (float)($gs->max_value ?? 0) ?>" data-label="<?= htmlspecialchars($gs->grade_label ?? '') ?>" data-scale="<?= htmlspecialchars($gs->scale_name ?? '') ?>" onclick="cd040_pickGrade(this)">
+          <span class="cd040-OH-pill-ico" aria-hidden="true">⭐</span>
+          <span class="cd040-OH-pill-lbl"><?= htmlspecialchars($gs->grade_label ?? '') ?></span>
+          <span class="cd040-OH-pill-val"><?= htmlspecialchars(number_format((float)($gs->max_value ?? 0), 0)) ?>%</span>
+        </button>
+      <?php endforeach; ?>
+    </div>
+    <div class="cd040-OH-hint" id="overallGradeHint">💡 ستُحفظ القيمة كدرجة نهائية في المتوسطات النهائية.</div>
+  </div>
 </div>
 
 <!-- ====== بطاقة المُقيِّم ====== -->
@@ -393,6 +415,32 @@ if (!empty($cd040_grading_scales)) {
 .cd040-ev-field input,.cd040-ev-field textarea{width:100%;padding:7px 9px;border:1px solid #e0e8e4;border-radius:5px;font-family:'Cairo';font-size:12px}
 .cd040-ev-field input:focus,.cd040-ev-field textarea:focus{border-color:#c8943f;outline:none}
 .cd040-ev-field.full{grid-column:1/-1}
+/* ===== التقدير العام — أسفل الاستتمارة (ناتج نظام، جذّاب) ===== */
+.cd040-overall-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#0c2823 0%,#0d5e52 55%,#0c2823 100%);border:2px solid #c8943f;border-radius:16px;padding:20px 22px 18px;margin-bottom:14px;color:#fff;box-shadow:0 14px 34px rgba(12,40,35,.35),0 0 0 6px rgba(200,148,63,.08)}
+.cd040-overall-hero::before{content:'';position:absolute;top:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(200,148,63,.35),transparent 70%);pointer-events:none}
+.cd040-overall-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#c8943f,#f6e8cf,#c8943f)}
+.cd040-OH-top{position:relative;display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.cd040-OH-trophy{flex:0 0 auto;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#c8943f,#a87830);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 18px rgba(200,148,63,.45);border:2px solid rgba(255,255,255,.35)}
+.cd040-OH-head{flex:1;min-width:0}
+.cd040-OH-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.cd040-OH-final{color:#c8943f;font-size:13px;font-weight:800}
+.cd040-OH-desc{font-size:11.5px;color:rgba(255,255,255,.78);margin-top:3px;line-height:1.6}
+.cd040-OH-badge{flex:0 0 auto;background:linear-gradient(135deg,#c8943f,#a87830);color:#0c2823;font-size:11px;font-weight:800;padding:7px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.4);white-space:nowrap}
+.cd040-OH-body{position:relative}
+.cd040-OH-label{display:block;font-size:12px;font-weight:800;color:#f6e8cf;margin-bottom:8px}
+.cd040-OH-select-wrap{position:relative}
+.cd040-OH-select{width:100%;padding:14px 16px 14px 40px;border:2px solid #c8943f;border-radius:12px;font-family:'Cairo';font-size:15px;font-weight:800;background:#fff;color:#0c2823;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath fill='%23c8943f' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 16px center;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.cd040-OH-select:focus{outline:none;border-color:#f6e8cf;box-shadow:0 0 0 4px rgba(200,148,63,.35),0 4px 14px rgba(0,0,0,.2)}
+.cd040-OH-pills{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.cd040-OH-pill{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px 10px;border-radius:12px;border:1.5px solid rgba(200,148,63,.55);background:rgba(255,255,255,.08);color:#fff;font-family:'Cairo';cursor:pointer;transition:transform .18s,background .18s,border-color .18s,box-shadow .18s}
+.cd040-OH-pill:hover{transform:translateY(-2px);background:rgba(255,255,255,.14);border-color:#f6e8cf}
+.cd040-OH-pill.active{background:linear-gradient(135deg,#c8943f,#a87830);color:#0c2823;border-color:#f6e8cf;box-shadow:0 6px 18px rgba(200,148,63,.5)}
+.cd040-OH-pill-ico{font-size:15px;line-height:1}
+.cd040-OH-pill-lbl{font-size:12.5px;font-weight:800}
+.cd040-OH-pill-val{font-size:11px;font-weight:800;opacity:.85}
+.cd040-OH-pill.active .cd040-OH-pill-val{opacity:1}
+.cd040-OH-hint{margin-top:14px;padding:10px 14px;background:rgba(255,255,255,.10);border:1px solid rgba(200,148,63,.45);border-radius:10px;font-size:12px;font-weight:600;color:#f6e8cf;line-height:1.7;text-align:center}
+.cd040-OH-hint strong{color:#fff;font-size:13px}
 .cd040-bar{position:sticky;bottom:0;background:rgba(245,248,246,.97);backdrop-filter:blur(6px);border-top:1px solid #e0e8e4;padding:12px 0;display:flex;justify-content:flex-end;gap:8px}
 .cd040-btn{padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;font-family:'Cairo';cursor:pointer;border:none;transition:transform .15s}
 .cd040-btn-p{background:#0c2823;color:#c8943f}
@@ -434,7 +482,7 @@ if (!empty($cd040_grading_scales)) {
 .cd040-pv-score .v{font-size:22px;font-weight:800}
 .cd040-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 22px;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
 .cd040-toast.show{opacity:1}
-@media(max-width:768px){.cd040-tb-grid,.cd040-cfg-grid,.cd040-pi-grid,.cd040-ev-grid,.cd040-qa-grid,.cd040-prog-filters{grid-template-columns:1fr}.cd040-perc{flex-wrap:wrap}.cd040-perc .ptr{flex-basis:100%}.cd040-grade select,.cd040-overall-inline select{max-width:100%}}
+@media(max-width:768px){.cd040-tb-grid,.cd040-cfg-grid,.cd040-pi-grid,.cd040-ev-grid,.cd040-qa-grid,.cd040-prog-filters{grid-template-columns:1fr}.cd040-perc{flex-wrap:wrap}.cd040-perc .ptr{flex-basis:100%}.cd040-grade select,.cd040-overall-inline select{max-width:100%}.cd040-OH-pills{grid-template-columns:repeat(2,1fr)}.cd040-OH-top{flex-wrap:wrap}.cd040-OH-badge{white-space:normal}}
 </style>
 
 <script>
@@ -620,15 +668,46 @@ function cd040_doQuickAdd(formId,codeId,nameId,branchId,deptId,posId,target){
 }
 
 /* ===== template schema + criteria rendering ===== */
+function cd040_onGradeChange(sel){
+  var hint=document.getElementById('overallGradeHint');
+  var pillBox=document.getElementById('overallGradePills');
+  var val=sel?sel.value:'';
+  if(pillBox){ pillBox.querySelectorAll('.cd040-OH-pill').forEach(function(p){ p.classList.toggle('active', String(p.getAttribute('data-id'))===String(val)); }); }
+  if(!hint) return;
+  if(!val){ hint.innerHTML='💡 ستُحفظ القيمة كدرجة نهائية في المتوسطات النهائية.'; return; }
+  var opt=sel.options[sel.selectedIndex];
+  var label=opt?opt.getAttribute('data-label')||opt.textContent:'';
+  var max=opt?parseFloat(opt.getAttribute('data-max')||'0'):0;
+  var min=opt?parseFloat(opt.getAttribute('data-min')||'0'):0;
+  var scale=opt?opt.getAttribute('data-scale')||'السلم الخماسي':'السلم الخماسي';
+  hint.innerHTML='✅ التقدير المختار: <strong>'+cd040_esc(label)+'</strong> ('+cd040_esc(scale)+') — سيُحفظ كدرجة نهائية <strong>'+cd040_arabic_num(max.toFixed(2))+'%</strong> <span style="opacity:.8">('+cd040_arabic_num(min.toFixed(0))+' – '+cd040_arabic_num(max.toFixed(0))+')</span>';
+}
+function cd040_pickGrade(btn){
+  var sel=document.getElementById('finalGradeSelect');
+  if(!sel||!btn) return;
+  sel.value=btn.getAttribute('data-id');
+  cd040_onGradeChange(sel);
+}
 function cd040_onTemplate(id){
   document.getElementById('template_id_hidden').value=id;
-  if(!id){document.getElementById('criteriaStack').innerHTML='<div class="cd040-placeholder">اختر قالبًا لعرض حقول التقييم…</div>';return;}
+  if(!id){document.getElementById('criteriaStack').innerHTML='<div class="cd040-placeholder">اختر قالبًا لعرض حقول التقييم…</div>';document.getElementById('manualGradeCard').style.display='none';return;}
   var sel=document.getElementById('templateSelect'); var opt=sel.options[sel.selectedIndex];
   var mode=opt?opt.getAttribute('data-mode'):'numeric'; var target=opt?opt.getAttribute('data-target'):'employee';
   if(target==='employee_in_course'||target==='course'){cd040_loadPrograms('course');}
   else if(target==='employee_in_workshop'||target==='workshop'){cd040_loadPrograms('workshop');}
   else{document.getElementById('programCard').style.display='none';}
-  document.getElementById('manualGradeCard').style.display=(mode==='descriptive'||mode==='mixed')?'block':'none';
+  var gradeCard=document.getElementById('manualGradeCard');
+  var showGrade=(mode==='descriptive'||mode==='mixed');
+  gradeCard.style.display=showGrade?'block':'none';
+  if(showGrade){
+    var desc=document.getElementById('overallGradeDesc');
+    if(desc){
+      if(target==='employee_in_course'||target==='course'){ desc.textContent='قيّم استفادة الموظف من الدورة التدريبية — التقدير العام هو النتيجة النهائية التي تُحفظ في التقييم.'; }
+      else if(target==='employee_in_workshop'||target==='workshop'){ desc.textContent='قيّم استفادة الموظف من الورشة — التقدير العام هو النتيجة النهائية التي تُحفظ في التقييم.'; }
+      else { desc.textContent='اختر تقييمك النهائي لأداء الموظف — يُحفظ مباشرةً كدرجة نهائية في التقييم.'; }
+    }
+    cd040_onGradeChange(document.getElementById('finalGradeSelect'));
+  }
   fetch(CD040_APP_URL+'/api/templates/'+id+'/schema').then(function(r){return r.json();}).then(function(sch){cd040_currentSchema=sch;cd040_renderCriteria(sch);}).catch(function(err){document.getElementById('criteriaStack').innerHTML='<div class="cd040-placeholder" style="color:#c62828">تعذّر تحميل بنية القالب</div>';});
 }
 function cd040_renderCriteria(sch){
@@ -767,9 +846,10 @@ function cd040_showPreview(){
   html+='<div class="cd040-pv-row"><span>القالب</span><span>'+cd040_esc(tplName)+'</span></div>';
   html+='<div class="cd040-pv-row"><span>البرنامج</span><span>'+cd040_esc(progName)+'</span></div>';
   html+='<div class="cd040-pv-row"><span>تاريخ التقييم</span><span>'+cd040_esc(evalDate)+'</span></div></div>';
-  // CD-040.3: التقدير العام (ناتج النظام) في المعاينة
+  // التقدير العام (ناتج النظام) في المعاينة
   var gradeSel=document.getElementById('finalGradeSelect');
-  if(gradeSel&&gradeSel.closest('.cd040-card')&&gradeSel.closest('.cd040-card').style.display!=='none'){
+  var gradeCard=document.getElementById('manualGradeCard');
+  if(gradeSel&&gradeCard&&gradeCard.style.display!=='none'){
     var gradeOpt=gradeSel.options[gradeSel.selectedIndex];
     var gradeTxt=(gradeOpt&&gradeOpt.value)?gradeOpt.textContent:'—';
     html+='<div class="cd040-pv-section"><h4>التقدير العام (ناتج النظام)</h4>';
@@ -829,6 +909,7 @@ function cd040_reset(){
   document.querySelectorAll('.pfill').forEach(function(f){f.style.width='0%';});
   document.querySelectorAll('.cd040-bopt').forEach(function(b){b.classList.remove('sel-yes','sel-no');});
   document.querySelectorAll('textarea').forEach(function(t){if(t.name!=='evaluator_notes')t.value='';});
+  var gs=document.getElementById('finalGradeSelect'); if(gs){ gs.value=''; cd040_onGradeChange(gs); }
   cd040_calc();
 }
 
@@ -836,6 +917,7 @@ function cd040_reset(){
 document.addEventListener('DOMContentLoaded',function(){
   cd040_updateHijri();
   document.getElementById('evalDate').addEventListener('change',cd040_updateHijri);
+  if(document.getElementById('finalGradeSelect')){ cd040_onGradeChange(document.getElementById('finalGradeSelect')); }
   if(CD040_MODE==='edit'&&CD040_EVAL_TEMPLATE_ID>0){cd040_onTemplate(CD040_EVAL_TEMPLATE_ID);}
 });
 </script>
