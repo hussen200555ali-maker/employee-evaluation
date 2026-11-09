@@ -41,12 +41,10 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
 .criterion-head h3 i{ color:var(--gold); font-size:9px; background:rgba(255,255,255,.12); width:16px; height:16px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;}
 .criterion-head .count{ background:#fff; color:var(--navy); border-radius:20px; padding:1px 6px; font-size:9px; font-weight:800;}
 .eval-table{ width:100%; border-collapse:collapse; font-size:10px; border:1px solid var(--border);}
-.eval-table th{ background:#f8f9fb; color:var(--navy); font-weight:700; font-size:9px; padding:4px 6px; text-align:center; border-bottom:1px solid var(--border); border-left:1px solid var(--border);}
-.eval-table th:first-child{ text-align:right; padding-right:10px; border-left:none;}
-.eval-table th:last-child{ border-left:none;}
-.eval-table td{ padding:4px 7px; border-bottom:1px solid #f1f3f5; border-left:1px solid #f1f3f5; font-size:10px;}
-.eval-table td:first-child{ border-left:none;}
-.eval-table td:last-child{ border-left:none;}
+.eval-table th{ background:#f8f9fb; color:var(--navy); font-weight:700; font-size:9px; padding:4px 6px; text-align:center; border:1px solid var(--border);}
+.eval-table th:first-child{ text-align:right; padding-right:10px;}
+.eval-table td{ padding:4px 7px; border:1px solid #e8eaed; font-size:10px;}
+.eval-table td:first-child{ }
 .eval-table td:nth-child(2){ text-align:center; width:20%;}
 .badge{ display:inline-block; min-width:48px; padding:2px 6px; border-radius:20px; font-size:9.5px; font-weight:700; text-align:center; border:1px solid;}
 .badge-excellent{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0;}
