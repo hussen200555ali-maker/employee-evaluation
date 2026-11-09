@@ -57,6 +57,7 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
                             <?php if (App\Core\Auth::userHasPermission('training.manage')): ?>
                                 <a href="#" onclick='editCat(<?php echo json_encode(["id"=>(int)$c->id,"name"=>$c->name,"type"=>$c->type,"description"=>$c->description??"","category"=>$c->category??"","status"=>$c->status], JSON_UNESCAPED_UNICODE); ?>);return false'>✏️ تعديل</a>
                                 <form method="POST" action="<?php echo APP_URL; ?>/training/catalogs/<?php echo (int)$c->id; ?>/delete" style="display:inline" onsubmit="return confirm('حذف التصنيف «<?php echo htmlspecialchars($c->name, ENT_QUOTES); ?>»؟')">
+                                    <?php echo csrf_field(); ?>
                                     <a class="del" href="#" onclick="this.form.submit();return false">🗑️ حذف</a>
                                 </form>
                             <?php else: ?><span style="color:#8a8a8a">—</span><?php endif; ?>
@@ -74,6 +75,7 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
 <div class="tr-card" id="catForm">
     <div class="tr-title" id="formTitle">📂 إضافة تصنيف جديد</div>
     <form id="catalogForm" method="POST" action="<?php echo APP_URL; ?>/training/catalogs/store">
+        <?php echo csrf_field(); ?>
         <div class="tr-grid2">
             <div><label class="tr-label">اسم التصنيف <span class="req">*</span></label><input class="tr-input" name="name" id="f_name" required placeholder="مثال: إدارة المشاريع"></div>
             <div><label class="tr-label">النوع <span class="req">*</span></label><select class="tr-input" name="type" id="f_type"><option value="course">دورة</option><option value="workshop">ورشة</option><option value="both">كلاهما</option></select></div>

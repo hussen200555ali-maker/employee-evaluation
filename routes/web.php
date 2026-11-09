@@ -185,6 +185,7 @@ $router->post('flexible/evaluations/store/employee-in-workshop', 'App\Controller
 | 6. وحدات التدريب (CD-034: ARCHIVED) (Training Modules)
 |==========================================================================
 */
+/*
 // --- الدورات التدريبية (Courses) ---
 $router->get('training/courses', 'App\Controllers\TrainingCourseController@index');
 $router->get('training/courses/create', 'App\Controllers\TrainingCourseController@create');

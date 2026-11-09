@@ -78,6 +78,7 @@ $canManage = App\Core\Auth::userHasPermission('training.manage');
                                     <a class="del disabled" title="لا يمكن الحذف: البرنامج لديه مشاركون مقيّمون" onclick="return false">🗑️ حذف</a>
                                 <?php else: ?>
                                     <form method="POST" action="<?php echo APP_URL; ?>/training/programs/<?php echo $pid; ?>/delete" style="display:inline" onsubmit="return confirm('حذف البرنامج «<?php echo htmlspecialchars($p->title, ENT_QUOTES); ?>»؟ لا يمكن التراجع.')">
+                                        <?php echo csrf_field(); ?>
                                         <a class="del" href="#" onclick="this.form.submit();return false" title="حذف">🗑️ حذف</a>
                                     </form>
                                 <?php endif; ?>

@@ -166,7 +166,7 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
 
                 </ul>
             </li>
-            <?php endif; -->
+            <?php endif; ?> -->
             <!-- CD-034: END ARCHIVED -->
 
             <?php if (Auth::userHasPermission('training.view') || Auth::userHasPermission('training.manage')): ?>

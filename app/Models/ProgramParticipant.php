@@ -8,7 +8,7 @@ use App\Core\Model;
  */
 class ProgramParticipant extends Model {
 
-    private const JOIN = "SELECT pp.*, e.name AS employee_name, e.employee_number, d.name AS department_name
+    private const JOIN = "SELECT pp.*, e.full_name AS employee_name, e.emp_code AS employee_number, d.name AS department_name
         FROM program_participants pp
         JOIN employees     e ON e.id = pp.employee_id
         LEFT JOIN departments d ON d.id = e.department_id";
@@ -23,8 +23,9 @@ class ProgramParticipant extends Model {
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $where[] = "(e.name LIKE :s OR e.employee_number LIKE :s)";
-            $params[':s'] = "%{$search}%";
+            $where[] = "(e.full_name LIKE :s1 OR e.emp_code LIKE :s2)";
+            $params[':s1'] = "%{$search}%";
+            $params[':s2'] = "%{$search}%";
         }
         if (!empty($filters['department_id'])) {
             $where[] = "e.department_id = :did";

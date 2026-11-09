@@ -107,8 +107,9 @@ class TrainingProgram extends Model {
         $where = []; $params = [];
         $search = trim((string)($f['search'] ?? ''));
         if ($search !== '') {
-            $where[] = "(tp.title LIKE :search OR tc.name LIKE :search)";
-            $params[':search'] = "%{$search}%";
+            $where[] = "(tp.title LIKE :search1 OR tc.name LIKE :search2)";
+            $params[':search1'] = "%{$search}%";
+            $params[':search2'] = "%{$search}%";
         }
         if (!empty($f['type']) && in_array($f['type'], ['course','workshop'], true)) {
             $where[] = "tp.type = :type"; $params[':type'] = $f['type'];

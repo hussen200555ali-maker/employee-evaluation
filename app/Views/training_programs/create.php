@@ -26,6 +26,7 @@ $p = $editProgram ?? null; $isEdit = $p !== null; $pid = $isEdit ? (int)$p->id :
 <div class="tr-card">
     <div class="tr-sub">الاسم من الكتالوج — مع تحديد الجهة المنفّذة والمسؤول</div>
     <form id="programForm" method="POST" action="<?php echo $isEdit ? APP_URL.'/training/programs/'.$pid.'/update' : APP_URL.'/training/programs/store'; ?>">
+        <?php echo csrf_field(); ?>
         <input type="hidden" name="type" value="<?php echo htmlspecialchars($type); ?>">
 
         <div>
