@@ -276,8 +276,11 @@ class Evaluation extends Model {
                         }
                     } elseif ($evalType === 'grade' || $evalType === 'percentage') {
                         $normalizedScore = (float)$answerValue;
+                    } elseif ($evalType === 'boolean') {
+                        // CD-040.2: boolean yes(1) → 100, no(0) → 0 (was left at 0.0)
+                        $normalizedScore = (((float)$answerValue) === 1.0) ? 100.0 : 0.0;
                     }
-                    // boolean/helper/formula/auto تبقى 0.0 (لم تُعالج بعد).
+                    // helper/formula/auto تبقى 0.0 (لا تُحتسب في الوزن).
 
                     // --- طھظ†ظپظٹط° ط¹ظ…ظ„ظٹط© ط§ظ„ط¥ط¶ط§ظپط© ---
                     $this->db->query($sql);

@@ -336,18 +336,24 @@ public function getDetailsForSnapshot($id) {
     }
 
 public function search($query, $limit = 10, $offset = 0) {
-    // ===> ط§ظ„طھطµط­ظٹط­: ط§ط³طھط®ط¯ط§ظ… ط£ط³ظ…ط§ط، ظپط±ظٹط¯ط© ظ„ظ„ظ€ placeholders <===
-    $sql = "SELECT id, emp_code, full_name, position_id 
-            FROM employees 
-            WHERE (full_name LIKE :query_name OR emp_code LIKE :query_code) AND is_active = 1 
+    // CD-040.2: JOIN branches/departments/positions so the unified
+    // evaluation page can display and filter results by branch/dept.
+    $sql = "SELECT e.id, e.emp_code, e.full_name, e.position_id,
+                   e.branch_id, b.name AS branch_name,
+                   e.department_id, d.name AS department_name,
+                   p.title AS position_title
+            FROM employees e
+            LEFT JOIN branches b ON e.branch_id = b.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE (e.full_name LIKE :query_name OR e.emp_code LIKE :query_code) AND e.is_active = 1
             LIMIT 10";
-            
+
     $this->db->query($sql);
 
-    // ===> ط§ظ„طھطµط­ظٹط­: ط±ط¨ط· ظƒظ„ placeholder ط¨ظ‚ظٹظ…طھظ‡ ط§ظ„ط®ط§طµط© <===
     $this->db->bind(':query_name', '%' . $query . '%');
     $this->db->bind(':query_code', '%' . $query . '%');
-    
+
     return $this->db->fetchAll();
 }
 

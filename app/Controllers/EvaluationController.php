@@ -566,10 +566,15 @@ class EvaluationController extends Controller {
                     $this->json(['error' => 'الموظف غير موجود'], 404);
                     return;
                 }
-                // resolve evaluator_employee_id from current user if not external
+                // CD-040.2: احترم evaluator_employee_id المُرسل من النموذج إن وُجد،
+                // وإلا استخدم مستخدم الجلسة. ثم اجلب الاسم/الصفة من سجل ذلك الموظف
+                // لضمان تطابق المعرف مع الاسم (كان يُتجاهل ويُحفظ من الجلسة).
                 $user = Auth::user();
-                $evaluatorEmpId = $user && !empty($user->employee_id) ? (int)$user->employee_id : null;
-                if (!$evaluatorName && $evaluatorEmpId) {
+                $postedEvalId = (int)($_POST['evaluator_employee_id'] ?? 0);
+                $evaluatorEmpId = $postedEvalId > 0
+                    ? $postedEvalId
+                    : ($user && !empty($user->employee_id) ? (int)$user->employee_id : null);
+                if ($evaluatorEmpId) {
                     $evalEmp = $empModel->findById($evaluatorEmpId);
                     if ($evalEmp) {
                         $evaluatorName = $evalEmp->full_name;

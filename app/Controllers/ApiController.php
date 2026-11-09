@@ -48,7 +48,7 @@ class ApiController extends Controller {
      */
     public function searchEmployees() {
         $query = $_GET['q'] ?? '';
-        
+
         $employeeModel = new Employee();
         // سنحتاج لإضافة دالة search في مودل الموظفين
         $employees = $employeeModel->search($query);
@@ -56,6 +56,18 @@ class ApiController extends Controller {
         header('Content-Type: application/json');
         echo json_encode($employees);
         exit();
+    }
+
+    /**
+     * CD-040.2: قائمة البرامج التدريبية (دورات/ورش) للاستخدام في إنشاء التقييم.
+     * مسار: GET /api/training-programs/list/:type
+     * نقله من TrainingProgramController لأن ذاك يفرض training.view على كل طرقه،
+     * بينما المُقيِّم يحتاجه إنشاء التقييم فقط (evaluations.create).
+     */
+    public function trainingProgramsList($type = 'course') {
+        Auth::enforce('evaluations.create');
+        $type = ($type === 'workshop') ? 'workshop' : 'course';
+        $this->json((new \App\Models\TrainingProgram())->all($type));
     }
 
     /**

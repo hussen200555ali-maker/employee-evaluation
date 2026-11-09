@@ -438,7 +438,7 @@ if (!empty($cd040_grading_scales)) {
 </style>
 
 <script>
-const APP_URL = "<?= APP_URL ?>";
+const CD040_APP_URL = "<?= APP_URL ?>";
 const CD040_MODE = "<?= $cd040_mode ?>";
 const CD040_SAVED_ANSWERS = <?= json_encode($cd040_answers_json) ?>;
 const CD040_EVAL_TEMPLATE_ID = <?= (int)($cd040_evaluation->template_id ?? 0) ?>;
@@ -461,7 +461,7 @@ function cd040_loadDepts(branchId, selectId){
   if(!sel)return;
   sel.innerHTML='<option value="">... جارٍ التحميل</option>';
   if(!branchId||branchId<1){sel.innerHTML='<option value="">📋 كل الأقسام</option>';sel.disabled=true;return;}
-  fetch(APP_URL+'/api/departments/by-branch/'+branchId).then(function(r){return r.json();}).then(function(list){
+  fetch(CD040_APP_URL+'/api/departments/by-branch/'+branchId).then(function(r){return r.json();}).then(function(list){
     sel.innerHTML='<option value="">📋 كل الأقسام</option>';
     (list||[]).forEach(function(d){
       var o=document.createElement('option'); o.value=d.id; o.textContent=d.name; sel.appendChild(o);
@@ -480,7 +480,7 @@ function cd040_searchEmp(q){
   if(q.length<2){box.classList.remove('show');box.innerHTML='';cd040_lastEmpResults=[];return;}
   clearTimeout(cd040_searchTimer);
   cd040_searchTimer=setTimeout(function(){
-    fetch(APP_URL+'/api/employees/search?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
+    fetch(CD040_APP_URL+'/api/employees/search?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){return r.json();})
       .then(function(list){cd040_lastEmpResults=list||[];cd040_renderEmpResults();})
       .catch(function(){box.classList.remove('show');});
@@ -527,7 +527,7 @@ function cd040_searchEval(q){
   if(q.length<2){box.classList.remove('show');box.innerHTML='';cd040_lastEvalResults=[];return;}
   clearTimeout(cd040_searchTimer);
   cd040_searchTimer=setTimeout(function(){
-    fetch(APP_URL+'/api/employees/search?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
+    fetch(CD040_APP_URL+'/api/employees/search?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){return r.json();})
       .then(function(list){cd040_lastEvalResults=list||[];cd040_renderEvalResults();})
       .catch(function(){box.classList.remove('show');});
@@ -592,7 +592,7 @@ function cd040_doQuickAdd(formId,codeId,nameId,branchId,deptId,posId,target){
   fd.append('full_name',name);fd.append('emp_code',code);
   fd.append('branch_id',branch);fd.append('department_id',dept||0);
   fd.append('_token',document.querySelector('input[name=_token],input[name=_csrf]')?.value||'');
-  fetch(APP_URL+'/api/employees/quick-add',{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}})
+  fetch(CD040_APP_URL+'/api/employees/quick-add',{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}})
     .then(function(r){return r.json();})
     .then(function(res){
       if(res.success&&res.employee){
@@ -629,7 +629,7 @@ function cd040_onTemplate(id){
   else if(target==='employee_in_workshop'||target==='workshop'){cd040_loadPrograms('workshop');}
   else{document.getElementById('programCard').style.display='none';}
   document.getElementById('manualGradeCard').style.display=(mode==='descriptive'||mode==='mixed')?'block':'none';
-  fetch(APP_URL+'/api/templates/'+id+'/schema').then(function(r){return r.json();}).then(function(sch){cd040_currentSchema=sch;cd040_renderCriteria(sch);}).catch(function(err){document.getElementById('criteriaStack').innerHTML='<div class="cd040-placeholder" style="color:#c62828">تعذّر تحميل بنية القالب</div>';});
+  fetch(CD040_APP_URL+'/api/templates/'+id+'/schema').then(function(r){return r.json();}).then(function(sch){cd040_currentSchema=sch;cd040_renderCriteria(sch);}).catch(function(err){document.getElementById('criteriaStack').innerHTML='<div class="cd040-placeholder" style="color:#c62828">تعذّر تحميل بنية القالب</div>';});
 }
 function cd040_renderCriteria(sch){
   var stack=document.getElementById('criteriaStack');
@@ -653,7 +653,7 @@ function cd040_renderSection(sec,cid){
     case 'percentage':html+='<div class="cd040-perc"><div class="piw"><input type="number" class="cd040-score" data-max="'+mv+'" name="'+name+'[score]" min="0" max="'+mv+'" step="1" placeholder="أدخل النسبة" oninput="cd040_updateBar(this);cd040_calc()"><span class="sign">٪</span></div><div class="ptr"><div class="pfill" style="width:0%"></div></div></div><div class="cd040-scale"><span>٠</span><span>'+cd040_arabic(Math.round(mv/2))+'</span><span>'+cd040_arabic(mv)+'</span></div>';break;
     case 'numeric':html+='<div class="cd040-num"><input type="number" class="cd040-score" data-max="'+mv+'" name="'+name+'[score]" min="'+mn+'" max="'+mv+'" step="1" placeholder="أدخل الدرجة" oninput="cd040_calc()"><span class="nmax">من '+cd040_arabic(mv)+'</span></div>';break;
     case 'grade':var opts=(sec.options||[]).map(function(o){var v=o.value!==undefined?o.value:o;var l=o.label!==undefined?o.label:o;return '<option value="'+cd040_esc(v)+'">'+cd040_esc(l)+'</option>';}).join('');html+='<div class="cd040-grade"><select name="'+name+'[score]"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';break;
-    case 'boolean':html+='<div class="cd040-bool"><button type="button" class="cd040-bopt" data-val="1" onclick="cd040_bool(this)">✓ نعم</button><button type="button" class="cd040-bopt" data-val="0" onclick="cd040_bool(this)">✕ لا</button><input type="hidden" class="cd040-score" name="'+name+'[score]" value=""></div>';break;
+    case 'boolean':html+='<div class="cd040-bool"><button type="button" class="cd040-bopt" data-val="1" onclick="cd040_bool(this)">✓ نعم</button><button type="button" class="cd040-bopt" data-val="0" onclick="cd040_bool(this)">✕ لا</button><input type="hidden" class="cd040-score" data-max="1" name="'+name+'[score]" value=""></div>';break;
     case 'textarea':var to=sec.options||{};var mc=to.max_chars||1000;html+='<div class="cd040-text"><textarea name="'+name+'[text]" rows="4" maxlength="'+mc+'" placeholder="اكتب... (حد أقصى '+cd040_arabic(mc)+' حرف)"></textarea></div>';break;
     case 'overall_grade':var scale=sec.scale_name||'السلم الخماسي';var grades=sec.grades||[];var opts=grades.map(function(g){return '<option value="'+cd040_esc(g.label)+'">'+cd040_esc(g.label)+' ('+g.value+')</option>';}).join('');html+='<div class="cd040-overall-inline"><div class="cd040-oh"><div class="cd040-og"><div class="cd040-oi">★</div><div><div class="cd040-ot">التقدير العام</div><div class="cd040-os">سلم: '+cd040_esc(scale)+'</div></div></div>'+cd040_badge('overall_grade')+'</div><select name="'+name+'[grade_label]"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';break;
     default:html+='<div class="cd040-text"><input type="text" name="'+name+'[score]" placeholder="أدخل القيمة"></div>';
@@ -692,7 +692,7 @@ function cd040_loadPrograms(type){
   var card=document.getElementById('programCard');card.style.display='block';
   document.getElementById('contextType').value=type;
   document.getElementById('programLabel').textContent=type==='course'?'📚 الدورة التدريبية':'🏆 الورشة';
-  fetch(APP_URL+'/api/training-programs/list/'+type).then(function(r){return r.json();}).then(function(list){
+  fetch(CD040_APP_URL+'/api/training-programs/list/'+type).then(function(r){return r.json();}).then(function(list){
     cd040_allPrograms=list||[];cd040_filterPrograms();
   }).catch(function(){cd040_allPrograms=[];cd040_filterPrograms();});
 }
@@ -744,7 +744,7 @@ function cd040_showProgInfo(sel){
 function cd040_updateHijri(){
   var d=document.getElementById('evalDate').value;var el=document.getElementById('hijriDisplay');
   if(!d){el.textContent='';return;}
-  fetch(APP_URL+'/api/to-hijri?date='+d).then(function(r){return r.json();}).then(function(data){el.textContent=data.hijri?('الموافق: '+data.hijri):'';}).catch(function(){el.textContent='';});
+  fetch(CD040_APP_URL+'/api/to-hijri?date='+d).then(function(r){return r.json();}).then(function(data){el.textContent=data.hijri?('الموافق: '+data.hijri):'';}).catch(function(){el.textContent='';});
 }
 
 /* ===== preview modal ===== */
@@ -801,11 +801,11 @@ function cd040_save(){
   if(!tplId||tplId<1){cd040_toast('⚠️ اختر القالب أولًا','#c62828');return;}
   var btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='⏳ جارٍ الحفظ...';
   var formData=new FormData(document.getElementById('unifiedEvalForm'));
-  fetch(APP_URL+'/evaluations/save-unified',{method:'POST',body:formData,headers:{'X-Requested-With':'XMLHttpRequest'}})
+  fetch(CD040_APP_URL+'/evaluations/save-unified',{method:'POST',body:formData,headers:{'X-Requested-With':'XMLHttpRequest'}})
     .then(function(r){return r.json();})
     .then(function(res){
       btn.disabled=false;btn.textContent='💾 حفظ التقييم';
-      if(res.success){cd040_toast('✅ '+res.message,'#1b6b32');setTimeout(function(){window.location.href=APP_URL+'/evaluations/show/'+res.evaluation_id;},1200);}
+      if(res.success){cd040_toast('✅ '+res.message,'#1b6b32');setTimeout(function(){window.location.href=CD040_APP_URL+'/evaluations/show/'+res.evaluation_id;},1200);}
       else{cd040_toast('❌ '+(res.error||'فشل الحفظ'),'#c62828');}
     }).catch(function(){btn.disabled=false;btn.textContent='💾 حفظ التقييم';cd040_toast('❌ خطأ في الاتصال','#c62828');});
 }
