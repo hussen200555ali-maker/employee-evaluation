@@ -565,6 +565,30 @@ public function getAnnualSummaryWithActualDate($employeeId) {
     return $this->db->fetchAll();
 }
 
+    /**
+     * CD-040.5: توزيع أنواع التقييمات لموظف (سنوي/دورة/ورشة/مهاري).
+     * يحدد النوع من evaluations.evaluation_type مع fallback target_type.
+     */
+    public function getTypeBreakdown($employeeId) {
+        $sql = "SELECT
+                    CASE
+                        WHEN t.target_type = 'skill' THEN 'skill'
+                        WHEN t.target_type IN ('employee_in_workshop','workshop') THEN 'workshop'
+                        WHEN t.target_type IN ('employee_in_course','course') THEN 'course'
+                        WHEN e.evaluation_type IN ('annual','periodic','course','workshop') THEN e.evaluation_type
+                        ELSE 'annual'
+                    END AS eval_type,
+                    COUNT(*) AS cnt,
+                    ROUND(AVG(e.final_score),2) AS avg_score
+                FROM evaluations e
+                LEFT JOIN form_templates t ON t.id = e.template_id
+                WHERE e.evaluated_employee_id = :eid AND e.status IN ('approved','completed')
+                GROUP BY eval_type ORDER BY cnt DESC";
+        $this->db->query($sql);
+        $this->db->bind(':eid', (int)$employeeId);
+        return $this->db->fetchAll();
+    }
+
   /**
      * =================================================================
      * ط¯ط§ظ„ط© ط¬ط¯ظٹط¯ط©: ط¬ظ„ط¨ ظƒظ„ طھظ‚ظٹظٹظ…ط§طھ ظ…ظˆط¸ظپ ظ…ط¹ظٹظ† ظ„ط¹ط§ظ… ظ…ط­ط¯ط¯
@@ -577,6 +601,8 @@ public function getAnnualSummaryWithActualDate($employeeId) {
         $sql = "SELECT 
                     eval.*,
                     t.template_name,
+                    t.target_type,
+                    t.evaluation_mode AS template_mode,
                     COALESCE(eval.evaluator_name, evaluator.full_name) as evaluator_name
                 FROM 
                     evaluations eval

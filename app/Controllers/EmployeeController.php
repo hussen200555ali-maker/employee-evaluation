@@ -497,12 +497,14 @@ class EmployeeController extends Controller {
         // ▼▼▼ بداية التعديل هنا ▼▼▼
         // استدعاء الدالة الجديدة بدلاً من القديمة
         $evaluationsByYear = $evaluationModel->getAnnualSummaryWithActualDate($employeeId);
+        $typeBreakdown = $evaluationModel->getTypeBreakdown($employeeId);
         // ▲▲▲ نهاية التعديل ▲▲▲
 
         $data = [
             'pageTitle' => 'السجل التقييمي لـ ' . htmlspecialchars($employee->full_name),
             'employee' => $employee,
-            'evaluationsByYear' => $evaluationsByYear
+            'evaluationsByYear' => $evaluationsByYear,
+            'typeBreakdown' => $typeBreakdown,
         ];
 
         $this->view('employees/evaluations_summary', $data);

@@ -75,6 +75,20 @@
 .unified-chart h4 i{ color:var(--brand); background:#e6f0ed; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px;}
 .unified-chart .hint{ font-size:11px; color:var(--muted); text-align:center; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;}
 .unified-chart canvas{ position:relative; z-index:1;}
+/* CD-040.5: شارة نوع التقييم + شرائط التصفية */
+.eval-type-badge{ display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:800; border:1px solid; white-space:nowrap; }
+.eval-type-annual{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+.eval-type-course{ background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }
+.eval-type-workshop{ background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; }
+.eval-type-skill{ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+.eval-type-periodic{ background:#fefce8; color:#854d0e; border-color:#fef08a; }
+.eval-type-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.eval-type-tab{ padding:6px 14px; border-radius:999px; border:1.5px solid var(--border); background:#fff; font-size:11.5px; font-weight:700; color:var(--text); cursor:pointer; font-family:'Tajawal'; transition:all .2s; }
+.eval-type-tab:hover{ border-color:var(--brand); color:var(--brand); }
+.eval-type-tab.active{ background:var(--brand); border-color:var(--brand); color:#fff; box-shadow:0 2px 8px rgba(13,94,82,.25); }
+.eval-type-tab .cnt{ font-size:10px; opacity:.85; margin-right:2px; }
+.program-link{ font-size:10.5px; font-weight:700; color:var(--brand); text-decoration:none; }
+.program-link:hover{ color:var(--gold); text-decoration:underline; }
 @media(max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} .eval-grid{grid-template-columns:1fr !important;} .main-content-grid{grid-template-columns:1fr !important;} .charts-column{position:static;} .eval-card-foot{max-height:none; opacity:1; padding:10px 12px;}}
 @media(max-width:600px){ .kpi-grid{grid-template-columns:1fr;} .eval-grid{grid-template-columns:1fr;} .top-head{flex-direction:column; text-align:center;} }
 </style>
@@ -159,14 +173,36 @@ $minScore = $scores ? min($scores) : null;
     </div>
 
     <div class="records-column">
+      <div class="eval-type-tabs" role="tablist" aria-label="تصفية حسب نوع التقييم">
+        <?php
+          $typeCounts = ['all' => count($evaluations)];
+          foreach ($evaluations as $ev) {
+            $tk = $ev->evaluation_type ?? 'annual';
+            $typeCounts[$tk] = ($typeCounts[$tk] ?? 0) + 1;
+          }
+          $typeTabs = ['all' => ['الكل', 'fas fa-layer-group'], 'annual' => ['سنوي', 'fas fa-calendar'], 'periodic' => ['دوري', 'fas fa-repeat'], 'course' => ['دورة', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'fas fa-star']];
+        ?>
+        <?php foreach ($typeTabs as $k => $t): if (!empty($typeCounts[$k]) || $k === 'all'): ?>
+        <button type="button" class="eval-type-tab<?php echo $k === 'all' ? ' active' : ''; ?>" data-filter="<?php echo $k; ?>" onclick="filterByType(this, '<?php echo $k; ?>')"><i class="<?php echo $t[1]; ?>"></i> <?php echo $t[0]; ?> <span class="cnt"><?php echo $typeCounts[$k] ?? 0; ?></span></button>
+        <?php endif; endforeach; ?>
+      </div>
       <div class="eval-grid">
         <?php foreach($evaluations as $eval): ?>
-          <?php $score = is_numeric($eval->final_score) ? (float)$eval->final_score : 0; $scoreClamped = max(0,min(100,$score)); $hijri = convertToHijri($eval->evaluation_date); ?>
-          <div class="eval-card" data-eval-id="<?php echo $eval->id; ?>" data-template="<?php echo htmlspecialchars($eval->template_name); ?>">
+          <?php $score = is_numeric($eval->final_score) ? (float)$eval->final_score : 0; $scoreClamped = max(0,min(100,$score)); $hijri = convertToHijri($eval->evaluation_date);
+            $evalTypeKey = $eval->evaluation_type ?? 'annual';
+            $tplTarget = $eval->target_type ?? '';
+            if ($tplTarget === 'skill') $evalTypeKey = 'skill';
+            if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
+            if ($tplTarget === 'employee_in_course' || $tplTarget === 'course') $evalTypeKey = $evalTypeKey === 'annual' ? 'course' : $evalTypeKey;
+            $typeMap = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-star']];
+            $ti = $typeMap[$evalTypeKey] ?? $typeMap['annual'];
+          ?>
+          <div class="eval-card" data-eval-id="<?php echo $eval->id; ?>" data-template="<?php echo htmlspecialchars($eval->template_name); ?>" data-eval-type="<?php echo $evalTypeKey; ?>">
             <div class="eval-card-head">
               <h5 title="<?php echo htmlspecialchars($eval->template_name); ?>"><?php echo htmlspecialchars($eval->template_name); ?></h5>
               <span class="date-badge" dir="ltr"><?php echo date('Y/m/d', strtotime($eval->evaluation_date)); ?></span>
             </div>
+            <div style="padding:8px 12px 0;"><span class="eval-type-badge <?php echo $ti[1]; ?>"><i class="<?php echo $ti[2]; ?>"></i> <?php echo $ti[0]; ?></span><?php if (!empty($eval->context_type) && !empty($eval->context_id)): ?> <a class="program-link" href="<?php echo APP_URL . '/training/programs/' . (int)$eval->context_id; ?>"><i class="fas fa-external-link-alt"></i> عرض البرنامج</a><?php endif; ?></div>
             <div class="eval-card-body">
               <div class="score-ring" style="--score:<?php echo $scoreClamped; ?>"><span><?php echo rtrim(rtrim(number_format($score,1), '0'), '.'); ?>%</span></div>
               <div class="progress"><div class="progress-bar" style="width:<?php echo $scoreClamped; ?>%"></div></div>
@@ -194,6 +230,16 @@ $minScore = $scores ? min($scores) : null;
   </div>
 </div>
 </div>
+<script>
+function filterByType(btn, type){
+  document.querySelectorAll('.eval-type-tab').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.eval-card[data-eval-type]').forEach(function(card){
+    const match = (type === 'all') || (card.getAttribute('data-eval-type') === type);
+    card.style.display = match ? '' : 'none';
+  });
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>

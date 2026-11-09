@@ -782,6 +782,9 @@ class EvaluationController extends Controller {
         $template = $templateModel->getTemplateWithStructure($evaluation->template_id);
         $answers = $evaluationModel->getEvaluationAnswers($evaluation->id);
 
+        // CD-040.5: بيانات البرنامج التدريبي (دورة/ورشة) لهذا التقييم — ناتج عرض فقط، بلا حالة مشارك
+        $program = $this->fetchProgramForEvaluation($evaluation);
+
         // جلب التاريخ الهجري
         $hijriDate = convertToHijri($evaluation->evaluation_date);
 
@@ -792,7 +795,8 @@ class EvaluationController extends Controller {
             'evaluator' => $evaluator,
             'template' => $template,
             'answers' => $answers,
-            'hijriDate' => $hijriDate
+            'hijriDate' => $hijriDate,
+            'program' => $program,
         ];
 
         $this->view('evaluations/show', $data);
@@ -890,6 +894,7 @@ class EvaluationController extends Controller {
         $template = $templateModel->getTemplateWithStructure($evaluation->template_id);
         $answers = $evaluationModel->getEvaluationAnswers($evaluation->id);
         $hijriDate = convertToHijri($evaluation->evaluation_date);
+        $program = $this->fetchProgramForEvaluation($evaluation);
 
         $data = [
             'pageTitle' => 'طباعة تقييم: ' . htmlspecialchars($evaluation->employee_name),
@@ -897,11 +902,53 @@ class EvaluationController extends Controller {
             'evaluator' => $evaluator,
             'template' => $template,
             'answers' => $answers,
-            'hijriDate' => $hijriDate
+            'hijriDate' => $hijriDate,
+            'program' => $program,
         ];
 
         // ▼▼▼ استدعاء ملف العرض الجديد الخاص بالطباعة ▼▼▼
         $this->view('evaluations/print', $data);
+    }
+
+    /**
+     * CD-040.5: جلب بيانات البرنامج التدريبي (دورة/ورشة) لتقييم موظف داخل دورة/ورشة.
+     * مصدر البيانات: evaluations.context_type/context_id → training_programs
+     * + fallback entity_snapshot.course_title للتقييمات القديمة بدون context.
+     * لا يعرض حالة مشارك — الموظف لا يُقيَّم إلا بعد إكمال الدورة (خارج نظام الدورات).
+     */
+    private function fetchProgramForEvaluation(object $evaluation): ?object {
+        $contextType = $evaluation->context_type ?? null;
+        $contextId = (int)($evaluation->context_id ?? 0);
+        if (in_array($contextType, ['course', 'workshop'], true) && $contextId > 0) {
+            $db = \App\Core\Database::getInstance();
+            $db->query('SELECT tp.*, b.name AS branch_name, d.name AS department_name, c.name AS catalog_title
+                        FROM training_programs tp
+                        LEFT JOIN branches b ON b.id = tp.executing_branch_id
+                        LEFT JOIN departments d ON d.id = tp.executing_department_id
+                        LEFT JOIN training_catalogs c ON c.id = tp.catalog_id
+                        WHERE tp.id = :id LIMIT 1');
+            $db->bind(':id', $contextId);
+            $row = $db->fetch();
+            if ($row) {
+                $row->is_legacy_snapshot = false;
+                return $row;
+            }
+        }
+        // fallback: لقطة قديمة بدون context (تقييمات قبل CD-036)
+        if (!empty($evaluation->entity_snapshot)) {
+            $snap = json_decode((string)$evaluation->entity_snapshot, true);
+            if (is_array($snap) && !empty($snap['course_title'])) {
+                return (object)[
+                    'id' => null, 'type' => $contextType ?: 'course',
+                    'title' => $snap['course_title'], 'description' => null,
+                    'start_date' => null, 'end_date' => null,
+                    'branch_name' => null, 'department_name' => null,
+                    'catalog_title' => null, 'responsible_person' => null,
+                    'status' => null, 'is_legacy_snapshot' => true,
+                ];
+            }
+        }
+        return null;
     }
 
     /**

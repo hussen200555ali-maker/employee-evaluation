@@ -58,6 +58,28 @@
 .badge-average{ background:#fef3c7; color:#92400e; border-color:#fde68a;}
 .badge-weak{ background:#fef2f2; color:#991b1b; border-color:#fecaca;}
 .badge-na{ background:#f8fafc; color:#94a3b8; border-color:#e2e8f0;}
+/* CD-040.5: شارة نوع التقييم + بطاقة البرنامج (دورة/ورشة) */
+.eval-type-badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; font-size:11.5px; font-weight:800; border:1px solid; vertical-align:middle; }
+.eval-type-annual{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+.eval-type-course{ background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }
+.eval-type-workshop{ background:#f5f3ff; color:#5b21b6; border-color:#ddd6fe; }
+.eval-type-skill{ background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+.eval-type-periodic{ background:#fefce8; color:#854d0e; border-color:#fef08a; }
+.program-card{ background:linear-gradient(135deg,#fffbf3 0%,#fff 70%); border:2px solid #c5a880; border-radius:10px; overflow:hidden; }
+.program-card-head{ background:linear-gradient(135deg,#0f2a44 0%,#1e3a5f 100%); color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; }
+.program-card-head h3{ margin:0; font-size:13px; font-weight:800; color:#fff !important; display:flex; align-items:center; gap:8px; }
+.program-card-head h3 i{ color:#c5a880; }
+.program-status{ background:#c5a880; color:#0f2a44; border-radius:20px; padding:3px 10px; font-size:10.5px; font-weight:800; }
+.program-grid{ display:grid; grid-template-columns:repeat(3,1fr); }
+.program-cell{ padding:10px 14px; display:flex; flex-direction:column; gap:3px; border-bottom:1px solid #f1f3f5; border-left:1px solid #f1f3f5; }
+.program-cell:nth-child(3n){ border-left:none; }
+.program-cell label{ font-size:10px; font-weight:700; color:#6b7280; letter-spacing:.4px; text-transform:uppercase; display:flex; align-items:center; gap:5px; justify-content:center; }
+.program-cell label i{ color:#c5a880; font-size:10px; }
+.program-cell span{ font-size:12.5px; font-weight:600; color:#1a2332; text-align:center; display:block; width:100%; }
+.program-cell span.empty{ color:#9ca3b8; font-weight:400; font-style:italic; }
+.program-foot{ padding:10px 14px; background:#fef9ec; border-top:1px solid #f1e5cc; text-align:center; }
+.program-foot a{ color:#0f2a44; font-weight:800; font-size:12px; text-decoration:none; }
+.program-foot a:hover{ color:#92400e; text-decoration:underline; }
 .evaluator-card{ background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border:1px solid var(--border); border-radius:10px; padding:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; position:relative; overflow:hidden;}
 .evaluator-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--navy), var(--gold), var(--navy));}
 .eval-person{ text-align:center; padding:10px 8px; background:#fff; border:1px solid var(--border-light); border-radius:8px;}
@@ -91,6 +113,16 @@
       <p class="company">اسم الشركة — وحدة الموارد البشرية</p>
       <p class="basmala">بسم الله الرحمن الرحيم</p>
       <h1 class="doc-title"><?php echo htmlspecialchars($template['template_name']); ?></h1>
+      <?php
+        $evalTypeKey = $evaluation->evaluation_type ?? 'annual';
+        $tplTarget = $template['target_type'] ?? '';
+        if ($evalTypeKey === 'course' && $tplTarget === 'employee_in_course') $evalTypeKey = 'course';
+        $typeLabels = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-star']];
+        if ($tplTarget === 'skill') $evalTypeKey = 'skill';
+        if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
+        $typeInfo = $typeLabels[$evalTypeKey] ?? $typeLabels['annual'];
+      ?>
+      <div style="margin-top:8px;"><span class="eval-type-badge <?php echo $typeInfo[1]; ?>"><i class="<?php echo $typeInfo[2]; ?>"></i> <?php echo $typeInfo[0]; ?></span></div>
     </div>
     <div class="header-meta">
       <p><strong>التاريخ:</strong> <?php echo date('Y/m/d', strtotime($evaluation->evaluation_date)); ?></p>
@@ -119,8 +151,33 @@
       </div>
     </div>
 
+    <?php if (!empty($program)): ?>
     <div class="section">
-      <div class="section-head"><div class="section-num">٢</div><h2>معايير التقييم</h2><div class="line"></div></div>
+      <div class="section-head"><div class="section-num">٢</div><h2>بيانات البرنامج التدريبي</h2><div class="line"></div></div>
+      <div class="program-card">
+        <div class="program-card-head">
+          <h3><i class="<?php echo ($program->type ?? '') === 'workshop' ? 'fas fa-chalkboard-teacher' : 'fas fa-graduation-cap'; ?>"></i> <?php echo ($program->type ?? '') === 'workshop' ? 'الورشة التدريبية' : 'الدورة التدريبية'; ?></h3>
+          <?php if (!empty($program->status)): ?><span class="program-status"><?php echo htmlspecialchars($program->status); ?></span><?php endif; ?>
+        </div>
+        <div class="program-grid">
+          <div class="program-cell"><label><i class="fas fa-book-open"></i> عنوان البرنامج</label><span><?php echo htmlspecialchars($program->title ?? '—'); ?></span></div>
+          <div class="program-cell"><label><i class="fas fa-calendar-alt"></i> تاريخ البرنامج</label><span><?php echo !empty($program->start_date) ? date('Y/m/d', strtotime($program->start_date)) . ' → ' . (!empty($program->end_date) ? date('Y/m/d', strtotime($program->end_date)) : '—') : '—'; ?></span></div>
+          <div class="program-cell"><label><i class="fas fa-building"></i> الفرع المنفّذ</label><span><?php echo htmlspecialchars($program->branch_name ?? '—'); ?></span></div>
+          <div class="program-cell"><label><i class="fas fa-users"></i> القسم المنفّذ</label><span><?php echo htmlspecialchars($program->department_name ?? '—'); ?></span></div>
+          <div class="program-cell"><label><i class="fas fa-user-tie"></i> المسؤول</label><span><?php echo htmlspecialchars($program->responsible_person ?? '—'); ?></span></div>
+          <div class="program-cell"><label><i class="fas fa-folder-open"></i> الكتالوج</label><span><?php echo htmlspecialchars($program->catalog_title ?? '—'); ?></span></div>
+        </div>
+        <?php if (!empty($program->id) && empty($program->is_legacy_snapshot)): ?>
+        <div class="program-foot"><a href="<?php echo APP_URL . '/training/programs/' . (int)$program->id; ?>"><i class="fas fa-external-link-alt"></i> عرض تفاصيل البرنامج</a></div>
+        <?php elseif (!empty($program->is_legacy_snapshot)): ?>
+        <div class="program-foot" style="color:#6b7280;font-size:11px;">بيانات الدورة من اللقطة التاريخية (قبل نظام البرامج)</div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <div class="section">
+      <div class="section-head"><div class="section-num"><?php echo !empty($program) ? '٣' : '٢'; ?></div><h2>معايير التقييم</h2><div class="line"></div></div>
       <?php foreach($template['criteria'] as $cIdx=>$criterion): ?>
       <div class="criterion-card">
         <div class="criterion-head"><h3><i class="fas fa-tasks"></i> <?php echo htmlspecialchars($criterion['criterion_name']); ?></h3><span class="count"><?php echo count($criterion['sections']); ?> بنود</span></div>
@@ -145,7 +202,7 @@
     </div>
 
     <div class="section">
-      <div class="section-head"><div class="section-num">٣</div><h2>بيانات القائم بالتقييم</h2><div class="line"></div></div>
+      <div class="section-head"><div class="section-num"><?php echo !empty($program) ? '٤' : '٣'; ?></div><h2>بيانات القائم بالتقييم</h2><div class="line"></div></div>
       <div class="evaluator-card">
         <div class="eval-person"><div class="lbl"><i class="fas fa-user-tie"></i> الاسم</div><div class="val"><?php echo htmlspecialchars($evaluation->evaluator_name ?? $evaluator->full_name ?? 'غير محدد'); ?></div></div>
         <div class="eval-person"><div class="lbl"><i class="fas fa-award"></i> الصفة</div><div class="val"><?php echo htmlspecialchars($evaluation->evaluator_title ?? $evaluator->position_title ?? '—'); ?></div></div>
