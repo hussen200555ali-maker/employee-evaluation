@@ -67,8 +67,11 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-matrix-wrap{background:#fff;border:1px solid var(--cd041-border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
 .cd041-matrix-scroll{overflow-x:auto;max-height:62vh;overflow-y:auto;}
 .cd041-matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
-.cd041-matrix thead th{background:var(--cd041-brand);color:#fff;padding:9px 8px;font-weight:700;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:2;border-inline-start:1px solid rgba(255,255,255,.08);}
+.cd041-matrix thead tr:first-child th{position:sticky;top:0;z-index:3;}
+.cd041-matrix thead tr:last-child th{position:sticky;top:34px;z-index:2;}
+.cd041-matrix thead th{background:var(--cd041-brand);color:#fff;padding:9px 8px;font-weight:700;text-align:center;white-space:nowrap;border-inline-start:1px solid rgba(255,255,255,.08);}
 .cd041-matrix thead th:first-child{border-inline-start:none;}
+.cd041-matrix thead .cd041-c-crit{background:#0a4a42;font-size:11.5px;font-weight:800;letter-spacing:.2px;border-bottom:2px solid var(--cd041-gold);}
 .cd041-matrix thead .cd041-c-sec{font-size:11px;max-width:130px;}
 .cd041-matrix thead .cd041-w{display:block;font-size:9px;color:var(--cd041-gold);font-weight:600;margin-top:2px;}
 .cd041-matrix tbody td{padding:6px 8px;border-bottom:1px solid #eef3f0;text-align:center;vertical-align:middle;border-inline-start:1px solid #f3f7f5;}
@@ -554,16 +557,42 @@ function cd041_quickAddEvaluator(){
 /* ===== matrix rendering ===== */
 function cd041_renderHead(){
     var head=document.getElementById('cd041-matrix-head');
+    // إزالة صف المعايير (إن وُجد) لإعادة بنائه
+    var critRow=document.getElementById('cd041-criteria-head');
+    if(critRow && critRow.parentNode) critRow.parentNode.removeChild(critRow);
+
     if(!cd041_template || !cd041_columns.length){
-        head.innerHTML='<th class="cd041-c-idx">#</th><th class="cd041-c-emp">الموظف</th><th colspan="4" style="color:#b9d4c8;font-weight:400;">اختر قالبًا لبناء أعمدة المعايير</th>';
+        head.innerHTML='<th class="cd041-c-idx">#</th><th class="cd041-c-emp">الموظف</th><th colspan="4" style="color:#b9d4c8;font-weight:400;">اختر قالبًا لبناء أعمدة المعايير</th><th class="cd041-c-score">النتيجة</th><th class="cd041-c-grade">التقدير</th><th class="cd041-c-status">الحالة</th><th class="cd041-c-act"></th>';
         return;
     }
-    var h='<th class="cd041-c-idx">#</th><th class="cd041-c-emp">الموظف</th>';
+
+    // === صف المعايير (علوي) — colspan = عدد أقسام كل معيار ===
+    var critHtml='';
+    (cd041_template.criteria||[]).forEach(function(crit){
+        var n=(crit.sections||[]).filter(function(sec){ return cd041_type(sec.type||sec.evaluation_type)!=='overall_grade'; }).length;
+        if(n>0){
+            critHtml+='<th colspan="'+n+'" class="cd041-c-crit" title="'+cd041_esc(crit.name||crit.criterion_name)+'">'+cd041_short(crit.name||crit.criterion_name,22)+'<span class="cd041-w">'+(crit.weight||crit.criterion_weight||0)+'%</span></th>';
+        }
+    });
+
+    var critTr=document.createElement('tr');
+    critTr.id='cd041-criteria-head';
+    critTr.innerHTML=
+        '<th rowspan="2" class="cd041-c-idx">#</th>'+
+        '<th rowspan="2" class="cd041-c-emp">الموظف</th>'+
+        critHtml+
+        '<th rowspan="2" class="cd041-c-score">النتيجة</th>'+
+        '<th rowspan="2" class="cd041-c-grade">التقدير</th>'+
+        '<th rowspan="2" class="cd041-c-status">الحالة</th>'+
+        '<th rowspan="2" class="cd041-c-act"></th>';
+    head.parentNode.insertBefore(critTr, head);
+
+    // === صف الأقسام (سفلي) — كما كان ===
+    var h='';
     cd041_columns.forEach(function(col){
         var t=cd041_type(col.type||col.evaluation_type);
         h+='<th title="'+cd041_esc(col.name)+'" class="cd041-c-sec">'+cd041_short(col.name,18)+'<span class="cd041-w">'+(col.weight||0)+'%</span></th>';
     });
-    h+='<th class="cd041-c-score">النتيجة</th><th class="cd041-c-grade">التقدير</th><th class="cd041-c-status">الحالة</th><th class="cd041-c-act"></th>';
     head.innerHTML=h;
 }
 function cd041_cellHtml(col, empId){
