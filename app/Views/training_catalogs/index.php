@@ -58,7 +58,7 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
                                 <a href="#" onclick='editCat(<?php echo json_encode(["id"=>(int)$c->id,"name"=>$c->name,"type"=>$c->type,"description"=>$c->description??"","category"=>$c->category??"","status"=>$c->status], JSON_UNESCAPED_UNICODE); ?>);return false'>✏️ تعديل</a>
                                 <form method="POST" action="<?php echo APP_URL; ?>/training/catalogs/<?php echo (int)$c->id; ?>/delete" style="display:inline" onsubmit="return confirm('حذف التصنيف «<?php echo htmlspecialchars($c->name, ENT_QUOTES); ?>»؟')">
                                     <?php echo csrf_field(); ?>
-                                    <a class="del" href="#" onclick="this.form.submit();return false">🗑️ حذف</a>
+                                    <a class="del" href="#" onclick="this.closest('form').requestSubmit();return false">🗑️ حذف</a>
                                 </form>
                             <?php else: ?><span style="color:#8a8a8a">—</span><?php endif; ?>
                         </div>

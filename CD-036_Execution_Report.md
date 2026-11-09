@@ -32,8 +32,11 @@
 | 3 | `training_catalogs/index.php`<br>`training_programs/create.php`<br>`training_programs/index.php` | نماذج POST بلا `csrf_field()` | كل عمليات الحفظ/التعديل/الحذف تُرفض (CSRF) | إضافة `csrf_field()` لكل نموذج POST (بما فيها نماذج الحذف لكل صف) |
 | 4 | `app/Models/ProgramParticipant.php` | أعمدة خاطئة `e.name` / `e.employee_number` | صفحة التفاصيل 500 (SQLSTATE 42S22) | `e.full_name` / `e.emp_code` |
 | 5 | `app/Models/TrainingProgram.php`<br>`app/Models/ProgramParticipant.php` | إعادة استخدام نفس الـplaceholder المسمّى (`:search` / `:s`) مرتين | البحث 500 (SQLSTATE HY093) | فصلها إلى `:search1/:search2` و`:s1/:s2` |
+| 6 | `training_catalogs/index.php`<br>`training_programs/index.php` | `onclick="this.form.submit()"` على وسم `<a>` — خاصية `.form` غير موجودة على الروابط | زر الحذف لا يعمل: `TypeError: Cannot read properties of undefined (reading 'submit')` | `this.closest('form').requestSubmit()` (يُشغّل أيضًا تأكيد `onsubmit`) |
 
-**إجمالي:** 5 عيوب جذرية في 7 ملفات (+13 / −6 سطرًا).
+**إجمالي:** 6 عيوب جذرية في 8 ملفات (+17 / −10 أسطر).
+
+> **ملاحظة اكتشاف متأخر:** عيب رقم 6 لم يظهر في UAT الأولي لأن الحذف اختُبر عبر `form.requestSubmit()` مباشرةً؛ عند النقر الفعلي على رابط الحذف ظهر الخطأ في Console. أُصلح وتحقّق منه بنقر حقيقي على الكتالوج والبرنامج (كلاهما حُذف بنجاح، بلا أخطاء Console).
 
 **تأكيد:** لم تُعدَّل `app/Views/evaluations/fill.php` ولا `bulk-create.php`.
 
