@@ -31,10 +31,22 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-prog{padding:14px 18px;margin-bottom:14px;display:none;}
 .cd041-prog.open{display:block;}
 .cd041-prog-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.4fr;gap:12px;align-items:end;}
-.cd041-prog-info{margin-top:12px;padding:12px 14px;background:#f5f8f6;border:1px dashed var(--cd041-border);border-radius:8px;font-size:12px;display:none;}
-.cd041-prog-info.open{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 16px;}
-.cd041-prog-info b{color:var(--cd041-muted);font-weight:700;display:block;font-size:10px;margin-bottom:2px;}
-.cd041-prog-info span{color:var(--cd041-text);font-weight:600;}
+.cd041-prog-info{margin-top:12px;padding:0;background:#fff;border:2px solid var(--cd041-gold);border-radius:12px;font-size:12px;display:none;overflow:hidden;box-shadow:0 8px 22px rgba(200,148,63,.18);}
+.cd041-prog-info.open{display:block;animation:cd041-fadeIn .3s ease;}
+@keyframes cd041-fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.cd041-prog-info .cd041-pi-head{background:linear-gradient(135deg,#0c2823 0%,#0d5e52 100%);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:13px;}
+.cd041-prog-info .cd041-pi-head i{color:var(--cd041-gold);font-size:14px;background:rgba(255,255,255,.12);width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;}
+.cd041-prog-info .cd041-pi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+.cd041-prog-info .cd041-pi-cell{padding:10px 12px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid #f1f3f5;border-left:1px solid #f1f3f5;text-align:center;transition:background .2s;}
+.cd041-prog-info .cd041-pi-cell:hover{background:#fffbf3;}
+.cd041-prog-info .cd041-pi-cell:nth-child(3n){border-left:none;}
+.cd041-prog-info .cd041-pi-cell:nth-last-child(-n+3){border-bottom:none;}
+.cd041-prog-info .cd041-pi-cell b{color:var(--cd041-muted);font-weight:700;font-size:10px;margin-bottom:2px;display:flex;align-items:center;justify-content:center;gap:4px;}
+.cd041-prog-info .cd041-pi-cell b i{color:var(--cd041-gold);font-size:10px;}
+.cd041-prog-info .cd041-pi-cell span{color:var(--cd041-text);font-weight:700;font-size:12.5px;}
+.cd041-prog-info .cd041-pi-cell span.empty{color:#94a3b8;font-weight:400;font-style:italic;}
+@media(max-width:700px){.cd041-prog-info .cd041-pi-grid{grid-template-columns:repeat(2,1fr);}.cd041-prog-info .cd041-pi-cell:nth-child(2n){border-left:none;}.cd041-prog-info .cd041-pi-cell:nth-last-child(-n+2){border-bottom:none;}}
+@media(max-width:460px){.cd041-prog-info .cd041-pi-grid{grid-template-columns:1fr;}.cd041-prog-info .cd041-pi-cell{border-left:none;}}
 
 .cd041-empbar{padding:14px 18px;margin-bottom:14px;display:flex;gap:12px;align-items:end;flex-wrap:wrap;}
 .cd041-empbar .cd041-search{flex:1;min-width:240px;position:relative;}
@@ -445,13 +457,27 @@ function cd041_onProgramChange(){
     cd041_program = cd041_programs.filter(function(p){return parseInt(p.id,10)===id;})[0]||null;
     if(!cd041_program){ info.classList.remove('open'); return; }
     var p=cd041_program;
+    // عدد الأيام
+    var days = '';
+    if (p.start_date && p.end_date) {
+        var s = new Date(p.start_date), e = new Date(p.end_date);
+        if (!isNaN(s) && !isNaN(e)) {
+            var diff = Math.round((e - s) / 86400000) + 1;
+            if (diff > 0) days = ' (' + diff + ' ' + (diff === 1 ? 'يوم' : 'أيام') + ')';
+        }
+    }
+    var typeLabel = (p.type === 'workshop') ? 'ورشة' : 'دورة';
+    var typeIcon = (p.type === 'workshop') ? 'fa-chalkboard-teacher' : 'fa-graduation-cap';
     info.innerHTML =
-        '<div><b>العنوان</b><span>'+cd041_esc(p.title)+'</span></div>'+
-        '<div><b>الفرع</b><span>'+cd041_esc(p.branch_name||'-')+'</span></div>'+
-        '<div><b>القسم</b><span>'+cd041_esc(p.department_name||'-')+'</span></div>'+
-        '<div><b>المسؤول</b><span>'+cd041_esc(p.responsible_person||'-')+'</span></div>'+
-        '<div><b>البداية</b><span>'+cd041_esc(p.start_date||'-')+'</span></div>'+
-        '<div><b>النهاية</b><span>'+cd041_esc(p.end_date||'-')+'</span></div>';
+        '<div class="cd041-pi-head"><i class="fas '+typeIcon+'"></i> ' + cd041_esc(p.title) + ' <span style="margin-right:auto;font-size:10px;opacity:.85;font-weight:600;">' + typeLabel + '</span></div>' +
+        '<div class="cd041-pi-grid">' +
+            '<div class="cd041-pi-cell"><b><i class="fas fa-book-open"></i> عنوان البرنامج</b><span>' + cd041_esc(p.title) + '</span></div>' +
+            '<div class="cd041-pi-cell"><b><i class="fas fa-calendar-alt"></i> تواريخ البرنامج</b><span>' + cd041_esc(p.start_date||'-') + ' → ' + cd041_esc(p.end_date||'-') + days + '</span></div>' +
+            '<div class="cd041-pi-cell"><b><i class="fas fa-building"></i> الفرع المنفّذ</b><span>' + cd041_esc(p.branch_name||'-') + '</span></div>' +
+            '<div class="cd041-pi-cell"><b><i class="fas fa-users"></i> القسم المنفّذ</b><span>' + cd041_esc(p.department_name||'-') + '</span></div>' +
+            '<div class="cd041-pi-cell"><b><i class="fas fa-user-tie"></i> المسؤول</b><span>' + cd041_esc(p.responsible_person||'-') + '</span></div>' +
+            '<div class="cd041-pi-cell"><b><i class="fas fa-tag"></i> نوع البرنامج</b><span>' + typeLabel + '</span></div>' +
+        '</div>';
     info.classList.add('open');
 }
 
