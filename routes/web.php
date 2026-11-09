@@ -151,6 +151,7 @@ $router->get('employees/:id/evaluations/:year', 'App\Controllers\EmployeeControl
 // CD-037: API لجلب بيانات البرنامج التدريبي (لعرض بطاقة المعلومات في fill/bulk)
 $router->get('api/training-programs/:id', 'App\Controllers\TrainingProgramController@show');
 $router->get('api/training-programs/list/:type', 'App\Controllers\ApiController@trainingProgramsList');
+$router->get('api/positions', 'App\Controllers\ApiController@positions');
 
 // CD-034: ما زال مؤرشفًا (خارج نطاق CD-037) — Excel + الوحدات + المرن + الجدولة
 /*

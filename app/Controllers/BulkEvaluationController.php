@@ -54,6 +54,8 @@ final class BulkEvaluationController extends Controller
             'evaluatorName' => $evaluatorName,
             'evaluatorTitle'=> $evaluatorTitle,
             'csrfToken'     => Auth::generateCsrfToken(),
+            // CD-041: سلالم التقديرات للأعمدة اليدوية (descriptive)
+            'gradingScales' => (new \App\Models\GradingScale())->getActive(),
         ]);
     }
 
@@ -294,6 +296,23 @@ final class BulkEvaluationController extends Controller
                 try {
                     $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
                     $this->saveResults($evaluationId, $results, $templateId);
+
+                    // CD-041: للقالب الوصفي — احترم final_grade_id لكل موظف
+                    // (saveResults يقرأ من $_POST في السابق، لكن bulkSave يستقبل JSON
+                    //  فلا $_POST — لذا نُحدّث التقدير يدويًا هنا)
+                    $perEmpGradeId = (int)($item['final_grade_id'] ?? 0);
+                    if ($perEmpGradeId > 0) {
+                        $gs = (new \App\Models\GradingScale())->findActiveById($perEmpGradeId);
+                        if ($gs) {
+                            (new \App\Models\Evaluation())->updateScoreGradeAndStatus(
+                                $evaluationId,
+                                (float)$gs->max_value,        // final_score = max_value
+                                $gs->grade_label,              // final_grade_label
+                                (float)$gs->numeric_value,
+                                'completed'
+                            );
+                        }
+                    }
 
                     // CD-029: حفظ context_id إن وُجد (دورة/ورشة)
                     $bulkContextId = (int)($data['context_id'] ?? 0);
