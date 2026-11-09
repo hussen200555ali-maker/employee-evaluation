@@ -63,9 +63,11 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
                     <i class="fas fa-align-right text-secondary"></i>
                     <div><strong>قسم نصي</strong><small>إجابة وصفية حرة (Textarea) — لا وزن.</small></div>
                 </div>
-                <div class="draggable-element" data-type="section" data-section-type="overall_grade" draggable="true">
-                    <i class="fas fa-trophy" style="color:#c8943f;"></i>
-                    <div><strong>التقدير العام</strong><small>سلم تقديرات يدوي في أسفل القالب (مرة واحدة).</small></div>
+                <!-- CD-040.3: التقدير العام لم يعد عنصرًا قابلًا للسحب — أصبح «ناتج نظام»
+                     يظهر تلقائيًا في أسفل الاستمارة للقوالب الوصفية/المختلطة -->
+                <div class="element-info-note" style="padding:10px;background:#fffbf3;border:1px solid #c8943f;border-radius:6px;font-size:11px;color:#0c2823">
+                    <i class="fas fa-trophy" style="color:#c8943f"></i>
+                    <strong>التقدير العام</strong> — ناتج نظام تلقائي في أسفل الاستمارة (للأوضاع الوصفية/المختلطة). لا يُسحب كعنصر.
                 </div>
             </div>
         </div>

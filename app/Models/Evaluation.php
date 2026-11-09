@@ -246,14 +246,8 @@ class Evaluation extends Model {
                         continue;
                     }
                     if ($evalType === 'overall_grade') {
-                        $gradeLabel = isset($answer['grade_label']) ? trim((string)$answer['grade_label']) : '';
-                        $this->db->query($sql);
-                        $this->db->bind(':evaluation_id', $evaluationId);
-                        $this->db->bind(':section_id', (int)$sectionId);
-                        $this->db->bind(':raw_value', $gradeLabel);
-                        $this->db->bind(':notes', $answer['notes'] ?? null);
-                        $this->db->bind(':normalized_score', null);
-                        $this->db->execute();
+                        // CD-040.3: التقدير العام «ناتج نظام» — لا يُحفظ كإجابة سؤال.
+                        // يُحفظ مباشرة في evaluations.grade_label + final_score (عبر saveUnified).
                         continue;
                     }
 
@@ -447,13 +441,18 @@ class Evaluation extends Model {
      * @return float|null  القيمة الرقمية أو null إن لم تُوجد إجابة
      */
     private function calculateDescriptiveScore(int $evaluationId, array $template): ?float {
-        $overallGradeSectionId = null;
-        $scaleName = 'السلم الخماسي';
+        // CD-040.3: اقرأ grade_label من جدول evaluations مباشرة (لا من evaluation_answers)
+        $evaluation = $this->findById($evaluationId);
+        if (!$evaluation || empty($evaluation->grade_label)) {
+            return null;
+        }
+        $gradeLabel = (string)$evaluation->grade_label;
 
+        // ابحث عن scale_name من قسم overall_grade في القالب (إن وُجد لقالب قديم)
+        $scaleName = 'السلم الخماسي';
         foreach ($template['criteria'] ?? [] as $criterion) {
             foreach ($criterion['sections'] ?? [] as $section) {
                 if (($section['evaluation_type'] ?? '') === 'overall_grade') {
-                    $overallGradeSectionId = (int)$section['id'];
                     $opts = is_string($section['evaluation_options'] ?? '')
                         ? json_decode($section['evaluation_options'], true)
                         : ($section['evaluation_options'] ?? []);
@@ -465,24 +464,16 @@ class Evaluation extends Model {
             }
         }
 
-        if ($overallGradeSectionId === null) {
-            return null;
-        }
-
-        $this->db->query("SELECT raw_value FROM evaluation_answers WHERE evaluation_id = :id AND section_id = :sid LIMIT 1");
-        $this->db->bind(':id', $evaluationId);
-        $this->db->bind(':sid', $overallGradeSectionId);
-        $row = $this->db->fetch();
-        if (!$row || empty($row->raw_value)) {
-            return null;
-        }
-
-        $gradeLabel = (string)$row->raw_value;
-
-        // CD-026: تحويل التقدير الوصفي إلى مقياس 0-100 (لا 1-5) لتوافق المتوسطات
-        // نأخذ max_value من صف grading_scales المطابق (مثلاً ممتاز=100, جيد جداً=89.99)
+        // CD-026/CD-040.3: الدرجة = max_value للتقدير (ممتاز→100، جيد جدًا→89.99)
         $scaleRows = (new \App\Models\GradingScale())->getByName($scaleName);
         foreach ($scaleRows as $g) {
+            if ($g->grade_label === $gradeLabel) {
+                return (float)$g->max_value;
+            }
+        }
+        // إن لم يُعثر في السلم المحدد، ابحث في كل السلالم النشطة
+        $allScales = (new \App\Models\GradingScale())->getActive();
+        foreach ($allScales as $g) {
             if ($g->grade_label === $gradeLabel) {
                 return (float)$g->max_value;
             }

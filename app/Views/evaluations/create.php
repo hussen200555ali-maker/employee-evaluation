@@ -647,6 +647,8 @@ function cd040_renderCriteria(sch){
 }
 function cd040_renderSection(sec,cid){
   var sid=sec.id,type=sec.type||'numeric',mv=sec.max_value||100,mn=sec.min_value||0;
+  // CD-040.3: التقدير العام ناتج نظام — لا يُعرض وسط الأقسام. يُختار في البطاقة السفلية.
+  if(type==='overall_grade')return '';
   var name='results['+cid+']['+sid+']';
   var html='<div class="cd040-field" data-section-id="'+sid+'" data-criterion-id="'+cid+'" data-type="'+cd040_esc(type)+'"><div class="cd040-fh"><div><div class="cd040-fn">'+cd040_esc(sec.name)+'</div></div>'+cd040_badge(type)+'</div>';
   switch(type){
@@ -765,6 +767,14 @@ function cd040_showPreview(){
   html+='<div class="cd040-pv-row"><span>القالب</span><span>'+cd040_esc(tplName)+'</span></div>';
   html+='<div class="cd040-pv-row"><span>البرنامج</span><span>'+cd040_esc(progName)+'</span></div>';
   html+='<div class="cd040-pv-row"><span>تاريخ التقييم</span><span>'+cd040_esc(evalDate)+'</span></div></div>';
+  // CD-040.3: التقدير العام (ناتج النظام) في المعاينة
+  var gradeSel=document.getElementById('finalGradeSelect');
+  if(gradeSel&&gradeSel.closest('.cd040-card')&&gradeSel.closest('.cd040-card').style.display!=='none'){
+    var gradeOpt=gradeSel.options[gradeSel.selectedIndex];
+    var gradeTxt=(gradeOpt&&gradeOpt.value)?gradeOpt.textContent:'—';
+    html+='<div class="cd040-pv-section"><h4>التقدير العام (ناتج النظام)</h4>';
+    html+='<div class="cd040-pv-row"><span>التقدير المختار</span><span>'+cd040_esc(gradeTxt)+'</span></div></div>';
+  }
   // criteria values
   var secHtml='';
   document.querySelectorAll('.cd040-sec').forEach(function(sec){

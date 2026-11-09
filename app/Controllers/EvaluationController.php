@@ -632,35 +632,32 @@ class EvaluationController extends Controller {
             }
 
             // compute final score + finalize status
-            $finalScore = $evalModel->calculateFinalScore($evaluationId);
             $isUnit = false; // unified page is employee-only
             $nextStatus = $isUnit ? 'pending_review' : 'completed';
-
-            // descriptive/mixed: try overall grade answer first, else final_grade_id
             $template = (new Template())->getTemplateWithStructure($templateId);
             $mode = $template['evaluation_mode'] ?? 'numeric';
+
+            // CD-040.3: التقدير العام «ناتج نظام» — للوصفي/المختلط:
+            // final_score = max_value للدرجة المختارة من grading_scales (مثلاً ممتاز→100)
+            // grade_label يُحفظ مباشرة في evaluations. لا اعتماد على evaluation_answers.
             $manualGrade = null;
+            $finalScore = null;
             if (in_array($mode, ['descriptive', 'mixed'], true)) {
-                $overallAnswer = $this->extractOverallGradeAnswer($template, $results);
-                if ($overallAnswer !== null) {
-                    $numericValue = (new \App\Models\GradingScale())->getNumericValueForLabel(
-                        $overallAnswer['scale_name'],
-                        $overallAnswer['grade_label']
-                    );
-                    if ($numericValue !== null) {
-                        $manualGrade = (object)[
-                            'grade_label'   => $overallAnswer['grade_label'],
-                            'numeric_value' => $numericValue,
-                            'scale_name'    => $overallAnswer['scale_name'],
-                        ];
+                $gradeId = (int)($_POST['final_grade_id'] ?? 0);
+                if ($gradeId > 0) {
+                    $gs = (new \App\Models\GradingScale())->findActiveById($gradeId);
+                    if ($gs) {
+                        $manualGrade = $gs;
+                        $finalScore = (float)$gs->max_value;  // ★ ممتاز → 100.00
                     }
                 }
-                if (!$manualGrade) {
-                    $gradeId = filter_var($_POST['final_grade_id'] ?? null, FILTER_VALIDATE_INT);
-                    $manualGrade = ($gradeId !== false && $gradeId > 0)
-                        ? (new \App\Models\GradingScale())->findActiveById($gradeId)
-                        : null;
+                // للقالب المختلط: إن لم يُختر تقدير، احسب من الأقسام الرقمية
+                if ($finalScore === null && $mode === 'mixed') {
+                    $finalScore = $evalModel->calculateFinalScore($evaluationId);
                 }
+            } else {
+                // numeric: المتوسط المرجّح للأقسام
+                $finalScore = $evalModel->calculateFinalScore($evaluationId);
             }
 
             if ($manualGrade) {
