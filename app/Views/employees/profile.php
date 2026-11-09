@@ -67,8 +67,8 @@ $typeLabels = [
                 <div class="card-header fw-bold">سجل التقييمات المعتمدة والمكتملة</div>
                 <div class="table-responsive">
                     <table class="table table-striped align-middle mb-0">
-                        <!-- CD-033: جدول التقييمات مع نوع + اسم الدورة -->
-                        <thead><tr><th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة</th><th>التقدير</th><th>📚 الدورة</th></tr></thead>
+                        <!-- CD-033/CD-037: جدول التقييمات مع نوع + اسم البرنامج -->
+                        <thead><tr><th>التاريخ</th><th>النوع</th><th>القالب</th><th>الدرجة</th><th>التقدير</th><th>📚 البرنامج</th></tr></thead>
                         <tbody>
                         <?php if ($report['records'] === []): ?>
                             <tr><td colspan="6" class="text-center text-muted py-4">لا توجد تقييمات مكتملة لهذا الموظف.</td></tr>
@@ -82,13 +82,14 @@ $typeLabels = [
                                     <td><?= $valueOrDash($record->grade_label) ?></td>
                                     <td>
                                         <?php
-                                        // CD-033: عرض اسم الدورة إن وُجدت
+                                        // CD-033/CD-037: عرض اسم البرنامج إن وُجد
                                         $ctxType = $record->context_type ?? '';
                                         $ctxId = $record->context_id ?? null;
+                                        $programName = $record->program_name ?? null;
                                         if ($ctxType === 'course' && $ctxId):
-                                            echo '<span class="badge bg-warning text-dark"><i class="fas fa-book"></i> دورة #' . (int)$ctxId . '</span>';
+                                            echo '<span class="badge bg-warning text-dark"><i class="fas fa-book"></i> ' . htmlspecialchars($programName ?: ('دورة #' . (int)$ctxId)) . '</span>';
                                         elseif ($ctxType === 'workshop' && $ctxId):
-                                            echo '<span class="badge bg-info"><i class="fas fa-tools"></i> ورشة #' . (int)$ctxId . '</span>';
+                                            echo '<span class="badge bg-info"><i class="fas fa-tools"></i> ' . htmlspecialchars($programName ?: ('ورشة #' . (int)$ctxId)) . '</span>';
                                         else:
                                             echo '—';
                                         endif;

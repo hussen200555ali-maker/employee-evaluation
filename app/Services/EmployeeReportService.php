@@ -27,9 +27,11 @@ class EmployeeReportService
         $this->db->query(
             "SELECT e.id, e.evaluation_type, e.evaluation_date, e.status,
                     e.final_score, e.final_grade_label, e.final_grade_value,
+                    e.context_type, e.context_id, tp.title AS program_name,
                     t.template_name
              FROM evaluations e
              LEFT JOIN form_templates t ON t.id = e.template_id
+             LEFT JOIN training_programs tp ON tp.id = e.context_id
              INNER JOIN employees emp ON emp.id = e.evaluated_employee_id
              WHERE e.evaluated_employee_id = :employee_id
                AND e.status IN ('approved', 'completed')
