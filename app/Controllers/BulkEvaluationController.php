@@ -287,11 +287,15 @@ final class BulkEvaluationController extends Controller
                         $db->bind(':eid', $evaluationId);
                         $db->execute();
 
-                        // تحديث course_participants
-                        if ($bulkContextType === 'course') {
-                            $this->syncParticipant('course_participants', 'course_id', $bulkContextId, $employeeId, $db);
-                        } elseif ($bulkContextType === 'workshop') {
-                            $this->syncParticipant('workshop_participants', 'workshop_id', $bulkContextId, $employeeId, $db);
+                        // CD-036/CD-037: تحديث program_participants (الجدول الموحَّد)
+                        // bulkContextId يشير الآن إلى training_programs.id (بعد الترحيل v4.1)
+                        if ($bulkContextType === 'course' || $bulkContextType === 'workshop') {
+                            $score = (new \App\Models\Evaluation())->calculateFinalScore($evaluationId);
+                            (new \App\Models\ProgramParticipant())->markCompleted(
+                                $bulkContextId,
+                                $employeeId,
+                                (float)($score ?? 0)
+                            );
                         }
                     }
 

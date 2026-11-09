@@ -436,11 +436,14 @@ class EvaluationController extends Controller {
             }
             Audit::log('EVALUATION_SUBMITTED', $evaluationId, 'evaluations');
 
-            // CD-029: تحديث course_participants عند إكمال تقييم دورة
-            if ($contextType === 'course' && $contextId) {
-                $this->syncCourseParticipant($contextId, (int)$evaluation->evaluated_employee_id);
-            } elseif ($contextType === 'workshop' && $contextId) {
-                $this->syncWorkshopParticipant($contextId, (int)$evaluation->evaluated_employee_id);
+            // CD-036/CD-037: تحديث program_participants (الجدول الموحَّد) عند إكمال تقييم برنامج
+            // context_id يشير الآن إلى training_programs.id (بعد الترحيل v4.1)
+            if ($contextType && $contextId) {
+                (new \App\Models\ProgramParticipant())->markCompleted(
+                    $contextId,
+                    (int)$evaluation->evaluated_employee_id,
+                    (float)($finalScore ?? 0)
+                );
             }
 
             if ($isUnit) Flash::set('تم حفظ تقييم الوحدة وإرساله للمراجعة.', 'success');

@@ -126,12 +126,9 @@ $router->get('builder/edit/:id', 'App\Controllers\BuilderController@index');
 $router->post('builder/save', 'App\Controllers\BuilderController@save');
 $router->get('builder/preview', 'App\Controllers\BuilderController@preview');
 
-// CD-034: ARCHIVED — التقييمات ستعاد بناؤها في CD-035+
-/*
+// CD-037: إعادة تفعيل مسارات التقييم (الفردي + الجماعي + السجل)
 // --- 5.3: عمليات التقييم الفعلية ---
 $router->get('evaluations/create', 'App\Controllers\EvaluationController@create');
-
-// CD-022: Bulk Evaluation
 $router->get('evaluations/bulk-create', 'App\Controllers\BulkEvaluationController@create');
 $router->get('api/templates/:id/schema', 'App\Controllers\BulkEvaluationController@schema');
 $router->post('api/employees/quick-add', 'App\Controllers\BulkEvaluationController@quickAdd');
@@ -144,20 +141,26 @@ $router->get('evaluations/show/:id', 'App\Controllers\EvaluationController@show'
 $router->get('evaluations/print/:id', 'App\Controllers\EvaluationController@printView');
 $router->post('evaluations/delete', 'App\Controllers\EvaluationController@destroy');
 $router->post('evaluations/reopen', 'App\Controllers\EvaluationController@reopen');
- $router->get('evaluations/excel/import', 'App\Controllers\EvaluationExcelController@importForm');
- // تنزيل قالب Excel الديناميكي — يدعم ?template_id=X أو المسار المحدد أدناه
- $router->get('evaluations/excel/template', 'App\Controllers\EvaluationExcelController@downloadTemplate');
- $router->get('evaluations/excel/template/:id', 'App\Controllers\EvaluationExcelController@downloadTemplate');
- $router->post('evaluations/excel/preview', 'App\Controllers\EvaluationExcelController@preview');
- $router->post('evaluations/excel/commit/:id', 'App\Controllers\EvaluationExcelController@commit');
- $router->get('evaluations/excel/training-template', 'App\Controllers\EvaluationExcelController@downloadTrainingTemplate');
- $router->get('api/training-templates', 'App\Controllers\EvaluationExcelController@getTrainingTemplates');
- $router->get('api/training-list', 'App\Controllers\EvaluationExcelController@getTrainingList');
 
 // --- 5.4: عرض سجلات التقييم ---
 $router->get('evaluations', 'App\Controllers\EvaluationController@index');
 $router->get('employees/:id/evaluations', 'App\Controllers\EmployeeController@showEmployeeEvaluations');
 $router->get('employees/:id/evaluations/:year', 'App\Controllers\EmployeeController@showEmployeeEvaluationsByYear');
+
+// CD-037: API لجلب بيانات البرنامج التدريبي (لعرض بطاقة المعلومات في fill/bulk)
+$router->get('api/training-programs/:id', 'App\Controllers\TrainingProgramController@show');
+$router->get('api/training-programs/list/:type', 'App\Controllers\TrainingProgramController@apiPrograms');
+
+// CD-034: ما زال مؤرشفًا (خارج نطاق CD-037) — Excel + الوحدات + المرن + الجدولة
+/*
+$router->get('evaluations/excel/import', 'App\Controllers\EvaluationExcelController@importForm');
+$router->get('evaluations/excel/template', 'App\Controllers\EvaluationExcelController@downloadTemplate');
+$router->get('evaluations/excel/template/:id', 'App\Controllers\EvaluationExcelController@downloadTemplate');
+$router->post('evaluations/excel/preview', 'App\Controllers\EvaluationExcelController@preview');
+$router->post('evaluations/excel/commit/:id', 'App\Controllers\EvaluationExcelController@commit');
+$router->get('evaluations/excel/training-template', 'App\Controllers\EvaluationExcelController@downloadTrainingTemplate');
+$router->get('api/training-templates', 'App\Controllers\EvaluationExcelController@getTrainingTemplates');
+$router->get('api/training-list', 'App\Controllers\EvaluationExcelController@getTrainingList');
 
 // --- 5.5: تقييم الوحدات (المرحلة 1) ---
 $router->get('units/evaluations/create', 'App\Controllers\UnitEvaluationController@create');
@@ -168,7 +171,7 @@ $router->post('schedules/store', 'App\Controllers\ScheduleController@store');
 $router->post('schedules/update', 'App\Controllers\ScheduleController@update');
 $router->post('schedules/delete', 'App\Controllers\ScheduleController@destroy');
 
-// --- 5.6: التقييمات المرنة للدورات/الورش (المرحلة 2 - 6 أنواع عامة) ---
+// --- 5.6: التقييمات المرنة ---
 $router->get('flexible/evaluations/create/course', 'App\Controllers\FlexibleEvaluationController@createCourse');
 $router->post('flexible/evaluations/store/course', 'App\Controllers\FlexibleEvaluationController@storeCourse');
 $router->get('flexible/evaluations/create/workshop', 'App\Controllers\FlexibleEvaluationController@createWorkshop');
@@ -177,7 +180,6 @@ $router->get('flexible/evaluations/create/employee-in-course', 'App\Controllers\
 $router->post('flexible/evaluations/store/employee-in-course', 'App\Controllers\FlexibleEvaluationController@storeEmployeeInCourse');
 $router->get('flexible/evaluations/create/employee-in-workshop', 'App\Controllers\FlexibleEvaluationController@createEmployeeInWorkshop');
 $router->post('flexible/evaluations/store/employee-in-workshop', 'App\Controllers\FlexibleEvaluationController@storeEmployeeInWorkshop');
-// الأرشيف القديم (للقراءة فقط) يبقى: training/evaluations/show/:id
 */
 
 /*
