@@ -46,14 +46,15 @@
 .criterion-head h3{ margin:0; font-size:13px; font-weight:800; color:#ffffff !important; display:flex; align-items:center; gap:7px; letter-spacing:.2px; text-shadow:0 1px 2px rgba(0,0,0,.25);}
 .criterion-head h3 i{ color:var(--gold); font-size:12px; background:rgba(255,255,255,.12); width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;}
 .criterion-head .count{ background:#fff; color:var(--navy); border:none; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:800; box-shadow:0 1px 3px rgba(0,0,0,.15);}
-.eval-table{ width:100%; border-collapse:collapse; font-size:12px;}
-.eval-table thead th{ background:#f8f9fb; color:var(--navy); font-weight:700; font-size:11px; padding:8px 10px; text-align:center; border-bottom:1px solid var(--border); letter-spacing:.3px;}
-.eval-table thead th:first-child{ text-align:right; padding-right:14px;}
-.eval-table tbody td{ padding:9px 12px; border-bottom:1px solid #f1f3f5; vertical-align:middle;}
+.eval-table{ width:100%; border-collapse:collapse; font-size:12px; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
+.eval-table thead th{ background:#f8f9fb; color:var(--navy); font-weight:700; font-size:11px; padding:8px 10px; text-align:center; border-bottom:1px solid var(--border); border-left:1px solid var(--border); letter-spacing:.3px;}
+.eval-table thead th:first-child{ text-align:right; padding-right:14px; border-left:none;}
+.eval-table thead th:last-child{ border-left:none;}
+.eval-table tbody td{ padding:9px 12px; border-bottom:1px solid #f1f3f5; border-left:1px solid #f1f3f5; vertical-align:middle;}
 .eval-table tbody tr:last-child td{ border-bottom:none;}
-.eval-table tbody td:first-child{ color:#1e293b; font-weight:500; font-size:12px;}
+.eval-table tbody td:first-child{ color:#1e293b; font-weight:500; font-size:12px; border-left:none;}
+.eval-table tbody td:last-child{ border-left:none; color:#64748b; font-size:11.5px; text-align:center;}
 .eval-table tbody td:nth-child(2){ text-align:center; width:22%;}
-.eval-table td:last-child{ color:#64748b; font-size:11.5px; text-align:center;}
 .badge{ display:inline-block; min-width:68px; padding:5px 10px; border-radius:20px; font-size:11.5px; font-weight:700; text-align:center; border:1px solid;}
 .badge-excellent{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0;}
 .badge-good{ background:#eff6ff; color:#1e40af; border-color:#bfdbfe;}
