@@ -85,13 +85,15 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
 <body onload="window.print()">
 <div class="a4-page">
   <?php
-    $evalTypeKey = $evaluation->evaluation_type ?? 'annual';
-    $tplTarget = $template['target_type'] ?? '';
-    $typeLabels = ['annual' => ['سنوي', 'eval-type-annual', 'fas fa-calendar'], 'periodic' => ['دوري', 'eval-type-periodic', 'fas fa-repeat'], 'course' => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'], 'workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'], 'skill' => ['مهاري', 'eval-type-skill', 'fas fa-bullseye']];
-    if ($tplTarget === 'skill') $evalTypeKey = 'skill';
-    if ($tplTarget === 'employee_in_workshop' || $tplTarget === 'workshop') $evalTypeKey = 'workshop';
-    if ($tplTarget === 'employee_in_course' || $tplTarget === 'course') $evalTypeKey = $evalTypeKey === 'annual' ? 'course' : $evalTypeKey;
-    $typeInfo = $typeLabels[$evalTypeKey] ?? $typeLabels['annual'];
+    // CD-040.6 (revised): classify EXCLUSIVELY by target_type.
+    $targetKey = $template['target_type'] ?? 'employee';
+    $typeLabels = [
+      'employee'             => ['فردي', 'eval-type-annual', 'fas fa-user'],
+      'employee_in_course'   => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'],
+      'employee_in_workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
+      'skill'                => ['مهاري', 'eval-type-skill', 'fas fa-bullseye'],
+    ];
+    $typeInfo = $typeLabels[$targetKey] ?? $typeLabels['employee'];
   ?>
   <header class="doc-header">
     <div class="header-emblem"><i class="<?php echo $typeInfo[2]; ?>"></i></div>
