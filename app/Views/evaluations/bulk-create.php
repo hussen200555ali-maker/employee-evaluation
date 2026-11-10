@@ -730,10 +730,11 @@ function cd041_norm(sec, r){
 }
 function cd041_calcScore(empId){
     if(!cd041_template) return null;
+    // لا تُعرض/تُحتسب نتيجة until اكتمال جميع الأقسام (تجنب 100% لصف جزئي
+    // عندما يُملأ قسم واحد بـ 100 وتُترك البقية فارغة).
+    if(!cd041_isRowDone(empId)) return null;
     var mode=cd041_template.evaluation_mode;
     if(mode==='descriptive'){
-        // لا تُعرض/تُحتسب نتيجة until اكتمال جميع الأقسام + التقدير (تجنب 100% لصف جزئي)
-        if(!cd041_isRowDone(empId)) return null;
         var gid=cd041_final_grades[empId];
         if(!gid) return null;
         var sc=CD041_SCALES.filter(function(s){return String(s.id)===String(gid);})[0];
