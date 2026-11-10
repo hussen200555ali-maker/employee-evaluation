@@ -82,6 +82,25 @@ class ApiController extends Controller {
     }
 
     /**
+     * CD-041.5: تحقق من وجود تقييم مسبق (موظف + قالب + تاريخ + سياق).
+     * GET /api/evaluations/exists?employee_id=&template_id=&date=&context_id=&context_type=
+     */
+    public function evaluationExists() {
+        Auth::enforce('evaluations.create');
+        $empId = (int)($_GET['employee_id'] ?? 0);
+        $tplId = (int)($_GET['template_id'] ?? 0);
+        $date  = trim((string)($_GET['date'] ?? ''));
+        $ctxId = (int)($_GET['context_id'] ?? 0);
+        $ctxType = trim((string)($_GET['context_type'] ?? ''));
+        if ($empId < 1 || $tplId < 1 || $date === '') {
+            $this->json(['exists' => false, 'evaluation_id' => null]);
+            return;
+        }
+        $id = (new \App\Models\Evaluation())->findExistingForEmployeeTemplateDate($empId, $tplId, $date, $ctxId, $ctxType);
+        $this->json(['exists' => $id !== null, 'evaluation_id' => $id]);
+    }
+
+    /**
      * =================================================================
      * دالة جديدة: لجلب القوالب بناءً على منصب الموظف
      * =================================================================

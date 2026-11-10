@@ -597,7 +597,31 @@ public function getAnnualSummaryWithActualDate($employeeId) {
      * @param int $year
      * @return array
      */
-     public function getEvaluationsByEmployeeForYear($employeeId, $year) {
+     /**
+     * CD-041.5: تحقق من وجود تقييم مسبق (موظف + قالب + تاريخ + سياق).
+     * يُستخدم لمنع التكرار في bulk-save وعرض badge «موجود».
+     * @return int|null  معرف التقييم إن وُجد، وإلا null
+     */
+    public function findExistingForEmployeeTemplateDate(int $employeeId, int $templateId, string $date, int $contextId = 0, string $contextType = ''): ?int {
+        $sql = 'SELECT id FROM evaluations
+                WHERE evaluated_employee_id = :emp AND template_id = :tpl AND evaluation_date = :dt';
+        $params = [':emp' => $employeeId, ':tpl' => $templateId, ':dt' => $date];
+        if ($contextId > 0) {
+            $sql .= ' AND context_id = :ctx';
+            $params[':ctx'] = $contextId;
+        }
+        if ($contextType !== '') {
+            $sql .= ' AND context_type = :ctype';
+            $params[':ctype'] = $contextType;
+        }
+        $sql .= ' LIMIT 1';
+        $this->db->query($sql);
+        foreach ($params as $k => $v) $this->db->bind($k, $v);
+        $row = $this->db->fetch();
+        return $row ? (int)$row->id : null;
+    }
+
+    public function getEvaluationsByEmployeeForYear($employeeId, $year) {
         $sql = "SELECT 
                     eval.*,
                     t.template_name,

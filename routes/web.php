@@ -152,6 +152,7 @@ $router->get('employees/:id/evaluations/:year', 'App\Controllers\EmployeeControl
 $router->get('api/training-programs/:id', 'App\Controllers\TrainingProgramController@show');
 $router->get('api/training-programs/list/:type', 'App\Controllers\ApiController@trainingProgramsList');
 $router->get('api/positions', 'App\Controllers\ApiController@positions');
+$router->get('api/evaluations/exists', 'App\Controllers\ApiController@evaluationExists');
 
 // CD-034: ما زال مؤرشفًا (خارج نطاق CD-037) — Excel + الوحدات + المرن + الجدولة
 /*

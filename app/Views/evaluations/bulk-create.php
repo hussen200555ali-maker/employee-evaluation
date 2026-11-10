@@ -122,6 +122,8 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-status.done{background:#e2f3ea;color:var(--cd041-ok);}
 .cd041-status.pending{background:#fdf3e2;color:var(--cd041-warn);}
 .cd041-status.empty{background:#eef2f0;color:#9aa8a2;}
+.cd041-exists-badge{display:inline-block;margin-right:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#fef3c7;color:#92400e;border:1px solid #fde68a;vertical-align:middle;}
+.cd041-row-exists td{background:#fffbeb !important;}
 .cd041-remove{background:none;border:none;color:#c0584f;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px;}
 .cd041-remove:hover{background:#fbeeed;}
 .cd041-empty{padding:40px 20px;text-align:center;color:var(--cd041-muted);font-size:13px;}
@@ -194,7 +196,7 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
         </div>
         <div class="cd041-fld">
             <label>تاريخ التقييم</label>
-            <input type="date" id="cd041-date" class="cd041-inp" value="<?= date('Y-m-d') ?>">
+            <input type="date" id="cd041-date" class="cd041-inp" value="<?= date('Y-m-d') ?>" onchange="cd041_checkAllExisting()">
         </div>
         <div class="cd041-fld">
             <label>المقيم <button type="button" class="cd041-btn cd041-btn-ghost" style="padding:0 6px;font-size:10px;" onclick="cd041_toggleQa('cd041-qa-eval')">+ مقيم جديد</button></label>
@@ -423,7 +425,7 @@ document.getElementById('cd041-template').addEventListener('change', function(){
                 cd041_columns.push(sec);
             });
         });
-        cd041_results = {}; cd041_final_grades = {};
+        cd041_results = {}; cd041_final_grades = {}; cd041_existing = {};
         var ctx = cd041_targetToContext(cd041_template.target_type);
         var pw = document.getElementById('cd041-prog-wrap');
         if(ctx){ pw.classList.add('open'); cd041_loadPrograms(ctx); }
@@ -432,6 +434,7 @@ document.getElementById('cd041-template').addEventListener('change', function(){
         document.getElementById('cd041-grade-tool').style.display = desc?'':'none';
         cd041_buildGradeAllSel();
         cd041_renderMatrix();
+        cd041_checkAllExisting();
         cd041_toast('تم تحميل القالب: '+cd041_short(s.template_name,30),'ok');
     }).catch(function(){ cd041_toast('تعذر تحميل القالب','err'); });
 });
@@ -519,6 +522,7 @@ function cd041_onProgramChange(){
             '<div class="cd041-pi-cell"><b><i class="fas fa-tag"></i> نوع البرنامج</b><span>' + typeLabel + '</span></div>' +
         '</div>';
     info.classList.add('open');
+    cd041_checkAllExisting();
 }
 
 /* ===== employee search ===== */
@@ -565,7 +569,26 @@ function cd041_addEmployee(emp){
     cd041_employees.push(emp);
     cd041_results[emp.id]={}; cd041_final_grades[emp.id]=null;
     cd041_renderMatrix();
+    cd041_checkExisting(emp.id);
     cd041_toast('تمت إضافة '+emp.full_name,'ok');
+}
+function cd041_checkExisting(empId){
+    if(!cd041_template || !empId) return;
+    var date=document.getElementById('cd041-date').value;
+    if(!date) return;
+    var ctxId = (cd041_program && cd041_program.id) ? cd041_program.id : 0;
+    var ctxType = ctxId>0 ? (cd041_targetToContext(cd041_template.target_type)||'') : '';
+    var url = CD041_APP_URL+'/api/evaluations/exists?employee_id='+empId+'&template_id='+cd041_template.id+'&date='+encodeURIComponent(date);
+    if(ctxId>0){ url += '&context_id='+ctxId+'&context_type='+encodeURIComponent(ctxType); }
+    fetch(url).then(function(r){return r.json();}).then(function(res){
+        if(res && res.exists){ cd041_existing[empId]=res.evaluation_id; }
+        else { delete cd041_existing[empId]; }
+        cd041_renderMatrix();
+    }).catch(function(){});
+}
+function cd041_checkAllExisting(){
+    if(!cd041_template) return;
+    cd041_employees.forEach(function(emp){ cd041_checkExisting(emp.id); });
 }
 function cd041_removeEmployee(id){
     cd041_employees = cd041_employees.filter(function(e){return e.id!==id;});
@@ -662,6 +685,8 @@ function cd041_renderHead(){
     head.innerHTML=h;
 }
 function cd041_cellHtml(col, empId){
+    var isExisting = !!cd041_existing[empId];
+    var dis = isExisting ? ' disabled title="يوجد تقييم مسبق — لا يمكن التعديل"' : '';
     var t=cd041_type(col.type||col.evaluation_type);
     var r=(cd041_results[empId]||{})[col.id]||{};
     // CD-041.2: notes 📝 icon — only when allow_notes is enabled in the template
@@ -673,19 +698,19 @@ function cd041_cellHtml(col, empId){
     };
     if(t==='percentage'){
         var v=r.score||''; var pct=v!==''?Math.max(0,Math.min(100,parseFloat(v)||0)):0;
-        return '<input type="number" class="cd041-input-mini" min="0" max="100" step="1" value="'+cd041_esc(v)+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'pct\')"><div class="cd041-progress" id="cd041-bar-'+empId+'-'+col.id+'"><span style="width:'+pct+'%"></span></div>'+notesBtn();
+        return '<input type="number" class="cd041-input-mini" min="0" max="100" step="1" value="'+cd041_esc(v)+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'pct\')"'+dis+'><div class="cd041-progress" id="cd041-bar-'+empId+'-'+col.id+'"><span style="width:'+pct+'%"></span></div>'+notesBtn();
     }
     if(t==='numeric'){
         var mv=col.max_value||100;
-        return '<input type="number" class="cd041-input-mini" min="0" max="'+mv+'" step="0.5" value="'+cd041_esc(r.score||'')+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'num\')">'+notesBtn();
+        return '<input type="number" class="cd041-input-mini" min="0" max="'+mv+'" step="0.5" value="'+cd041_esc(r.score||'')+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'num\')"'+dis+'>'+notesBtn();
     }
     if(t==='boolean'){
         var on = r.score==='1', off = r.score==='0';
-        return '<div class="cd041-bool"><button type="button" class="'+(on?'on-yes':'')+'" onclick="cd041_onBool('+empId+','+col.id+',1,this)">نعم</button><button type="button" class="'+(off?'on-no':'')+'" onclick="cd041_onBool('+empId+','+col.id+',0,this)">لا</button></div>'+notesBtn();
+        return '<div class="cd041-bool"><button type="button" class="'+(on?'on-yes':'')+'" onclick="cd041_onBool('+empId+','+col.id+',1,this)"'+dis+'>نعم</button><button type="button" class="'+(off?'on-no':'')+'" onclick="cd041_onBool('+empId+','+col.id+',0,this)"'+dis+'>لا</button></div>'+notesBtn();
     }
     if(t==='textarea'){
         var has = r.text && r.text.trim();
-        return '<button type="button" class="cd041-text-btn '+(has?'has':'')+'" onclick="cd041_openTextModal('+empId+','+col.id+')">📝</button>';
+        return '<button type="button" class="cd041-text-btn '+(has?'has':'')+'" onclick="cd041_openTextModal('+empId+','+col.id+')"'+dis+'>📝</button>';
     }
     return '';
 }
@@ -694,7 +719,8 @@ function cd041_gradeCellHtml(empId){
     if(mode==='descriptive'){
         var opts='<option value="">—</option>';
         CD041_SCALES.forEach(function(s){ opts+='<option value="'+s.id+'"'+(cd041_final_grades[empId]==s.id?' selected':'')+'>'+cd041_esc(s.grade_label)+'</option>'; });
-        return '<select class="cd041-grade-sel" onchange="cd041_onFinalGrade('+empId+',this.value)">'+opts+'</select>';
+        var isEx = !!cd041_existing[empId];
+        return '<select class="cd041-grade-sel" onchange="cd041_onFinalGrade('+empId+',this.value)"'+(isEx?' disabled':'')+'>'+opts+'</select>';
     }
     return '<span class="cd041-grade-readonly" id="cd041-grade-'+empId+'">-</span>';
 }
@@ -708,9 +734,10 @@ function cd041_renderMatrix(){
     empty.style.display='none';
     var rows='';
     cd041_employees.forEach(function(emp,idx){
-        rows+='<tr>';
+        rows+='<tr'+(cd041_existing[emp.id]?' class="cd041-row-exists"':'')+'>';
         rows+='<td class="cd041-c-idx">'+(idx+1)+'</td>';
-        rows+='<td class="cd041-c-emp"><div class="cd041-emp-name">'+cd041_esc(emp.full_name)+'</div><div class="cd041-emp-meta">'+cd041_esc(emp.emp_code||'')+(emp.branch_name?' - '+emp.branch_name:'')+'</div></td>';
+        var existsId = cd041_existing[emp.id];
+        rows+='<td class="cd041-c-emp"><div class="cd041-emp-name">'+cd041_esc(emp.full_name)+(existsId?' <span class="cd041-exists-badge" title="يوجد تقييم مسبق (#'+existsId+')">موجود #'+existsId+'</span>':'')+'</div><div class="cd041-emp-meta">'+cd041_esc(emp.emp_code||'')+(emp.branch_name?' - '+emp.branch_name:'')+'</div></td>';
         if(!cd041_template || !cd041_columns.length){
             rows+='<td colspan="4" style="color:var(--cd041-muted);font-size:11px;">اختر قالبًا لعرض المعايير</td>';
         } else {

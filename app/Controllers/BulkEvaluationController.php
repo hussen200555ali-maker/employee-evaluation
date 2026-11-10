@@ -282,6 +282,7 @@ final class BulkEvaluationController extends Controller
         $db->beginTransaction();
         $saved = 0;
         $errors = [];
+        $evalModel = new \App\Models\Evaluation();
 
         try {
             foreach ($evaluations as $item) {
@@ -290,6 +291,16 @@ final class BulkEvaluationController extends Controller
 
                 if ($employeeId < 1 || empty($results)) {
                     $errors[] = "موظف ID {$employeeId}: بيانات ناقصة";
+                    continue;
+                }
+
+                // CD-041.5: منع التكرار — نفس موظف + قالب + تاريخ (+ سياق)
+                $existingId = $evalModel->findExistingForEmployeeTemplateDate(
+                    $employeeId, $templateId, $evalDate,
+                    $bulkContextId, $bulkContextType
+                );
+                if ($existingId) {
+                    $errors[] = "موظف ID {$employeeId}: يوجد تقييم مسبق (#{$existingId}) — تم التخطّي";
                     continue;
                 }
 
