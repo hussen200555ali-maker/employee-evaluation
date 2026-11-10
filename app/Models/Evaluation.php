@@ -603,20 +603,18 @@ public function getAnnualSummaryWithActualDate($employeeId) {
      * @return int|null  معرف التقييم إن وُجد، وإلا null
      */
     public function findExistingForEmployeeTemplateDate(int $employeeId, int $templateId, string $date, int $contextId = 0, string $contextType = ''): ?int {
+        // CD-042: سياق محدد (0 = بدون برنامج). vergleiche context_id NULL als 0.
+        // Kein Cross-Context-Fallback: ein anderer Kurs am selben Tag blockiert nicht.
+        $ctx = (int)$contextId;
         $sql = 'SELECT id FROM evaluations
-                WHERE evaluated_employee_id = :emp AND template_id = :tpl AND evaluation_date = :dt';
-        $params = [':emp' => $employeeId, ':tpl' => $templateId, ':dt' => $date];
-        if ($contextId > 0) {
-            $sql .= ' AND context_id = :ctx';
-            $params[':ctx'] = $contextId;
-        }
-        if ($contextType !== '') {
-            $sql .= ' AND context_type = :ctype';
-            $params[':ctype'] = $contextType;
-        }
-        $sql .= ' LIMIT 1';
+                WHERE evaluated_employee_id = :emp AND template_id = :tpl AND evaluation_date = :dt
+                  AND COALESCE(context_id,0) = :ctx
+                LIMIT 1';
         $this->db->query($sql);
-        foreach ($params as $k => $v) $this->db->bind($k, $v);
+        $this->db->bind(':emp', $employeeId);
+        $this->db->bind(':tpl', $templateId);
+        $this->db->bind(':dt', $date);
+        $this->db->bind(':ctx', $ctx);
         $row = $this->db->fetch();
         return $row ? (int)$row->id : null;
     }

@@ -153,6 +153,25 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-toast.err{background:var(--cd041-err);}
 .cd041-toast.ok{background:var(--cd041-ok);}
 /* CD-041.4: sticky validation banner (stays until dismissed or fixed) */
+.cd041-result{margin:14px 0 0;padding:14px 16px;border-radius:12px;border:1.5px solid #d1d5db;background:#f8fafc;animation:cd041-fadeIn .2s ease;}
+.cd041-result.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;}
+.cd041-result.warn{background:#fffbeb;border-color:#fcd34d;color:#92400e;}
+.cd041-result.err{background:#fef2f2;border-color:#fecaca;color:#991b1b;}
+.cd041-result-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800;font-size:14px;}
+.cd041-result-chips{display:flex;gap:6px;flex-wrap:wrap;margin-inline-start:auto;}
+.cd041-chip{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:700;}
+.cd041-chip.ok{background:#d1fae5;color:#065f46;}
+.cd041-chip.warn{background:#fef3c7;color:#92400e;}
+.cd041-chip.err{background:#fee2e2;color:#991b1b;}
+.cd041-result-body{margin-top:10px;font-size:12.5px;line-height:1.7;}
+.cd041-result-body ul{margin:6px 0 0;padding-inline-start:18px;}
+.cd041-result-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;}
+.cd041-save-status{font-size:12px;color:var(--cd041-muted);margin-inline-start:8px;}
+.cd041-row-saved{background:#f0fdf4;}
+.cd041-row-saved .cd041-c-emp{position:relative;}
+.cd041-row-err{background:#fef2f2;}
+.cd041-undo{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none;align-items:center;gap:10px;z-index:90;font-size:13px;}
+.cd041-undo.show{display:flex;}
 .cd041-sticky{position:sticky;top:0;z-index:50;margin:0 0 12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:700;display:none;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.12);animation:cd041-fadeIn .2s ease;}
 .cd041-sticky.show{display:flex;}
 .cd041-sticky.err{background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;}
@@ -333,7 +352,26 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
     <div class="cd041-card cd041-savebar">
         <button type="button" class="cd041-btn cd041-btn-danger" onclick="cd041_reset()">تصفير الكل</button>
         <button type="button" class="cd041-btn cd041-btn-ghost" onclick="cd041_preview()">معاينة الحمولة</button>
-        <button type="button" class="cd041-btn cd041-btn-primary" onclick="cd041_saveAll()"><i class="fas fa-save"></i> حفظ الكل</button>
+        <button type="button" class="cd041-btn cd041-btn-primary" id="cd041-savebtn" onclick="cd041_saveAll()"><i class="fas fa-save"></i> حفظ الكل</button>
+        <span class="cd041-save-status" id="cd041-save-status"></span>
+    </div>
+
+    <!-- ============ Result panel (CD-042) ============ -->
+    <div class="cd041-result" id="cd041-result" role="status" aria-live="polite" style="display:none;">
+        <div class="cd041-result-head">
+            <span id="cd041-result-ico"></span>
+            <span id="cd041-result-title"></span>
+            <div class="cd041-result-chips" id="cd041-result-chips"></div>
+            <button type="button" class="cd041-sticky-x" onclick="cd041_dismissResult()" aria-label="إغلاق">×</button>
+        </div>
+        <div class="cd041-result-body" id="cd041-result-body"></div>
+        <div class="cd041-result-actions" id="cd041-result-actions"></div>
+    </div>
+
+    <!-- ============ Undo bar (CD-042) ============ -->
+    <div class="cd041-undo" id="cd041-undo">
+        <span id="cd041-undo-msg">تم تصفير المصفوفة.</span>
+        <button type="button" class="cd041-btn cd041-btn-ghost" style="color:#fff;border-color:#fff;" onclick="cd041_undoReset()">تراجع</button>
     </div>
 
 </div>
@@ -376,6 +414,7 @@ var cd041_employees = [];         // [{id, emp_code, full_name, branch_name, dep
 var cd041_results  = {};          // {empId: {sectionId: {score, text, notes}}}
 var cd041_final_grades = {};      // {empId: gradeId}
 var cd041_existing = {};          // {empId: evaluationId} for duplicate detection
+var cd041_state = {};             // {empId: {status, id, msg}}  (CD-042)
 var cd041_program  = null;
 var cd041_programs = [];
 var cd041_evaluator_emp = null;
@@ -568,7 +607,7 @@ function cd041_addEmployee(emp){
     if(!emp||!emp.id){ return; }
     if(cd041_employees.some(function(e){return e.id===emp.id;})){ cd041_toast('الموظف مضاف بالفعل','err'); return; }
     cd041_employees.push(emp);
-    cd041_results[emp.id]={}; cd041_final_grades[emp.id]=null;
+    cd041_results[emp.id]={}; cd041_final_grades[emp.id]=null; cd041_state[emp.id]={status:'pending'};
     cd041_renderMatrix();
     cd041_checkExisting(emp.id);
     cd041_toast('تمت إضافة '+emp.full_name,'ok');
@@ -582,8 +621,8 @@ function cd041_checkExisting(empId){
     var url = CD041_APP_URL+'/api/evaluations/exists?employee_id='+empId+'&template_id='+cd041_template.id+'&date='+encodeURIComponent(date);
     if(ctxId>0){ url += '&context_id='+ctxId+'&context_type='+encodeURIComponent(ctxType); }
     fetch(url).then(function(r){return r.json();}).then(function(res){
-        if(res && res.exists){ cd041_existing[empId]=res.evaluation_id; }
-        else { delete cd041_existing[empId]; }
+        if(res && res.exists){ cd041_existing[empId]=res.evaluation_id; cd041_state[empId]={status:'exists', id:res.evaluation_id}; }
+        else { delete cd041_existing[empId]; if(!cd041_state[empId] || cd041_state[empId].status!=='saved') cd041_state[empId]={status:'pending'}; }
         cd041_renderMatrix();
     }).catch(function(){});
 }
@@ -593,7 +632,7 @@ function cd041_checkAllExisting(){
 }
 function cd041_removeEmployee(id){
     cd041_employees = cd041_employees.filter(function(e){return e.id!==id;});
-    delete cd041_results[id]; delete cd041_final_grades[id];
+    delete cd041_results[id]; delete cd041_final_grades[id]; delete cd041_state[id]; delete cd041_existing[id];
     cd041_renderMatrix();
 }
 function cd041_updateCount(){
@@ -735,10 +774,17 @@ function cd041_renderMatrix(){
     empty.style.display='none';
     var rows='';
     cd041_employees.forEach(function(emp,idx){
-        rows+='<tr'+(cd041_existing[emp.id]?' class="cd041-row-exists"':'')+'>';
+        var st=(cd041_state[emp.id]||{}).status;
+        var rowCls = cd041_existing[emp.id] ? 'cd041-row-exists' : (st==='saved'?'cd041-row-saved':(st==='error'?'cd041-row-err':''));
+        rows+='<tr'+(rowCls?' class="'+rowCls+'"':'')+'>';
         rows+='<td class="cd041-c-idx">'+(idx+1)+'</td>';
         var existsId = cd041_existing[emp.id];
-        rows+='<td class="cd041-c-emp"><div class="cd041-emp-name">'+cd041_esc(emp.full_name)+(existsId?' <span class="cd041-exists-badge" title="يوجد تقييم مسبق (#'+existsId+')">موجود #'+existsId+'</span>':'')+'</div><div class="cd041-emp-meta">'+cd041_esc(emp.emp_code||'')+(emp.branch_name?' - '+emp.branch_name:'')+'</div></td>';
+        var st2 = (cd041_state[emp.id]||{}).status;
+        var pill = '';
+        if(st2==='saved'){ pill = ' <span class="cd041-exists-badge" style="background:#d1fae5;color:#065f46;" title="تم الحفظ (#'+(cd041_state[emp.id].id||'')+')">تم الحفظ #'+(cd041_state[emp.id].id||'')+'</span>'; }
+        else if(st2==='error'){ pill = ' <span class="cd041-exists-badge" style="background:#fee2e2;color:#991b1b;" title="'+cd041_esc(cd041_state[emp.id].msg||'')+'">فشل</span>'; }
+        else if(existsId){ pill = ' <span class="cd041-exists-badge" title="يوجد تقييم مسبق (#'+existsId+')">موجود #'+existsId+'</span>'; }
+        rows+='<td class="cd041-c-emp"><div class="cd041-emp-name">'+cd041_esc(emp.full_name)+pill+'</div><div class="cd041-emp-meta">'+cd041_esc(emp.emp_code||'')+(emp.branch_name?' - '+emp.branch_name:'')+(st2==='saved'?' · <a href="'+CD041_APP_URL+'/evaluations/show/'+(cd041_state[emp.id].id||'')+'" target="_blank" style="color:var(--cd041-gold);">عرض</a>':'')+'</div></td>';
         if(!cd041_template || !cd041_columns.length){
             rows+='<td colspan="4" style="color:var(--cd041-muted);font-size:11px;">اختر قالبًا لعرض المعايير</td>';
         } else {
@@ -1048,7 +1094,9 @@ function cd041_preview(){
     document.getElementById('cd041-modal-all-wrap').style.display='none';
     document.getElementById('cd041-modal').classList.add('open');
 }
+var cd041_saving = false;
 function cd041_saveAll(){
+    if(cd041_saving){ return; }
     cd041_clearHighlight();
     cd041_dismissSticky();
     var firstMissing=null, msg='';
@@ -1062,32 +1110,244 @@ function cd041_saveAll(){
         cd041_toast(msg,'err');
         return;
     }
-    var payload=cd041_buildPayload();
-    var btn=document.querySelector('button[onclick*="cd041_saveAll"]') || [...document.querySelectorAll('button')].find(function(b){return (b.textContent||'').trim()==='حفظ الكل';});
+    // only save rows that are not already saved/exists
+    var toSave = cd041_employees.filter(function(emp){
+        var st = (cd041_state[emp.id]||{}).status;
+        return !st || st==='pending' || st==='error';
+    });
+    if(!toSave.length){ cd041_toast('لا توجد صفوف للحفظ (جميعها محفوظة/موجودة)','info'); return; }
+
+    cd041_saving = true;
+    var btn=document.getElementById('cd041-savebtn');
     var old=btn ? btn.innerHTML : '';
     if(btn){ btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جارٍ الحفظ...'; btn.disabled=true; }
-    fetch(CD041_APP_URL+'/evaluations/bulk-save',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-        body: JSON.stringify(payload)
-    }).then(function(r){return r.json();}).then(function(res){
+
+    var date=document.getElementById('cd041-date').value;
+    var evalName=document.getElementById('cd041-evaluator').value.trim();
+    var evalTitle=document.getElementById('cd041-evaluator-title').value.trim();
+    var contextId=0, contextType='general';
+    if(cd041_program && cd041_template){ contextType = cd041_targetToContext(cd041_template.target_type) || 'general'; contextId = cd041_program.id; }
+
+    var chunkSize=25;
+    var chunks=[];
+    for(var i=0;i<toSave.length;i+=chunkSize){ chunks.push(toSave.slice(i,i+chunkSize)); }
+    var total=toSave.length, done=0;
+    var allSaved=[], allSkipped=[], allErrors=[];
+    var statusEl=document.getElementById('cd041-save-status');
+
+    function runChunk(idx){
+        if(idx>=chunks.length){ finish(); return; }
+        var chunk=chunks[idx];
+        var evaluations = chunk.map(function(emp){
+            var res={};
+            cd041_columns.forEach(function(col){
+                var r=(cd041_results[emp.id]||{})[col.id]||{};
+                var entry={}; var t=cd041_type(col.type||col.evaluation_type);
+                if(t==='textarea'){ entry.text = r.text||''; } else { entry.score = (r.score!==undefined&&r.score!==null)?String(r.score):''; }
+                entry.notes = r.notes||'';
+                res[col.id]=entry;
+            });
+            var finalGradeId = cd041_final_grades[emp.id]||null;
+            if(cd041_template && (cd041_template.evaluation_mode==='numeric'||cd041_template.evaluation_mode==='mixed')){
+                var g=cd041_deriveGrade(cd041_calcScore(emp.id)); finalGradeId = g?g.id:null;
+            }
+            return {employee_id: emp.id, results: res, final_grade_id: finalGradeId};
+        });
+        var payload={
+            _token: CD041_CSRF,
+            template_id: cd041_template?cd041_template.id:null,
+            evaluation_date: date,
+            evaluator_name: evalName,
+            evaluator_title: evalTitle,
+            context_id: contextId,
+            context_type: contextType,
+            evaluations: evaluations
+        };
+        if(statusEl){ statusEl.textContent = 'جارٍ الحفظ ' + done + '/' + total + '...'; }
+        fetch(CD041_APP_URL+'/evaluations/bulk-save',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+            body: JSON.stringify(payload)
+        }).then(function(r){return r.json();}).then(function(res){
+            if(res && res.success){
+                (res.saved_items||[]).forEach(function(it){
+                    allSaved.push(it);
+                    cd041_state[it.employee_id] = {status:'saved', id: it.evaluation_id};
+                    cd041_existing[it.employee_id] = it.evaluation_id;
+                });
+                (res.skipped||[]).forEach(function(sk){
+                    allSkipped.push(sk);
+                    cd041_state[sk.employee_id] = {status:'exists', id: sk.evaluation_id};
+                    cd041_existing[sk.employee_id] = sk.evaluation_id;
+                });
+                (res.errors||[]).forEach(function(er){
+                    allErrors.push(er);
+                    var eid = er.employee_id;
+                    if(eid){ cd041_state[eid] = {status:'error', msg: er.message}; }
+                });
+                done += chunk.length;
+                cd041_renderMatrix();
+                cd041_updateSummary();
+                cd041_renderResultPanel(allSaved, allSkipped, allErrors, done, total);
+                runChunk(idx+1);
+            } else {
+                // server-level error: stop
+                cd041_saving = false;
+                if(btn){ btn.innerHTML=old; btn.disabled=false; }
+                if(statusEl){ statusEl.textContent=''; }
+                var m = (res&&res.error)?res.error:'فشل الحفظ';
+                cd041_sticky('❌ ' + m, 'err');
+                cd041_toast(m,'err');
+            }
+        }).catch(function(){
+            cd041_saving = false;
+            if(btn){ btn.innerHTML=old; btn.disabled=false; }
+            if(statusEl){ statusEl.textContent=''; }
+            cd041_sticky('❌ خطأ في الاتصال بالخادم — يمكن إعادة المحاولة', 'err');
+            cd041_toast('خطأ في الاتصال بالخادم','err');
+        });
+    }
+    function finish(){
+        cd041_saving = false;
         if(btn){ btn.innerHTML=old; btn.disabled=false; }
-        if(res && res.success){
-            cd041_sticky('✅ ' + (res.message||'تم الحفظ') + ' — ' + (res.saved||0) + ' تقييم', 'ok');
-            cd041_toast((res.message||'تم الحفظ')+' ('+(res.saved||0)+' تقييم)','ok');
-        } else {
-            cd041_sticky('❌ ' + ((res&&res.message)?res.message:'فشل الحفظ'), 'err');
-            cd041_toast((res&&res.message)?res.message:'فشل الحفظ','err');
-            if(res && res.errors){ console.warn('CD-041 save errors', res.errors); }
-        }
-    }).catch(function(){ if(btn){ btn.innerHTML=old; btn.disabled=false; } cd041_toast('خطأ في الاتصال بالخادم','err'); });
+        if(statusEl){ statusEl.textContent=''; }
+        cd041_renderMatrix();
+        cd041_updateSummary();
+        cd041_renderResultPanel(allSaved, allSkipped, allErrors, total, total);
+        cd041_clearDraft();
+        // if nothing left to save, soft-disable save
+        var remaining = cd041_employees.filter(function(emp){ var st=(cd041_state[emp.id]||{}).status; return !st||st==='pending'||st==='error'; }).length;
+        if(btn && remaining===0){ btn.disabled=true; btn.title='جميع الصفوف محفوظة أو موجودة'; }
+        // refresh badges in background
+        cd041_checkAllExisting();
+    }
+    runChunk(0);
 }
+
+/* ===== CD-042: result panel / new batch / undo / draft ===== */
+function cd041_renderResultPanel(saved, skipped, errors, done, total){
+    var panel=document.getElementById('cd041-result'); if(!panel) return;
+    var title=document.getElementById('cd041-result-title');
+    var ico=document.getElementById('cd041-result-ico');
+    var chips=document.getElementById('cd041-result-chips');
+    var body=document.getElementById('cd041-result-body');
+    var actions=document.getElementById('cd041-result-actions');
+    var cls='ok';
+    if((errors||[]).length && !(saved||[]).length) cls='err';
+    else if((skipped||[]).length) cls='warn';
+    panel.className='cd041-result show '+cls;
+    panel.style.display='block';
+    var s=(saved||[]).length, sk=(skipped||[]).length, er=(errors||[]).length;
+    ico.textContent = er && !s ? '❌' : (sk ? '⚠️' : '✅');
+    title.textContent = 'نتيجة الحفظ: ' + done + '/' + total + ' موظف';
+    chips.innerHTML = '<span class="cd041-chip ok">محفوظ '+s+'</span>' +
+        (sk?'<span class="cd041-chip warn">متخطّى '+sk+'</span>':'') +
+        (er?'<span class="cd041-chip err">أخطاء '+er+'</span>':'');
+    var html='';
+    if(s){ html += '<div><b>تم حفظ:</b> ' + saved.map(function(x){return cd041_esc(x.name)+' <small style="color:#6b7280;">(#'+x.evaluation_id+')</small>';}).join('، ') + '</div>'; }
+    if(sk){
+        html += '<div style="margin-top:6px;"><b>لم يُحفظ (يوجد تقييم مسبق بنفس القالب والتاريخ'+(cd041_program?' والبرنامج':'')+':</b></div><ul>';
+        skipped.forEach(function(x){ html += '<li>'+cd041_esc(x.name)+' — تقييم <a href="'+CD041_APP_URL+'/evaluations/show/'+x.evaluation_id+'" target="_blank">#'+x.evaluation_id+'</a> ('+cd041_esc(x.date)+')</li>'; });
+        html += '</ul>';
+    }
+    if(er){
+        html += '<div style="margin-top:6px;"><b>أخطاء:</b></div><ul>';
+        errors.forEach(function(x){ html += '<li>'+cd041_esc(x.name||('موظف #'+x.employee_id))+' — '+cd041_esc(x.message||x.error||'')+'</li>'; });
+        html += '</ul>';
+    }
+    body.innerHTML = html || '—';
+    actions.innerHTML = '';
+    var btnNew = document.createElement('button'); btnNew.type='button'; btnNew.className='cd041-btn cd041-btn-ghost'; btnNew.textContent='بدء دفعة جديدة'; btnNew.onclick=cd041_newBatch; actions.appendChild(btnNew);
+    if(s){ var btnP = document.createElement('button'); btnP.type='button'; btnP.className='cd041-btn cd041-btn-ghost'; btnP.textContent='طباعة/تصدير النتيجة'; btnP.onclick=function(){ cd041_exportResult(saved,skipped,errors); }; actions.appendChild(btnP); }
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function cd041_dismissResult(){ var p=document.getElementById('cd041-result'); if(p){ p.style.display='none'; p.classList.remove('show'); } }
+function cd041_exportResult(saved,skipped,errors){
+    var lines=['# CD-042 نتيجة الحفظ', 'محفوظ:'];
+    (saved||[]).forEach(function(x){ lines.push('  - '+x.name+' #'+x.evaluation_id); });
+    lines.push('متخطّى:');
+    (skipped||[]).forEach(function(x){ lines.push('  - '+x.name+' #'+x.evaluation_id+' ('+x.date+')'); });
+    lines.push('أخطاء:');
+    (errors||[]).forEach(function(x){ lines.push('  - '+(x.name||x.employee_id)+': '+(x.message||x.error||'')); });
+    var blob=new Blob([lines.join('\\n')],{type:'text/plain;charset=utf-8'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cd042_result.txt'; a.click();
+}
+function cd041_newBatch(){
+    // keep only pending/error rows
+    var keep = cd041_employees.filter(function(emp){ var st=(cd041_state[emp.id]||{}).status; return st!=='saved' && st!=='exists'; });
+    // if any saved remain, confirm
+    var savedCount = cd041_employees.length - keep.length;
+    if(savedCount>0 && !confirm('سيتم إزالة '+savedCount+' صف محفوظ/موجود من المصفوفة. متابعة؟')) return;
+    cd041_employees = keep;
+    keep.forEach(function(e){}); 
+    // reset state for kept
+    cd041_employees.forEach(function(e){ cd041_state[e.id]={status:'pending'}; });
+    cd041_renderMatrix(); cd041_updateSummary(); cd041_dismissResult();
+    var btn=document.getElementById('cd041-savebtn'); if(btn){ btn.disabled=false; btn.title=''; }
+    cd041_clearDraft();
+}
+/* undo reset */
+var cd041_resetSnapshot=null, cd041_undoTimer=null;
+function cd041_reset(){
+    cd041_resetSnapshot = { employees: cd041_employees.slice(), results: JSON.parse(JSON.stringify(cd041_results)), grades: JSON.parse(JSON.stringify(cd041_final_grades)), state: JSON.parse(JSON.stringify(cd041_state)), existing: JSON.parse(JSON.stringify(cd041_existing)) };
+    cd041_employees=[]; cd041_results={}; cd041_final_grades={}; cd041_state={}; cd041_existing={};
+    cd041_renderMatrix(); cd041_updateSummary();
+    var u=document.getElementById('cd041-undo'); if(u){ u.classList.add('show'); }
+    clearTimeout(cd041_undoTimer);
+    cd041_undoTimer=setTimeout(function(){ var u=document.getElementById('cd041-undo'); if(u) u.classList.remove('show'); cd041_resetSnapshot=null; }, 10000);
+}
+function cd041_undoReset(){
+    if(!cd041_resetSnapshot) return;
+    cd041_employees=cd041_resetSnapshot.employees;
+    cd041_results=cd041_resetSnapshot.results;
+    cd041_final_grades=cd041_resetSnapshot.grades;
+    cd041_state=cd041_resetSnapshot.state;
+    cd041_existing=cd041_resetSnapshot.existing;
+    cd041_resetSnapshot=null;
+    clearTimeout(cd041_undoTimer);
+    var u=document.getElementById('cd041-undo'); if(u) u.classList.remove('show');
+    cd041_renderMatrix(); cd041_updateSummary();
+}
+/* draft */
+function cd041_draftKey(){ return 'cd041_draft_'+(cd041_template?cd041_template.id:'0')+'_'+(document.getElementById('cd041-date').value||'')+'_'+((cd041_program&&cd041_program.id)||0); }
+function cd041_saveDraft(){
+    try {
+        var data = { employees: cd041_employees, results: cd041_results, grades: cd041_final_grades, state: cd041_state, existing: cd041_existing, evaluator: document.getElementById('cd041-evaluator').value, title: document.getElementById('cd041-evaluator-title').value, date: document.getElementById('cd041-date').value, template: cd041_template?cd041_template.id:null };
+        localStorage.setItem(cd041_draftKey(), JSON.stringify(data));
+    } catch(e){}
+}
+function cd041_restoreDraft(){
+    try {
+        var raw = localStorage.getItem(cd041_draftKey()); if(!raw) return;
+        var d = JSON.parse(raw);
+        if(!d || !d.employees || !d.employees.length) return;
+        if(!confirm('تم العثور على مسودة غير محفوظة. استعادتها؟')) { cd041_clearDraft(); return; }
+        cd041_employees = d.employees; cd041_results = d.results||{}; cd041_final_grades = d.grades||{}; cd041_state = d.state||{}; cd041_existing = d.existing||{};
+        if(d.evaluator) document.getElementById('cd041-evaluator').value = d.evaluator;
+        if(d.title) document.getElementById('cd041-evaluator-title').value = d.title;
+        cd041_renderMatrix(); cd041_updateSummary();
+    } catch(e){}
+}
+function cd041_clearDraft(){ try { localStorage.removeItem(cd041_draftKey()); } catch(e){} }
+var cd041_dirty=false;
+function cd041_markDirty(){ cd041_dirty=true; cd041_saveDraft(); }
+// hook dirty on input (best-effort): save draft after any change
+setInterval(function(){ if(cd041_employees.length) cd041_saveDraft(); }, 4000);
 
 /* ===== init ===== */
 var sx=document.getElementById('cd041-sticky-x'); if(sx) sx.addEventListener('click', cd041_dismissSticky);
 cd041_buildGradeAllSel();
 cd041_updateSummary();
-console.log('[CD-041] bulk-create matrix view ready');
+// restore draft on load (after template? employee list restored regardless)
+cd041_restoreDraft();
+// beforeunload guard
+window.addEventListener('beforeunload', function(e){
+    var hasPending = cd041_employees.some(function(emp){ var st=(cd041_state[emp.id]||{}).status; return !st||st==='pending'||st==='error'; });
+    if(hasPending && cd041_employees.length){ e.preventDefault(); e.returnValue=''; }
+});
+// Enter key guard
+document.addEventListener('keydown', function(e){ if(e.key==='Enter' && cd041_saving){ e.preventDefault(); } });
+console.log('[CD-042] bulk-create ready');
 </script>
 
 <?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; ?>

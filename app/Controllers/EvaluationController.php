@@ -602,38 +602,48 @@ class EvaluationController extends Controller {
                     if ($tt === 'course' || $tt === 'employee_in_course') $evalType = 'course';
                     elseif ($tt === 'workshop' || $tt === 'employee_in_workshop') $evalType = 'workshop';
                 }
-                $db->query(
-                    'INSERT INTO evaluations
-                        (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id,
-                         evaluator_employee_id, evaluator_name, evaluator_title,
-                         employee_name, employee_code, branch_name, department_name, position_name,
-                         entity_type, entity_id, created_by_user_id, created_at)
-                     VALUES
-                        (:tpl, "draft", :date, :etype, :emp,
-                         :eval_emp, :eval_name, :eval_title,
-                         :emp_name, :emp_code, :branch, :dept, :pos,
-                         "employee", :entity, :user, NOW())'
-                );
-                $db->bind(':tpl', $templateId);
-                $db->bind(':date', $evalDate);
-                $db->bind(':etype', $evalType);
-                $db->bind(':emp', $employeeId);
-                $db->bind(':entity', $employeeId);
-                $db->bind(':eval_emp', $evaluatorEmpId);
-                $db->bind(':eval_name', $evaluatorName);
-                $db->bind(':eval_title', $evaluatorTitle);
-                $db->bind(':emp_name', $emp->full_name);
-                $db->bind(':emp_code', $emp->emp_code);
-                $db->bind(':branch', $emp->branch_name ?? '');
-                $db->bind(':dept', $emp->department_name ?? '');
-                $db->bind(':pos', $emp->position_title ?? '');
-                $uid = (int)Auth::id(); if ($uid < 1) $uid = 1;
-                $db->query('SELECT id FROM users WHERE id = :id'); $db->bind(':id', $uid);
-                if (!$db->fetch()) $uid = 1;
-                $db->bind(':user', $uid);
-                $db->execute();
-                $evaluationId = (int)$db->lastInsertId();
-                $evalModel->saveEvaluationResults($evaluationId, $results);
+                try {
+                    $db->query(
+                        'INSERT INTO evaluations
+                            (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id,
+                             evaluator_employee_id, evaluator_name, evaluator_title,
+                             employee_name, employee_code, branch_name, department_name, position_name,
+                             entity_type, entity_id, created_by_user_id, created_at)
+                         VALUES
+                            (:tpl, "draft", :date, :etype, :emp,
+                             :eval_emp, :eval_name, :eval_title,
+                             :emp_name, :emp_code, :branch, :dept, :pos,
+                             "employee", :entity, :user, NOW())'
+                    );
+                    $db->bind(':tpl', $templateId);
+                    $db->bind(':date', $evalDate);
+                    $db->bind(':etype', $evalType);
+                    $db->bind(':emp', $employeeId);
+                    $db->bind(':entity', $employeeId);
+                    $db->bind(':eval_emp', $evaluatorEmpId);
+                    $db->bind(':eval_name', $evaluatorName);
+                    $db->bind(':eval_title', $evaluatorTitle);
+                    $db->bind(':emp_name', $emp->full_name);
+                    $db->bind(':emp_code', $emp->emp_code);
+                    $db->bind(':branch', $emp->branch_name ?? '');
+                    $db->bind(':dept', $emp->department_name ?? '');
+                    $db->bind(':pos', $emp->position_title ?? '');
+                    $uid = (int)Auth::id(); if ($uid < 1) $uid = 1;
+                    $db->query('SELECT id FROM users WHERE id = :id'); $db->bind(':id', $uid);
+                    if (!$db->fetch()) $uid = 1;
+                    $db->bind(':user', $uid);
+                    $db->execute();
+                    $evaluationId = (int)$db->lastInsertId();
+                    $evalModel->saveEvaluationResults($evaluationId, $results);
+                } catch (\PDOException $e) {
+                    // CD-042: قيد التفرد (1062) → تخطي بدل 500
+                    if (isset($e->errorInfo[1]) && (int)$e->errorInfo[1] === 1062) {
+                        $exId = $evalModel->findExistingForEmployeeTemplateDate($employeeId, $templateId, $evalDate, (int)$contextId, (string)$contextType);
+                        $this->json(['error' => 'يوجد تقييم مسبق (#' . ($exId ?: '?') . ')', 'existing_id' => $exId], 409);
+                        return;
+                    }
+                    throw $e;
+                }
             }
 
             // context (course/workshop) + sync program_participants

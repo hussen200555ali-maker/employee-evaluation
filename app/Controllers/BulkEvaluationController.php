@@ -282,29 +282,54 @@ final class BulkEvaluationController extends Controller
         $db->beginTransaction();
         $saved = 0;
         $errors = [];
+        $savedItems = [];
+        $skipped = [];
         $evalModel = new \App\Models\Evaluation();
 
-        // CD-041.5: سياق (دورة/ورشة) يُستخدم في منع التكرار — حلّه قبل الحلقة
+        // CD-041.5: سياق (دورة/ورشة)
         $bulkContextId   = (int)($data['context_id'] ?? 0);
         $bulkContextType = (string)($data['context_type'] ?? '');
+
+        // CD-042: إزالة تكرار الموظف داخل الطلب نفسه
+        $seenEmp = [];
+        $deduped = [];
+        foreach ($evaluations as $it) {
+            $eid = (int)($it['employee_id'] ?? 0);
+            if (isset($seenEmp[$eid])) {
+                $errors[] = "موظف ID {$eid}: مكرر داخل الطلب — تم التخطّي";
+                continue;
+            }
+            $seenEmp[$eid] = true;
+            $deduped[] = $it;
+        }
+        $evaluations = $deduped;
 
         try {
             foreach ($evaluations as $item) {
                 $employeeId = (int)($item['employee_id'] ?? 0);
                 $results    = $item['results'] ?? [];
 
+                $emp = (new \App\Models\Employee())->findById($employeeId);
+                $empName = $emp ? (string)$emp->full_name : "موظف #{$employeeId}";
+
                 if ($employeeId < 1 || empty($results)) {
-                    $errors[] = "موظف ID {$employeeId}: بيانات ناقصة";
+                    $errors[] = "{$empName}: بيانات ناقصة";
                     continue;
                 }
 
-                // CD-041.5: منع التكرار — نفس موظف + قالب + تاريخ (+ سياق)
+                // SAVEPOINT per employee (rollback جزئي)
+                $sp = 'sp_emp_' . $employeeId;
+                $db->query('SAVEPOINT ' . $sp);
+
+                // CD-042: منع التكرار (context-aware)
                 $existingId = $evalModel->findExistingForEmployeeTemplateDate(
                     $employeeId, $templateId, $evalDate,
                     $bulkContextId, $bulkContextType
                 );
                 if ($existingId) {
-                    $errors[] = "موظف ID {$employeeId}: يوجد تقييم مسبق (#{$existingId}) — تم التخطّي";
+                    $db->query('RELEASE SAVEPOINT ' . $sp);
+                    $skipped[] = ['employee_id' => $employeeId, 'name' => $empName, 'evaluation_id' => $existingId, 'date' => $evalDate];
+                    $errors[] = "{$empName}: يوجد تقييم مسبق (#{$existingId}) بنفس القالب والتاريخ" . ($bulkContextId > 0 ? ' والبرنامج' : '');
                     continue;
                 }
 
@@ -350,18 +375,35 @@ final class BulkEvaluationController extends Controller
                     }
 
                     $saved++;
+                    $savedItems[] = ['employee_id' => $employeeId, 'name' => $empName, 'evaluation_id' => $evaluationId];
+                } catch (\PDOException $e) {
+                    $db->query('ROLLBACK TO SAVEPOINT ' . $sp);
+                    if (isset($e->errorInfo[1]) && (int)$e->errorInfo[1] === 1062) {
+                        $exId = $evalModel->findExistingForEmployeeTemplateDate($employeeId, $templateId, $evalDate, $bulkContextId, $bulkContextType);
+                        $skipped[] = ['employee_id' => $employeeId, 'name' => $empName, 'evaluation_id' => $exId, 'date' => $evalDate];
+                        $errors[] = "{$empName}: يوجد تقييم مسبق (#" . ($exId ?: '?') . ") بنفس القالب والتاريخ" . ($bulkContextId > 0 ? ' والبرنامج' : '');
+                        continue;
+                    }
+                    $errors[] = "{$empName}: " . $e->getMessage();
+                    continue;
                 } catch (\Throwable $e) {
-                    $errors[] = "موظف ID {$employeeId}: " . $e->getMessage();
+                    $db->query('ROLLBACK TO SAVEPOINT ' . $sp);
+                    $errors[] = "{$empName}: " . $e->getMessage();
+                    continue;
                 }
             }
 
             $db->commit();
 
+            $total = count($evaluations);
             $this->json([
-                'success'  => true,
-                'saved'    => $saved,
-                'errors'   => $errors,
-                'message'  => "تم حفظ {$saved} تقييم" . ($errors ? " مع " . count($errors) . " خطأ" : ''),
+                'success'     => true,
+                'saved'       => $saved,
+                'saved_items' => $savedItems,
+                'skipped'     => $skipped,
+                'errors'      => $errors,
+                'progress'    => ['done' => $total, 'total' => $total],
+                'message'     => "تم حفظ {$saved} تقييم" . (count($skipped) ? " · تخطي " . count($skipped) : '') . (count($errors) ? " · " . count($errors) . " خطأ" : ''),
             ]);
         } catch (\Throwable $e) {
             $db->rollBack();
