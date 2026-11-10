@@ -70,8 +70,32 @@ final class EvaluationExcelService
             $fixedCount = 5;
             $instruction = 'كل صف = موظف واحد + تقييم واحد. الرقم الوظيفي أو الاسم الكامل أحدهما إلزامي. التاريخ YYYY-MM-DD أو DD-MM-YYYY وليس مستقبلاً. الأعمدة الصفراء للتحرير فقط. حتى ' . $maxRows . ' موظف.';
         }
+        // CD-042: Build expanded columns list — sections + notes columns (if allow_notes=1)
+        $expandedCols = []; // each: ['kind'=>'section'|'notes', 'section'=>array]
+        foreach ($grouped as $cName => $group) {
+            foreach ($group['sections'] as $section) {
+                $expandedCols[] = ['kind' => 'section', 'section' => $section, 'criterion' => $cName];
+                $secType = $section['evaluation_type'] ?? 'percentage';
+                $allowNotes = (int)($section['allow_notes'] ?? 0);
+                if ($allowNotes === 1 && !in_array($secType, ['textarea', 'overall_grade', 'text'], true)) {
+                    $expandedCols[] = ['kind' => 'notes', 'section' => $section, 'criterion' => $cName];
+                }
+            }
+        }
+        $expandedCount = count($expandedCols);
+        // Map: section index => actual column number (1-based, starting after fixed headers)
+        $sectionColMap = []; // sectionIdx => colNumber
+        $secIdx = 0;
+        $colOffset = 0;
+        foreach ($expandedCols as $ec) {
+            $colOffset++;
+            if ($ec['kind'] === 'section') {
+                $sectionColMap[$secIdx] = $fixedCount + $colOffset;
+                $secIdx++;
+            }
+        }
         $tailCount = 4;
-        $colCount = $fixedCount + count($sections) + $tailCount;
+        $colCount = $fixedCount + $expandedCount + $tailCount;
         $lastCol = $this->colLetter($colCount);
         $helperColIdx = $colCount + 1;
         $helperCol = $this->colLetter($helperColIdx);
@@ -105,38 +129,48 @@ final class EvaluationExcelService
         $sheet->getStyle('A3:E4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
         $sheet->getStyle('A3:E4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->getStyle('A3:E4')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
-        $currentCol = 6;
+        $currentCol = $fixedCount + 1; // 6
         $sectionHints = [];
-        foreach ($grouped as $cName => $group) {
-            $groupSize = count($group['sections']);
-            $startCol = $this->colLetter($currentCol);
-            $endCol = $this->colLetter($currentCol + $groupSize - 1);
-            $weightText = number_format((float) $group['weight'], 0) . '%';
-            $criterionLabel = $cName . ' (' . $weightText . ')';
-            $sheet->setCellValue($startCol . '3', $criterionLabel);
-            if ($groupSize > 1) {
-                $sheet->mergeCells($startCol . '3:' . $endCol . '3');
+        $prevCriterion = null;
+        $groupStartCol = $currentCol;
+        foreach ($expandedCols as $ec) {
+            $cName = $ec['criterion'];
+            if ($prevCriterion !== null && $cName !== $prevCriterion) {
+                // Close previous criterion group
+                $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, $grouped[$prevCriterion]['weight']);
+                $groupStartCol = $currentCol;
             }
-            $sheet->getStyle($startCol . '3:' . $endCol . '3')->getFont()->setBold(true)->setSize(9)->getColor()->setRGB('FFFFFF');
-            $sheet->getStyle($startCol . '3:' . $endCol . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
-            $sheet->getStyle($startCol . '3:' . $endCol . '3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-            $sheet->getStyle($startCol . '3:' . $endCol . '3')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
-            foreach ($group['sections'] as $section) {
-                $col = $this->colLetter($currentCol);
+            $col = $this->colLetter($currentCol);
+            if ($ec['kind'] === 'section') {
+                $section = $ec['section'];
                 $typeLabel = $this->typeLabel($section['evaluation_type']);
                 $sectionLabel = $section['section_name'] . ' [' . $typeLabel . ']';
                 $sheet->setCellValue($col . '4', $sectionLabel);
                 $sectionHints[$col] = $this->sectionHint($section);
-                $currentCol++;
+            } else {
+                // Notes column
+                $section = $ec['section'];
+                $notesReq = (int)($section['notes_required'] ?? 0);
+                $notesLabel = 'ملاحظة' . ($notesReq ? ' *' : '');
+                $sheet->setCellValue($col . '4', $notesLabel);
+                $sectionHints[$col] = $notesReq ? 'ملاحظة إلزامية' : 'ملاحظة اختيارية';
             }
+            $prevCriterion = $cName;
+            $currentCol++;
         }
-        $sheet->getStyle($this->colLetter($fixedCount + 1) . '4:' . $this->colLetter($fixedCount + count($sections)) . '4')->getFont()->setBold(true)->setSize(8)->getColor()->setRGB('0F5B50');
-        $sheet->getStyle($this->colLetter($fixedCount + 1) . '4:' . $this->colLetter($fixedCount + count($sections)) . '4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D1E7DD');
-        $sheet->getStyle($this->colLetter($fixedCount + 1) . '4:' . $this->colLetter($fixedCount + count($sections)) . '4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $sheet->getStyle($this->colLetter($fixedCount + 1) . '4:' . $this->colLetter($fixedCount + count($sections)) . '4')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
-        $sheet->getStyle($this->colLetter($fixedCount + 1) . '3:' . $lastCol . '3')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
+        // Close last criterion group
+        if ($prevCriterion !== null) {
+            $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, $grouped[$prevCriterion]['weight']);
+        }
+        $secHeaderStart = $this->colLetter($fixedCount + 1);
+        $secHeaderEnd = $this->colLetter($fixedCount + $expandedCount);
+        $sheet->getStyle($secHeaderStart . '4:' . $secHeaderEnd . '4')->getFont()->setBold(true)->setSize(8)->getColor()->setRGB('0F5B50');
+        $sheet->getStyle($secHeaderStart . '4:' . $secHeaderEnd . '4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D1E7DD');
+        $sheet->getStyle($secHeaderStart . '4:' . $secHeaderEnd . '4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle($secHeaderStart . '4:' . $secHeaderEnd . '4')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
+        $sheet->getStyle($secHeaderStart . '3:' . $lastCol . '3')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
         $tailHeaders = ['ملاحظة عامة', 'تاريخ التقييم *', 'مسؤول التقييم *', 'الصفة'];
-        $tailStartCol = $fixedCount + 1 + count($sections);
+        $tailStartCol = $fixedCount + 1 + $expandedCount;
         foreach ($tailHeaders as $idx => $h) {
             $col = $this->colLetter($tailStartCol + $idx);
             $sheet->setCellValue($col . '3', $h);
@@ -160,7 +194,7 @@ final class EvaluationExcelService
         }
         for ($i = $fixedCount + 1; $i < $tailStartCol; $i++) {
             $col = $this->colLetter($i);
-            $hintRow[] = $sectionHints[$col] ?? '';
+            $hintRow[] = $sectionHints[$col] ?? 'نص حر';
         }
         $hintRow[] = 'نص حر حتى 4000 حرف';
         $hintRow[] = 'YYYY-MM-DD أو DD-MM-YYYY مثال 2026-05-20 أو 20-05-2026';
@@ -240,7 +274,7 @@ final class EvaluationExcelService
                 $rowIdx++;
             }
         }
-        $this->applyDropdowns($sheet, $branches, $departments, $sections, $dataStartRow, $dataEndRow, $tailStartCol);
+        $this->applyDropdowns($sheet, $branches, $departments, $sections, $dataStartRow, $dataEndRow, $tailStartCol, $sectionColMap);
         if (in_array($targetType, ['course', 'workshop'], true)) {
             $this->applyTrainingDropdowns($sheet, $branches, $departments, $dataStartRow, $dataEndRow);
         }
@@ -258,6 +292,13 @@ final class EvaluationExcelService
         }
         for ($i = $fixedCount + 1; $i < $tailStartCol; $i++) {
             $sheet->getColumnDimension($this->colLetter($i))->setWidth(18);
+        }
+        // CD-042: notes columns slightly narrower
+        foreach ($expandedCols as $idx => $ec) {
+            if ($ec['kind'] === 'notes') {
+                $colNum = $fixedCount + 1 + $idx;
+                $sheet->getColumnDimension($this->colLetter($colNum))->setWidth(14);
+            }
         }
         $sheet->getColumnDimension($this->colLetter($tailStartCol))->setWidth(28);
         $sheet->getColumnDimension($this->colLetter($tailStartCol + 1))->setWidth(16);
@@ -1158,7 +1199,7 @@ final class EvaluationExcelService
             default=>'',
         };
     }
-    private function applyDropdowns(Worksheet $sheet, array $branches, array $departments, array $sections, int $startRow, int $endRow, int $tailStartCol): void
+    private function applyDropdowns(Worksheet $sheet, array $branches, array $departments, array $sections, int $startRow, int $endRow, int $tailStartCol, array $sectionColMap = []): void
     {
         $branchList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$branches)).'"';
         $helperCol=$this->colLetter($tailStartCol + 4);
@@ -1167,7 +1208,9 @@ final class EvaluationExcelService
             $dv=$sheet->getCell('E'.$row)->getDataValidation(); $dv->setType(DataValidation::TYPE_LIST); $dv->setErrorStyle(DataValidation::STYLE_STOP); $dv->setAllowBlank(true); $dv->setShowDropDown(true); $dv->setFormula1('INDIRECT("Dept_"&'.$helperCol.$row.')'); $dv->setShowErrorMessage(true); $dv->setErrorTitle('قسم غير صالح'); $dv->setError('اختر قسماً تابعاً للفرع المختار في نفس الصف.');
         }
         foreach($sections as $idx=>$section){
-            $colLetter=$this->colLetter(6+$idx);
+            // CD-042: use sectionColMap if available (accounts for notes columns)
+            $colNum = !empty($sectionColMap) ? ($sectionColMap[$idx] ?? (6 + $idx)) : (6 + $idx);
+            $colLetter=$this->colLetter($colNum);
             $range=$colLetter.$startRow.':'.$colLetter.$endRow;
             if($section['evaluation_type']==='numeric'){
                 $min=$section['min_value']??0; $max=$section['max_value']??100;
@@ -1288,5 +1331,25 @@ final class EvaluationExcelService
     private function colLetter(int $colIndex): string
     {
         $letter=''; while($colIndex>0){ $colIndex--; $letter=chr(65+($colIndex%26)).$letter; $colIndex=(int)($colIndex/26); } return $letter;
+    }
+
+    /**
+     * CD-042: Write a criterion header (merged across its sections + notes columns)
+     */
+    private function writeCriterionHeader(Worksheet $sheet, int $startCol, int $endCol, string $cName, float $weight): void
+    {
+        $startLetter = $this->colLetter($startCol);
+        $endLetter = $this->colLetter($endCol);
+        $weightText = number_format($weight, 0) . '%';
+        $criterionLabel = $cName . ' (' . $weightText . ')';
+        $sheet->setCellValue($startLetter . '3', $criterionLabel);
+        if ($endCol > $startCol) {
+            $sheet->mergeCells($startLetter . '3:' . $endLetter . '3');
+        }
+        $range = $startLetter . '3:' . $endLetter . '3';
+        $sheet->getStyle($range)->getFont()->setBold(true)->setSize(9)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
+        $sheet->getStyle($range)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
     }
 }
