@@ -5,11 +5,9 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Flash;
 use App\Models\Branch;
-use App\Models\CourseCatalog;
+use App\Models\GradingScale;
 use App\Models\Template;
-use App\Models\TrainingCourse;
-use App\Models\TrainingWorkshop;
-use App\Models\WorkshopCatalog;
+use App\Models\TrainingProgram;
 use App\Services\EvaluationExcelService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
@@ -25,12 +23,26 @@ final class EvaluationExcelController extends Controller
         Auth::enforce('evaluations.fill');
         $templates = (new Template())->getAllActiveWithType();
         $branches = (new Branch())->getAllWithDepartments();
+        $evaluatorName = '';
+        $evaluatorTitle = '';
+        $user = Auth::user();
+        if ($user && !empty($user->employee_id)) {
+            $empModel = new \App\Models\Employee();
+            $emp = $empModel->findById((int)$user->employee_id);
+            if ($emp) {
+                $evaluatorName = $emp->full_name;
+                $evaluatorTitle = $emp->position_title ?? '';
+            }
+        }
         $this->view('evaluations/excel_import', [
-            'pageTitle' => 'استيراد نتائج التقييم',
-            'csrfToken' => Auth::generateCsrfToken(),
-            'preview' => null,
-            'templates' => $templates,
-            'branches' => $branches,
+            'pageTitle'      => 'استيراد نتائج التقييم',
+            'csrfToken'      => Auth::generateCsrfToken(),
+            'preview'        => null,
+            'templates'      => $templates,
+            'branches'       => $branches,
+            'evaluatorName'  => $evaluatorName,
+            'evaluatorTitle' => $evaluatorTitle,
+            'gradingScales'  => (new GradingScale())->getActive(),
         ]);
     }
     public function downloadTemplate($id = null): void
@@ -99,12 +111,26 @@ final class EvaluationExcelController extends Controller
         }
         $templates = (new Template())->getAllActiveWithType();
         $branches = (new Branch())->getAllWithDepartments();
+        $evaluatorName2 = '';
+        $evaluatorTitle2 = '';
+        $user2 = Auth::user();
+        if ($user2 && !empty($user2->employee_id)) {
+            $empModel2 = new \App\Models\Employee();
+            $emp2 = $empModel2->findById((int)$user2->employee_id);
+            if ($emp2) {
+                $evaluatorName2 = $emp2->full_name;
+                $evaluatorTitle2 = $emp2->position_title ?? '';
+            }
+        }
         $this->view('evaluations/excel_import', [
-            'pageTitle' => 'معاينة استيراد النتائج',
-            'csrfToken' => Auth::generateCsrfToken(),
-            'preview' => $preview,
-            'templates' => $templates,
-            'branches' => $branches,
+            'pageTitle'      => 'معاينة استيراد النتائج',
+            'csrfToken'      => Auth::generateCsrfToken(),
+            'preview'        => $preview,
+            'templates'      => $templates,
+            'branches'       => $branches,
+            'evaluatorName'  => $evaluatorName2,
+            'evaluatorTitle' => $evaluatorTitle2,
+            'gradingScales'  => (new GradingScale())->getActive(),
         ]);
     }
     private function friendlyPreviewMessage(string $raw): string
@@ -222,11 +248,7 @@ final class EvaluationExcelController extends Controller
     {
         header('Content-Type: application/json; charset=utf-8');
         $targetType = $_GET['target_type'] ?? 'course';
-        if ($targetType === 'course') {
-            $items = (new CourseCatalog())->getAll();
-        } else {
-            $items = (new WorkshopCatalog())->getAll();
-        }
+                $items = (new TrainingProgram())->all($targetType === 'workshop' ? 'workshop' : 'course');
         echo json_encode($items);
         exit;
     }
