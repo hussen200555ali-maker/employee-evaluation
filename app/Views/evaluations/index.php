@@ -147,6 +147,32 @@
                     <?php endforeach; ?>
                 </select>
             </div>
+            <div class="filter-group">
+                <label for="template_id"><i class="fas fa-graduation-cap"></i> شارك في (دورة/ورشة/مهاري)</label>
+                <select id="template_id" name="template_id" onchange="this.form.submit()">
+                    <option value="">الكل</option>
+                    <?php
+                    $grouped = [];
+                    foreach (($templatesWithEvals ?? []) as $t) {
+                        $grouped[$t->target_type][] = $t;
+                    }
+                    $groupLabels = [
+                        'employee_in_course' => 'دورات',
+                        'employee_in_workshop' => 'ورش',
+                        'skill' => 'مهاري',
+                    ];
+                    foreach ($grouped as $tt => $tpls):
+                    ?>
+                        <optgroup label="<?php echo htmlspecialchars($groupLabels[$tt] ?? $tt); ?>">
+                            <?php foreach ($tpls as $t): ?>
+                                <option value="<?php echo (int)$t->id; ?>" <?php echo (($filters['template_id'] ?? '') == $t->id) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($t->template_name); ?> (<?php echo (int)$t->eval_count; ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> فلترة</button>
         </form>
     </div>
