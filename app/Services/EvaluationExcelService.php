@@ -526,7 +526,7 @@ final class EvaluationExcelService
                         'template_id'=>$templateId,'entity_type'=>$targetType,'entity_id'=>$entityId,
                         'evaluated_employee_id'=>null,'evaluator_employee_id'=>$rowEvaluatorEmployeeId,
                         'evaluator_name'=>$rowEvaluatorName,'evaluator_title'=>$rowEvaluatorTitle,
-                        'evaluation_date'=>$evaluationDate,'created_by_user_id'=>$userId,
+                        'evaluation_date'=>$evaluationDate,'evaluation_type'=>$targetType,'created_by_user_id'=>$userId,
                         'employee_name'=>$entityName,'employee_code'=>(string)$entityId,
                         'nickname'=>null,'branch_name'=>$branchName,'department_name'=>$departmentName,
                         'position_name'=>'','entity_snapshot'=>['entity_type'=>$targetType,'entity_id'=>$entityId,'name'=>$entityName],
@@ -575,7 +575,7 @@ final class EvaluationExcelService
                         'context_type'=>null,'context_id'=>null,'schedule_id'=>$scheduleId,
                         'evaluated_employee_id'=>null,'evaluator_employee_id'=>$rowEvaluatorEmployeeId,
                         'evaluator_name'=>$rowEvaluatorName,'evaluator_title'=>$rowEvaluatorTitle,
-                        'evaluation_date'=>$evaluationDate,'created_by_user_id'=>$userId,
+                        'evaluation_date'=>$evaluationDate,'evaluation_type'=>'annual','created_by_user_id'=>$userId,
                         'employee_name'=>$unitCode,'employee_code'=>(string)$unitId,
                         'nickname'=>null,'branch_name'=>$branchName,'department_name'=>$departmentName,
                         'position_name'=>'','entity_snapshot'=>['entity_type'=>$resolvedEntityType,'unit_code'=>$unitCode,'period'=>$period],
@@ -648,7 +648,7 @@ final class EvaluationExcelService
                             'template_id'=>$templateId,'entity_type'=>'employee','entity_id'=>$employeeId,
                             'evaluated_employee_id'=>$employeeId,'evaluator_employee_id'=>$rowEvaluatorEmployeeId,
                             'evaluator_name'=>$rowEvaluatorName,'evaluator_title'=>$rowEvaluatorTitle,
-                            'evaluation_date'=>$evaluationDate,'created_by_user_id'=>$userId,
+                            'evaluation_date'=>$evaluationDate,'evaluation_type'=>($contextType==='course'?'course':($contextType==='workshop'?'workshop':'annual')),'created_by_user_id'=>$userId,
                             'employee_name'=>$snapshot['full_name'],'employee_code'=>$snapshot['emp_code'],
                             'nickname'=>$snapshot['nickname']??null,'branch_name'=>$snapshot['branch_name']??'',
                             'department_name'=>$snapshot['department_name']??'','position_name'=>$snapshot['position_name']??'',
@@ -691,9 +691,9 @@ final class EvaluationExcelService
         $pdo=$this->database->getPdo();
         $isUnit=!empty($data['entity_type'])&&in_array($data['entity_type'],['branch','department','course','workshop'],true);
         if($isUnit){
-            $sql='INSERT INTO evaluations (template_id, entity_type, entity_id, context_type, context_id, schedule_id, evaluated_employee_id, evaluator_employee_id, evaluator_name, evaluator_title, evaluation_date, created_by_user_id, employee_name, employee_code, nickname, branch_name, department_name, position_name, entity_snapshot, status) VALUES (:template_id, :entity_type, :entity_id, :context_type, :context_id, :schedule_id, :evaluated_employee_id, :evaluator_employee_id, :evaluator_name, :evaluator_title, :evaluation_date, :created_by_user_id, :employee_name, :employee_code, :nickname, :branch_name, :department_name, :position_name, :entity_snapshot, :status)';
+            $sql='INSERT INTO evaluations (template_id, entity_type, entity_id, context_type, context_id, schedule_id, evaluated_employee_id, evaluator_employee_id, evaluator_name, evaluator_title, evaluation_date, evaluation_type, created_by_user_id, employee_name, employee_code, nickname, branch_name, department_name, position_name, entity_snapshot, status) VALUES (:template_id, :entity_type, :entity_id, :context_type, :context_id, :schedule_id, :evaluated_employee_id, :evaluator_employee_id, :evaluator_name, :evaluator_title, :evaluation_date, :evaluation_type, :created_by_user_id, :employee_name, :employee_code, :nickname, :branch_name, :department_name, :position_name, :entity_snapshot, :status)';
         } else {
-            $sql='INSERT INTO evaluations (template_id, entity_type, entity_id, context_type, context_id, evaluated_employee_id, evaluator_employee_id, evaluator_name, evaluator_title, evaluation_date, created_by_user_id, employee_name, employee_code, nickname, branch_name, department_name, position_name, entity_snapshot, status) VALUES (:template_id, :entity_type, :entity_id, :context_type, :context_id, :evaluated_employee_id, :evaluator_employee_id, :evaluator_name, :evaluator_title, :evaluation_date, :created_by_user_id, :employee_name, :employee_code, :nickname, :branch_name, :department_name, :position_name, :entity_snapshot, :status)';
+            $sql='INSERT INTO evaluations (template_id, entity_type, entity_id, context_type, context_id, evaluated_employee_id, evaluator_employee_id, evaluator_name, evaluator_title, evaluation_date, evaluation_type, created_by_user_id, employee_name, employee_code, nickname, branch_name, department_name, position_name, entity_snapshot, status) VALUES (:template_id, :entity_type, :entity_id, :context_type, :context_id, :evaluated_employee_id, :evaluator_employee_id, :evaluator_name, :evaluator_title, :evaluation_date, :evaluation_type, :created_by_user_id, :employee_name, :employee_code, :nickname, :branch_name, :department_name, :position_name, :entity_snapshot, :status)';
         }
         $stmt=$pdo->prepare($sql);
         $params=[
@@ -703,7 +703,8 @@ final class EvaluationExcelService
             'evaluated_employee_id'=>$data['evaluated_employee_id']??null,
             'evaluator_employee_id'=>$data['evaluator_employee_id']??null,
             'evaluator_name'=>$data['evaluator_name']??null,'evaluator_title'=>$data['evaluator_title']??null,
-            'evaluation_date'=>$data['evaluation_date'],'created_by_user_id'=>$data['created_by_user_id'],
+            'evaluation_date'=>$data['evaluation_date'],'evaluation_type'=>$data['evaluation_type']??null,
+            'created_by_user_id'=>$data['created_by_user_id'],
             'employee_name'=>$data['employee_name']??'','employee_code'=>$data['employee_code']??'',
             'nickname'=>$data['nickname']??null,'branch_name'=>$data['branch_name']??'',
             'department_name'=>$data['department_name']??'','position_name'=>$data['position_name']??'',
