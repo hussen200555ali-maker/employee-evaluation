@@ -33,3 +33,6 @@ Desktop.ini
 /CD-001_delivery/
 /Pictures/
 /app/cache/
+
+# CD-042: temp Excel test files
+tests/tmp-excel/
