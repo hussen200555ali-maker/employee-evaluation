@@ -618,10 +618,25 @@ final class EvaluationExcelService
                     } elseif($targetType==='employee_in_workshop'){
                         $contextType='workshop'; $contextId=(int)($payload['_context_id']??$payload['workshop_id']??0);
                     }
-                    $existingEvalQ=$pdo->prepare('SELECT id, status FROM evaluations WHERE evaluated_employee_id=:evaluated AND template_id=:template_id AND (evaluator_employee_id=:evaluator OR (evaluator_employee_id IS NULL AND evaluator_name=:eval_name)) AND evaluation_date=:eval_date AND (entity_type=:et OR entity_type IS NULL) LIMIT 1 FOR UPDATE');
-                    $existingEvalQ->execute(['evaluated'=>$employeeId,'template_id'=>$templateId,'evaluator'=>$rowEvaluatorEmployeeId??0,'eval_name'=>$rowEvaluatorName,'eval_date'=>$evaluationDate,'et'=>'employee']);
+                    // CD-042: فحص التكرار بنفس مفتاح القيد الفريد uq_eval_once
+                    // (الموظف + القالب + التاريخ + السياق) — وليس بالمُقيِّم.
+                    $ctxKey=(int)($contextId??0);
+                    $ctxLabel=($ctxKey>0?' والبرنامج':'');
+                    $empLabel=($empCode!==''?$empCode:$fullName);
+                    $existingEvalQ=$pdo->prepare('SELECT id, status, evaluator_employee_id, evaluator_name FROM evaluations WHERE evaluated_employee_id=:evaluated AND template_id=:template_id AND evaluation_date=:eval_date AND IFNULL(context_id,0)=:ctx_key LIMIT 1 FOR UPDATE');
+                    $existingEvalQ->execute(['evaluated'=>$employeeId,'template_id'=>$templateId,'eval_date'=>$evaluationDate,'ctx_key'=>$ctxKey]);
                     $existing=$existingEvalQ->fetch(PDO::FETCH_ASSOC);
-                    if($existing!==false&&$existing['status']!=='draft'){ throw new RuntimeException('يوجد تقييم نهائي لنفس الموظف والقالب والتاريخ: '.$empCode.' بتاريخ '.$evaluationDate); }
+                    if($existing!==false&&$existing['status']!=='draft'){
+                        throw new RuntimeException('يوجد تقييم نهائي لنفس الموظف والقالب والتاريخ'.$ctxLabel.': '.$empLabel.' بتاريخ '.$evaluationDate.' (رقم التقييم #'.(int)$existing['id'].') — لم يُستورد أي صف.');
+                    }
+                    if($existing!==false){
+                        $existingEvaluatorId=$existing['evaluator_employee_id'];
+                        $sameEvaluator=($existingEvaluatorId!==null && (int)$existingEvaluatorId===(int)($rowEvaluatorEmployeeId??0))
+                            || ($existingEvaluatorId===null && (string)$existing['evaluator_name']===(string)$rowEvaluatorName);
+                        if(!$sameEvaluator){
+                            throw new RuntimeException('يوجد تقييم مسودة لنفس الموظف والقالب والتاريخ'.$ctxLabel.' لمقيّم آخر (رقم التقييم #'.(int)$existing['id'].') — لم يُستورد أي صف لتجنّب استبدال مسودة مقيّم آخر.');
+                        }
+                    }
                     $snapshot=$this->getEmployeeSnapshot($employeeId);
                     if($existing!==false){
                         $evaluationId=(int)$existing['id'];
@@ -696,8 +711,38 @@ final class EvaluationExcelService
             'status'=>$data['status']??'draft',
         ];
         if($isUnit){ $params['schedule_id']=$data['schedule_id']??null; }
-        $stmt->execute($params);
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            // CD-042: شبكة أمان — تحويل خطأ القيد الفريد (1062) إلى رسالة عربية مفهومة
+            // بدل نص قاعدة البيانات الخام (السباق محمي أصلاً بـ FOR UPDATE داخل المعاملة).
+            if ((int)($e->errorInfo[1] ?? 0) === 1062) {
+                $existingId = $this->findExistingEvaluationId($data);
+                throw new RuntimeException('يوجد تقييم مسبق بنفس الموظف والقالب والتاريخ والبرنامج'
+                    . ($existingId ? ' (رقم التقييم #' . $existingId . ')' : '')
+                    . ' — لم يُستورد أي صف. عدّل التاريخ/البرنامج أو احذف التقييم المسبق ثم أعد المحاولة.');
+            }
+            throw $e;
+        }
         return (int)$pdo->lastInsertId();
+    }
+    /**
+     * CD-042: إيجاد رقم التقييم المتعارض بنفس مفتاح القيد الفريد.
+     */
+    private function findExistingEvaluationId(array $data): ?int
+    {
+        $employeeId = (int)($data['evaluated_employee_id'] ?? 0);
+        if ($employeeId <= 0) { return null; }
+        $pdo = $this->database->getPdo();
+        $stmt = $pdo->prepare('SELECT id FROM evaluations WHERE evaluated_employee_id=:eid AND template_id=:tid AND evaluation_date=:edate AND IFNULL(context_id,0)=:ctx LIMIT 1');
+        $stmt->execute([
+            'eid'   => $employeeId,
+            'tid'   => (int)($data['template_id'] ?? 0),
+            'edate' => $data['evaluation_date'] ?? null,
+            'ctx'   => (int)($data['context_id'] ?? 0),
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['id'] : null;
     }
     /**
      * تحليل تاريخ مرن — يقبل Y-m-d, d-m-Y, m-d-Y, Y/m/d, d/m/Y مع أو بدون أصفار.
