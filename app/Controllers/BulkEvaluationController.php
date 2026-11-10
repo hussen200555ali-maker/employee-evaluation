@@ -440,8 +440,8 @@ final class BulkEvaluationController extends Controller
         $evalType = 'annual';
         if ($tpl) {
             $targetType = $tpl->target_type;
-            if ($targetType === 'course') $evalType = 'course';
-            elseif ($targetType === 'workshop') $evalType = 'workshop';
+            if ($targetType === 'course' || $targetType === 'employee_in_course') $evalType = 'course';
+            elseif ($targetType === 'workshop' || $targetType === 'employee_in_workshop') $evalType = 'workshop';
         }
 
         // Get employee snapshot data
