@@ -627,7 +627,10 @@ class EvaluationController extends Controller {
                 $db->bind(':branch', $emp->branch_name ?? '');
                 $db->bind(':dept', $emp->department_name ?? '');
                 $db->bind(':pos', $emp->position_title ?? '');
-                $db->bind(':user', (int)Auth::id());
+                $uid = (int)Auth::id(); if ($uid < 1) $uid = 1;
+                $db->query('SELECT id FROM users WHERE id = :id'); $db->bind(':id', $uid);
+                if (!$db->fetch()) $uid = 1;
+                $db->bind(':user', $uid);
                 $db->execute();
                 $evaluationId = (int)$db->lastInsertId();
                 $evalModel->saveEvaluationResults($evaluationId, $results);

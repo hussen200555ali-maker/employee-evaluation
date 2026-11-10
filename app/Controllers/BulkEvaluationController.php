@@ -284,6 +284,10 @@ final class BulkEvaluationController extends Controller
         $errors = [];
         $evalModel = new \App\Models\Evaluation();
 
+        // CD-041.5: سياق (دورة/ورشة) يُستخدم في منع التكرار — حلّه قبل الحلقة
+        $bulkContextId   = (int)($data['context_id'] ?? 0);
+        $bulkContextType = (string)($data['context_type'] ?? '');
+
         try {
             foreach ($evaluations as $item) {
                 $employeeId = (int)($item['employee_id'] ?? 0);
@@ -325,9 +329,7 @@ final class BulkEvaluationController extends Controller
                         }
                     }
 
-                    // CD-029: حفظ context_id إن وُجد (دورة/ورشة)
-                    $bulkContextId = (int)($data['context_id'] ?? 0);
-                    $bulkContextType = (string)($data['context_type'] ?? '');
+                    // CD-029: حفظ context_id إن وُجد (دورة/ورشة) — تم حلّه مسبقًا (CD-041.5)
                     if ($bulkContextId > 0 && $bulkContextType) {
                         $db->query('UPDATE evaluations SET context_type = :ctype, context_id = :cid WHERE id = :eid');
                         $db->bind(':ctype', $bulkContextType);
@@ -373,6 +375,11 @@ final class BulkEvaluationController extends Controller
     {
         $db = Database::getInstance();
         $userId = (int)Auth::id();
+        // CD-041.5: fallback to sysadmin (1) if session user missing/deleted
+        if ($userId < 1) $userId = 1;
+        $db->query('SELECT id FROM users WHERE id = :id');
+        $db->bind(':id', $userId);
+        if (!$db->fetch()) $userId = 1;
 
         // Get evaluator employee_id
         $user = Auth::user();
