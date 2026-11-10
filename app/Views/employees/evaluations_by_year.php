@@ -1,4 +1,10 @@
 <?php require_once APP_ROOT . '/app/Views/layouts/header.php'; ?>
+<?php
+// CD-040.6: Evaluation type classification depends EXCLUSIVELY on form_templates.target_type.
+// The evaluations.evaluation_type column is LEGACY FALLBACK only (used when target_type is missing).
+// Valid target_type values for an employee's records: employee, employee_in_course, employee_in_workshop, skill.
+// Do NOT classify by evaluation_type in this file — use target_type. (See EmployeeReportService, report.php, ReportExportService.)
+?>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
 :root{ --brand:#0d5e52; --brand-deep:#0c2823; --navy:#0c2823; --gold:#c8943f; --gold-light:#fef3c7; --bg:#f4f7f5; --canvas:#f4f7f5; --card:#fff; --border:#dce7e2; --line:#dce7e2; --muted:#4e625d; --text:#16302b; --ink:#16302b; --shadow-sm:0 2px 8px rgba(15,42,68,.06); --shadow-md:0 8px 24px rgba(15,42,68,.10); --shadow-lg:0 16px 40px rgba(15,42,68,.14);}

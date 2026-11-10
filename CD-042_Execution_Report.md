@@ -180,3 +180,36 @@
 - `app/Services/EvaluationExcelService.php` (فحص التكرار + شبكة أمان 1062 + `findExistingEvaluationId`)
 - `tests/ExcelImportConflictSmoke.php` (جديد)
 - `CD-042_Execution_Report.md` (هذا القسم)
+
+---
+
+# CD-040.6 — توحيد تصنيف التقييمات (target_type exclusive) — 2026-11-10
+
+## 17. الهدف
+تصنيف وعرض التقييمات (تبويبات، بطاقات، تقارير، تصدير، show, print) **حصرياً** بناءً على `form_templates.target_type`، وليس `evaluations.evaluation_type`.
+
+## 18. المبدأ (Legacy Fallback)
+- `evaluations.evaluation_type` (enum: annual/periodic/course/workshop) أصبح **للتوافقية فقط** (legacy fallback).
+- التصنيف (classification) يعتمد **حصرياً** على `target_type`:
+  - `employee` → فردي
+  - `employee_in_course` → دورة
+  - `employee_in_workshop` → ورشة
+  - `skill` → مهاري
+- `target_type` takes precedence in all display/report/export logic.
+- `evaluation_type` remains for backward compat (old rows, old consumers).
+
+## 19. ما تم
+- (أ1) by-year tabs + cards + show.php + print.php → target_type exclusive. Commit `386f07c`.
+- (أ2') EmployeeReportService + report.php + ReportExportService + ReportsController → target-aware. Commit `bed92ab`.
+- (ب) creation paths (bulk/single/excel) → set evaluation_type from target_type. Commits `6ea07bb`, `e9aacc4`, `47d8502`.
+- (ج) data migration: 8 rows annual→course; 4 orphan drafts deleted; #200 (skill) and #342 (untouched) preserved. Backup table retained 24h.
+
+## 20. Smoke tests (all green)
+- CD042DuplicateSmokeTest: 1/1
+- ExcelWorkflowSmoke: 4/4
+- ExcelImportConflictSmoke: 3/3
+
+## 21. Rollback points
+- `pre-cd040.6-evaltype-20261110_230532` (display fix)
+- `pre-cd040.6-creationfix-20261110_233400` (creation paths)
+- Backup table `evaluations_backup_cd0406_20261110` (drop after 24h UAT verification)

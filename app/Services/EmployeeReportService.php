@@ -49,6 +49,7 @@ class EmployeeReportService
             $record->grade_label = $record->final_grade_label
                 ?: $this->averagesEngine->gradeLabelForScore($record->final_score, $scale);
             // CD-040.6 (a2'): derive type from target_type (not raw evaluation_type).
+            // evaluations.evaluation_type is LEGACY FALLBACK only.
             $targetType = $record->target_type ?? null;
             if ($targetType === 'skill') {
                 $derivedType = 'skill';
