@@ -150,6 +150,18 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-toast.show{opacity:1;transform:translateY(0);}
 .cd041-toast.err{background:var(--cd041-err);}
 .cd041-toast.ok{background:var(--cd041-ok);}
+/* CD-041.4: sticky validation banner (stays until dismissed or fixed) */
+.cd041-sticky{position:sticky;top:0;z-index:50;margin:0 0 12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:700;display:none;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.12);animation:cd041-fadeIn .2s ease;}
+.cd041-sticky.show{display:flex;}
+.cd041-sticky.err{background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;}
+.cd041-sticky.ok{background:#ecfdf5;color:#065f46;border:1.5px solid #a7f3d0;}
+.cd041-sticky.info{background:#eff6ff;color:#1e40af;border:1.5px solid #bfdbfe;}
+.cd041-sticky .cd041-sticky-ico{font-size:16px;flex:0 0 auto;}
+.cd041-sticky .cd041-sticky-msg{flex:1;}
+.cd041-sticky .cd041-sticky-btn{background:transparent;border:1px solid currentColor;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+.cd041-sticky .cd041-sticky-btn:hover{background:currentColor;color:#fff;}
+.cd041-sticky .cd041-sticky-x{background:transparent;border:none;font-size:18px;line-height:1;cursor:pointer;color:inherit;opacity:.7;padding:0 4px;}
+.cd041-sticky .cd041-sticky-x:hover{opacity:1;}
 
 @media(max-width:980px){
     .cd041-setup,.cd041-prog-grid,.cd041-qa-grid{grid-template-columns:1fr 1fr;}
@@ -288,6 +300,14 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
         <button type="button" class="cd041-btn cd041-btn-danger" onclick="cd041_clearAll()"><i class="fas fa-eraser"></i> تفريغ الكل</button>
     </div>
 
+    <!-- ============ Sticky validation banner ============ -->
+    <div class="cd041-sticky" id="cd041-sticky" role="alert" aria-live="assertive">
+        <span class="cd041-sticky-ico" id="cd041-sticky-ico">⚠️</span>
+        <span class="cd041-sticky-msg" id="cd041-sticky-msg"></span>
+        <button type="button" class="cd041-sticky-btn" id="cd041-sticky-fix" style="display:none;">تصحيح</button>
+        <button type="button" class="cd041-sticky-x" id="cd041-sticky-x" aria-label="إغلاق">×</button>
+    </div>
+
     <!-- ============ Matrix table ============ -->
     <div class="cd041-matrix-wrap">
         <div class="cd041-matrix-scroll">
@@ -363,6 +383,23 @@ function cd041_esc(s){var d=document.createElement('div');d.textContent=(s==null
 function cd041_short(s,n){s=s==null?'':String(s);n=n||14;return s.length>n?cd041_esc(s.slice(0,n))+'...':cd041_esc(s);}
 function cd041_type(t){return t||'numeric';}
 function cd041_toast(msg,kind){var el=document.getElementById('cd041-toast');el.textContent=msg;el.className='cd041-toast show '+(kind||'');clearTimeout(window._cd041_t);window._cd041_t=setTimeout(function(){el.className='cd041-toast';},2600);}
+/* ===== sticky validation banner (CD-041.4) ===== */
+var cd041_stickyTimer=null;
+function cd041_sticky(msg, kind, fixFn){
+    var el=document.getElementById('cd041-sticky'); if(!el) return;
+    var ico=document.getElementById('cd041-sticky-ico');
+    var txt=document.getElementById('cd041-sticky-msg');
+    var fix=document.getElementById('cd041-sticky-fix');
+    el.className='cd041-sticky show '+(kind||'err');
+    if(ico) ico.textContent = (kind==='ok'?'✅':(kind==='info'?'ℹ️':'⚠️'));
+    if(txt) txt.textContent = msg||'';
+    if(fix){ if(typeof fixFn==='function'){ fix.style.display='inline-block'; fix.onclick=fixFn; } else { fix.style.display='none'; fix.onclick=null; } }
+    clearTimeout(cd041_stickyTimer);
+    if(kind==='ok'){ cd041_stickyTimer=setTimeout(cd041_dismissSticky, 4000); }
+}
+function cd041_dismissSticky(){ var el=document.getElementById('cd041-sticky'); if(el) el.className='cd041-sticky'; }
+function cd041_highlightField(el){ if(!el) return; el.style.borderColor='#dc2626'; el.style.boxShadow='0 0 0 3px rgba(220,38,38,.18)'; el.focus && el.focus(); }
+function cd041_clearHighlight(){ document.querySelectorAll('.cd041-sel,.cd041-inp').forEach(function(e){ e.style.borderColor=''; e.style.boxShadow=''; }); }
 
 /* ===== template loading ===== */
 function cd041_targetToContext(tt){
@@ -984,10 +1021,19 @@ function cd041_preview(){
     document.getElementById('cd041-modal').classList.add('open');
 }
 function cd041_saveAll(){
-    if(!cd041_template){ cd041_toast('اختر القالب أولًا','err'); return; }
-    if(!cd041_employees.length){ cd041_toast('أضف موظفين أولًا','err'); return; }
-    if(!document.getElementById('cd041-date').value){ cd041_toast('اختر التاريخ','err'); return; }
-    if(!document.getElementById('cd041-evaluator').value.trim()){ cd041_toast('أدخل اسم المقيم','err'); return; }
+    cd041_clearHighlight();
+    cd041_dismissSticky();
+    var firstMissing=null, msg='';
+    if(!cd041_template){ msg='اختر القالب أولًا'; firstMissing=document.getElementById('cd041-template'); }
+    else if(!cd041_employees.length){ msg='أضف موظفين أولًا (ابحث أو ＋ إضافة)'; firstMissing=document.getElementById('cd041-emp-search'); }
+    else if(!document.getElementById('cd041-date').value){ msg='اختر تاريخ التقييم'; firstMissing=document.getElementById('cd041-date'); }
+    else if(!document.getElementById('cd041-evaluator').value.trim()){ msg='أدخل اسم المقيّم'; firstMissing=document.getElementById('cd041-evaluator'); }
+    if(msg){
+        cd041_sticky('⚠️ ' + msg + ' — لا يمكن الحفظ قبل إكمال الشروط.', 'err', function(){ if(firstMissing){ cd041_highlightField(firstMissing); firstMissing.scrollIntoView({behavior:'smooth',block:'center'}); } });
+        if(firstMissing){ cd041_highlightField(firstMissing); }
+        cd041_toast(msg,'err');
+        return;
+    }
     var payload=cd041_buildPayload();
     var btn=document.querySelector('button[onclick*="cd041_saveAll"]') || [...document.querySelectorAll('button')].find(function(b){return (b.textContent||'').trim()==='حفظ الكل';});
     var old=btn ? btn.innerHTML : '';
@@ -999,8 +1045,10 @@ function cd041_saveAll(){
     }).then(function(r){return r.json();}).then(function(res){
         if(btn){ btn.innerHTML=old; btn.disabled=false; }
         if(res && res.success){
+            cd041_sticky('✅ ' + (res.message||'تم الحفظ') + ' — ' + (res.saved||0) + ' تقييم', 'ok');
             cd041_toast((res.message||'تم الحفظ')+' ('+(res.saved||0)+' تقييم)','ok');
         } else {
+            cd041_sticky('❌ ' + ((res&&res.message)?res.message:'فشل الحفظ'), 'err');
             cd041_toast((res&&res.message)?res.message:'فشل الحفظ','err');
             if(res && res.errors){ console.warn('CD-041 save errors', res.errors); }
         }
@@ -1008,6 +1056,7 @@ function cd041_saveAll(){
 }
 
 /* ===== init ===== */
+var sx=document.getElementById('cd041-sticky-x'); if(sx) sx.addEventListener('click', cd041_dismissSticky);
 cd041_buildGradeAllSel();
 cd041_updateSummary();
 console.log('[CD-041] bulk-create matrix view ready');
