@@ -563,6 +563,14 @@ class EvaluationController extends Controller {
                 $db->execute();
             } else {
                 // CREATE new
+                // CD-041.5: منع التكرار — نفس موظف + قالب + تاريخ (+ سياق)
+                $ctxIdForCheck = $contextId > 0 ? $contextId : 0;
+                $ctxTypeForCheck = $contextId > 0 ? $contextType : '';
+                $existingEvalId = $evalModel->findExistingForEmployeeTemplateDate($employeeId, $templateId, $evalDate, $ctxIdForCheck, $ctxTypeForCheck);
+                if ($existingEvalId) {
+                    $this->json(['error' => 'يوجد تقييم مسبق (#' . $existingEvalId . ') لهذا الموظف بنفس القالب والتاريخ' . ($ctxIdForCheck > 0 ? ' والبرنامج' : '')], 409);
+                    return;
+                }
                 $empModel = new Employee();
                 $emp = $empModel->findById($employeeId);
                 if (!$emp) {

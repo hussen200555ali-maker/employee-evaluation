@@ -375,6 +375,7 @@ var cd041_columns  = [];          // flattened sections (excluding overall_grade
 var cd041_employees = [];         // [{id, emp_code, full_name, branch_name, department_name, position_title}]
 var cd041_results  = {};          // {empId: {sectionId: {score, text, notes}}}
 var cd041_final_grades = {};      // {empId: gradeId}
+var cd041_existing = {};          // {empId: evaluationId} for duplicate detection
 var cd041_program  = null;
 var cd041_programs = [];
 var cd041_evaluator_emp = null;
