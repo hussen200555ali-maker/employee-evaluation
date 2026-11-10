@@ -401,7 +401,14 @@ final class ReportExportService
         ];
 
         foreach ($records as $record) {
-            $type = (string)$this->recordValue($record, 'evaluation_type', '');
+            $target = (string)$this->recordValue($record, 'target_type', '');
+            if ($target === 'employee_in_course' || $target === 'course') {
+                $type = 'course';
+            } elseif ($target === 'employee_in_workshop' || $target === 'workshop') {
+                $type = 'workshop';
+            } else {
+                $type = (string)$this->recordValue($record, 'evaluation_type', '');
+            }
             if ($this->getRecordScore($record) === null) {
                 $groups['descriptive']['records'][] = $record;
                 continue;

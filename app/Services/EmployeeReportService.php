@@ -28,7 +28,7 @@ class EmployeeReportService
             "SELECT e.id, e.evaluation_type, e.evaluation_date, e.status,
                     e.final_score, e.final_grade_label, e.final_grade_value,
                     e.context_type, e.context_id, tp.title AS program_name,
-                    t.template_name
+                    t.template_name, t.target_type
              FROM evaluations e
              LEFT JOIN form_templates t ON t.id = e.template_id
              LEFT JOIN training_programs tp ON tp.id = e.context_id
@@ -48,7 +48,19 @@ class EmployeeReportService
                 : $this->averagesEngine->gradeValueForScore($record->final_score, $scale);
             $record->grade_label = $record->final_grade_label
                 ?: $this->averagesEngine->gradeLabelForScore($record->final_score, $scale);
-            $record->evaluation_type_label = $this->evaluationTypeLabel($record->evaluation_type);
+            // CD-040.6 (a2'): derive type from target_type (not raw evaluation_type).
+            $targetType = $record->target_type ?? null;
+            if ($targetType === 'skill') {
+                $derivedType = 'skill';
+            } elseif (in_array($targetType, ['employee_in_course', 'course'], true)) {
+                $derivedType = 'course';
+            } elseif (in_array($targetType, ['employee_in_workshop', 'workshop'], true)) {
+                $derivedType = 'workshop';
+            } else {
+                $derivedType = $record->evaluation_type ?: 'annual';
+            }
+            $record->evaluation_type = $derivedType;
+            $record->evaluation_type_label = $this->evaluationTypeLabel($derivedType);
         }
 
         $averages = [];
@@ -89,10 +101,12 @@ class EmployeeReportService
     private function evaluationTypeLabel(?string $type): string
     {
         return match ($type) {
+            'employee' => 'فردي',
             'annual' => 'سنوي',
             'periodic' => 'دوري',
             'course' => 'دورة',
             'workshop' => 'ورشة',
+            'skill' => 'مهاري',
             default => 'غير محدد',
         };
     }

@@ -20,9 +20,16 @@ $records = $report['records'] ?? [];
 $averages = $report['averages'] ?? [];
 
 // Group records by type (conditional rendering)
-$courseRecords = array_values(array_filter($records, fn($r) => ($getVal($r, 'evaluation_type') ?? '') === 'course'));
-$workshopRecords = array_values(array_filter($records, fn($r) => ($getVal($r, 'evaluation_type') ?? '') === 'workshop'));
-$annualRecords = array_values(array_filter($records, fn($r) => in_array($getVal($r, 'evaluation_type') ?? '', ['annual', 'periodic'])));
+// CD-040.6 (a2'): derive from target_type (not raw evaluation_type).
+$typeOf = static function ($r) use ($getVal) {
+    $target = $getVal($r, 'target_type', null);
+    if ($target === 'employee_in_course' || $target === 'course') return 'course';
+    if ($target === 'employee_in_workshop' || $target === 'workshop') return 'workshop';
+    return (string)($getVal($r, 'evaluation_type', 'annual') ?: 'annual');
+};
+$courseRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'course'));
+$workshopRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'workshop'));
+$annualRecords = array_values(array_filter($records, fn($r) => in_array($typeOf($r), ['annual', 'periodic'])));
 ?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">

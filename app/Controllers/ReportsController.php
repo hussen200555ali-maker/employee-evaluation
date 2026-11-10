@@ -266,8 +266,17 @@ final class ReportsController extends Controller
 
         $types = [];
         foreach ($records as $r) {
-            // سجلات التقييم تُرجع كائنات stdClass وليست مصفوفات.
-            $type = $r->evaluation_type ?? $r->evaluation_type_label ?? 'غير محدد';
+            // CD-040.6 (a2'): derive type from target_type first.
+            $target = (isset($r->target_type) ? $r->target_type : null);
+            if ($target === 'employee_in_course' || $target === 'course') {
+                $type = 'course';
+            } elseif ($target === 'employee_in_workshop' || $target === 'workshop') {
+                $type = 'workshop';
+            } elseif ($target === 'skill') {
+                $type = 'skill';
+            } else {
+                $type = $r->evaluation_type ?? $r->evaluation_type_label ?? 'غير محدد';
+            }
             $types[$type] = ($types[$type] ?? 0) + 1;
         }
 
