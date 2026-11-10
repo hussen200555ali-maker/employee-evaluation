@@ -182,11 +182,19 @@ class EvaluationController extends Controller {
             $this->redirect('/evaluations/create');
         }
 
-        $evaluationType = $_POST['evaluation_type'] ?? 'annual';
-        if (!in_array($evaluationType, ['annual', 'periodic'], true)) {
-            Flash::set('نوع التقييم المحدد غير صالح.', 'danger');
-            $this->redirect('/evaluations/create');
-            return;
+        // CD-040.6 (b): derive evaluation_type from template target_type (not POST).
+        $evaluationType = 'annual';
+        $tplIdForType = (int)($_POST['template_id'] ?? 0);
+        if ($tplIdForType > 0) {
+            $dbType = \App\Core\Database::getInstance();
+            $dbType->query('SELECT target_type FROM form_templates WHERE id = :id');
+            $dbType->bind(':id', $tplIdForType);
+            $tplType = $dbType->fetch();
+            if ($tplType) {
+                $tt = $tplType->target_type;
+                if ($tt === 'course' || $tt === 'employee_in_course') $evaluationType = 'course';
+                elseif ($tt === 'workshop' || $tt === 'employee_in_workshop') $evaluationType = 'workshop';
+            }
         }
 
         // 2. تجميع البيانات الأساسية
