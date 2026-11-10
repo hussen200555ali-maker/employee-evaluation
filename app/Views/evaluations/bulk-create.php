@@ -758,11 +758,17 @@ function cd041_calcScore(empId){
 }
 function cd041_deriveGrade(score){
     if(score===null||score===undefined||isNaN(score)) return null;
+    // CD-041.3: range matching (min_value/max_value) — NOT numeric_value (1..5) vs score (0..100)
+    var best=null;
+    CD041_SCALES.forEach(function(s){
+        var mn=parseFloat(s.min_value), mx=parseFloat(s.max_value);
+        if(!isNaN(mn)&&!isNaN(mx) && score>=mn && score<=mx){ best=s; }
+    });
+    if(best) return {id: best.id, label: best.grade_label};
+    // fallback: threshold labels (consistent with السلم الخماسي)
     var label;
     if(score>=90) label='ممتاز'; else if(score>=80) label='جيد جدًا'; else if(score>=70) label='جيد'; else if(score>=60) label='مقبول'; else label='ضعيف';
-    var best=null;
-    CD041_SCALES.forEach(function(s){ var nv=parseFloat(s.numeric_value); if(!isNaN(nv)&&nv<=score){ if(!best||nv>parseFloat(best.numeric_value)) best=s; } });
-    return {id: best?best.id:null, label: best?(best.grade_label||label):label};
+    return {id: null, label: label};
 }
 function cd041_isRowDone(empId){
     if(!cd041_columns.length) return false;
