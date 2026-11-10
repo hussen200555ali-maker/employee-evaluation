@@ -281,7 +281,8 @@ final class BulkEvaluationController extends Controller
         $db = Database::getInstance();
         $db->beginTransaction();
         $saved = 0;
-        $errors = [];
+        $errors = [];       // نصوص (توافق خلفي)
+        $errorItems = [];  // CD-042: أخطاء مُهيكلة للواجهة {employee_id,name,message}
         $savedItems = [];
         $skipped = [];
         $evalModel = new \App\Models\Evaluation();
@@ -297,6 +298,7 @@ final class BulkEvaluationController extends Controller
             $eid = (int)($it['employee_id'] ?? 0);
             if (isset($seenEmp[$eid])) {
                 $errors[] = "موظف ID {$eid}: مكرر داخل الطلب — تم التخطّي";
+                $errorItems[] = ['employee_id' => $eid, 'name' => "موظف #{$eid}", 'message' => 'مكرر داخل الطلب — تم التخطّي'];
                 continue;
             }
             $seenEmp[$eid] = true;
@@ -314,6 +316,7 @@ final class BulkEvaluationController extends Controller
 
                 if ($employeeId < 1 || empty($results)) {
                     $errors[] = "{$empName}: بيانات ناقصة";
+                    $errorItems[] = ['employee_id' => $employeeId, 'name' => $empName, 'message' => 'بيانات ناقصة (لا توجد نتائج للحفظ)'];
                     continue;
                 }
 
@@ -385,10 +388,12 @@ final class BulkEvaluationController extends Controller
                         continue;
                     }
                     $errors[] = "{$empName}: " . $e->getMessage();
+                    $errorItems[] = ['employee_id' => $employeeId, 'name' => $empName, 'message' => $e->getMessage()];
                     continue;
                 } catch (\Throwable $e) {
                     $db->query('ROLLBACK TO SAVEPOINT ' . $sp);
                     $errors[] = "{$empName}: " . $e->getMessage();
+                    $errorItems[] = ['employee_id' => $employeeId, 'name' => $empName, 'message' => $e->getMessage()];
                     continue;
                 }
             }
@@ -402,6 +407,7 @@ final class BulkEvaluationController extends Controller
                 'saved_items' => $savedItems,
                 'skipped'     => $skipped,
                 'errors'      => $errors,
+                'error_items' => $errorItems,
                 'progress'    => ['done' => $total, 'total' => $total],
                 'message'     => "تم حفظ {$saved} تقييم" . (count($skipped) ? " · تخطي " . count($skipped) : '') . (count($errors) ? " · " . count($errors) . " خطأ" : ''),
             ]);

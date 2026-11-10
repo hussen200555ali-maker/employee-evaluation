@@ -610,6 +610,7 @@ function cd041_addEmployee(emp){
     cd041_results[emp.id]={}; cd041_final_grades[emp.id]=null; cd041_state[emp.id]={status:'pending'};
     cd041_renderMatrix();
     cd041_checkExisting(emp.id);
+    cd041_markDirty();
     cd041_toast('تمت إضافة '+emp.full_name,'ok');
 }
 function cd041_checkExisting(empId){
@@ -621,8 +622,16 @@ function cd041_checkExisting(empId){
     var url = CD041_APP_URL+'/api/evaluations/exists?employee_id='+empId+'&template_id='+cd041_template.id+'&date='+encodeURIComponent(date);
     if(ctxId>0){ url += '&context_id='+ctxId+'&context_type='+encodeURIComponent(ctxType); }
     fetch(url).then(function(r){return r.json();}).then(function(res){
-        if(res && res.exists){ cd041_existing[empId]=res.evaluation_id; cd041_state[empId]={status:'exists', id:res.evaluation_id}; }
-        else { delete cd041_existing[empId]; if(!cd041_state[empId] || cd041_state[empId].status!=='saved') cd041_state[empId]={status:'pending'}; }
+        var st=(cd041_state[empId]||{}).status;
+        if(res && res.exists){
+            cd041_existing[empId]=res.evaluation_id;
+            if(st!=='saved'){ cd041_state[empId]={status:'exists', id:res.evaluation_id}; }
+        }
+        else {
+            delete cd041_existing[empId];
+            // لا تُلغِ حالة صف فشل/محفوظ عند الفحص الخلفي (CD-042)
+            if(st!=='saved' && st!=='error'){ cd041_state[empId]={status:'pending'}; }
+        }
         cd041_renderMatrix();
     }).catch(function(){});
 }
@@ -634,6 +643,7 @@ function cd041_removeEmployee(id){
     cd041_employees = cd041_employees.filter(function(e){return e.id!==id;});
     delete cd041_results[id]; delete cd041_final_grades[id]; delete cd041_state[id]; delete cd041_existing[id];
     cd041_renderMatrix();
+    cd041_markDirty();
 }
 function cd041_updateCount(){
     document.getElementById('cd041-count').innerHTML='عدد الموظفين: <b>'+cd041_employees.length+'</b>';
@@ -734,7 +744,7 @@ function cd041_cellHtml(col, empId){
     var notesBtn = function(){
         if(!allowNotes) return '';
         var has = r.notes && r.notes.trim();
-        return ' <button type="button" class="cd041-notes-btn '+(has?'has':'')+'" onclick="cd041_openNotesModal('+empId+','+col.id+')" title="ملاحظات">📝</button>';
+        return ' <button type="button" class="cd041-notes-btn '+(has?'has':'')+'" onclick="cd041_openNotesModal('+empId+','+col.id+')" title="'+(isExisting?'محفوظ — عرض فقط':'ملاحظات')+'">📝</button>';
     };
     if(t==='percentage'){
         var v=r.score||''; var pct=v!==''?Math.max(0,Math.min(100,parseFloat(v)||0)):0;
@@ -775,7 +785,10 @@ function cd041_renderMatrix(){
     var rows='';
     cd041_employees.forEach(function(emp,idx){
         var st=(cd041_state[emp.id]||{}).status;
-        var rowCls = cd041_existing[emp.id] ? 'cd041-row-exists' : (st==='saved'?'cd041-row-saved':(st==='error'?'cd041-row-err':''));
+        // CD-042: المحفوظ الآن أخضر (لا يتحول إلى «موجود» الأصفر بعد الحفظ)
+        var rowCls = (st==='saved') ? 'cd041-row-saved'
+                   : (st==='error') ? 'cd041-row-err'
+                   : (cd041_existing[emp.id] ? 'cd041-row-exists' : '');
         rows+='<tr'+(rowCls?' class="'+rowCls+'"':'')+'>';
         rows+='<td class="cd041-c-idx">'+(idx+1)+'</td>';
         var existsId = cd041_existing[emp.id];
@@ -937,10 +950,14 @@ function cd041_openNotesModal(empId, secId){
     document.getElementById('cd041-modal-meta').textContent = 'الموظف: '+emp.full_name+' ('+emp.emp_code+')';
     var r=(cd041_results[empId]||{})[secId]||{};
     var ph = col.notes_placeholder || 'اكتب ملاحظاتك هنا...';
-    var ta=document.getElementById('cd041-modal-text'); ta.value=r.notes||''; ta.readOnly=false;
+    var ta=document.getElementById('cd041-modal-text'); ta.value=r.notes||'';
+    var locked = !!cd041_existing[empId]; // CD-042: صف محفوظ/موجود → عرض فقط
+    ta.readOnly = locked;
+    var sbtn = document.getElementById('cd041-modal-save');
+    if(sbtn) sbtn.style.display = locked ? 'none' : '';
     ta.placeholder=ph;
     document.getElementById('cd041-modal-cc').textContent=ta.value.length+'/2000';
-    document.getElementById('cd041-modal-all-wrap').style.display='';
+    document.getElementById('cd041-modal-all-wrap').style.display = locked ? 'none' : '';
     document.getElementById('cd041-modal-all').checked=false;
     document.getElementById('cd041-modal').classList.add('open'); ta.focus();
 }
@@ -953,6 +970,7 @@ function cd041_openTextModal(empId, secId){
     document.getElementById('cd041-modal-meta').textContent = 'الموظف: '+emp.full_name+' ('+emp.emp_code+')';
     var r=(cd041_results[empId]||{})[secId]||{};
     var ta=document.getElementById('cd041-modal-text'); ta.value=r.text||''; ta.readOnly=false;
+    var sbtn = document.getElementById('cd041-modal-save'); if(sbtn) sbtn.style.display='';
     document.getElementById('cd041-modal-cc').textContent=ta.value.length+'/2000';
     document.getElementById('cd041-modal-all-wrap').style.display='';
     document.getElementById('cd041-modal-all').checked=false;
@@ -985,9 +1003,11 @@ function cd041_saveModal(){
         }
         cd041_renderMatrix();
     } else if(ctx.mode==='preview'){
-        // nothing to persist
+        cd041_closeModal();
+        return; // معاينة فقط — لا تغيير ولا مسودة
     }
     cd041_closeModal();
+    cd041_markDirty(); // CD-042: إدخال عبر النافذة لا يُطلق حدث input
 }
 
 /* ===== bulk toolbar actions ===== */
@@ -1029,6 +1049,7 @@ function cd041_applyGradeToAll(){
     if(!v){ cd041_toast('اختر التقدير أولًا','err'); return; }
     cd041_employees.forEach(function(emp){ cd041_final_grades[emp.id]=parseInt(v,10); cd041_updateRow(emp.id); });
     cd041_renderMatrix();
+    cd041_markDirty();
     cd041_toast('تم تطبيق التقدير على الكل','ok');
 }
 function cd041_clearAll(){
@@ -1036,6 +1057,7 @@ function cd041_clearAll(){
     if(!confirm('تفريغ كل النتائج؟')) return;
     cd041_employees.forEach(function(emp){ cd041_results[emp.id]={}; cd041_final_grades[emp.id]=null; });
     cd041_renderMatrix();
+    cd041_markDirty();
     cd041_toast('تم التفريغ','ok');
 }
 function cd041_reset(){
@@ -1180,10 +1202,16 @@ function cd041_saveAll(){
                     cd041_state[sk.employee_id] = {status:'exists', id: sk.evaluation_id};
                     cd041_existing[sk.employee_id] = sk.evaluation_id;
                 });
-                (res.errors||[]).forEach(function(er){
+                var errList = Array.isArray(res.error_items)
+                    ? res.error_items
+                    : (res.errors||[]).map(function(x){ return (typeof x==='string') ? {name:'', message:x} : x; });
+                errList.forEach(function(er){
                     allErrors.push(er);
                     var eid = er.employee_id;
-                    if(eid){ cd041_state[eid] = {status:'error', msg: er.message}; }
+                    if(!eid) return;
+                    var st = (cd041_state[eid]||{}).status;
+                    if(st==='saved' || st==='exists') return; // المكرر/المحفوظ حالة مستقلة لا خطأ
+                    cd041_state[eid] = {status:'error', msg: er.message||''};
                 });
                 done += chunk.length;
                 cd041_renderMatrix();
@@ -1214,6 +1242,7 @@ function cd041_saveAll(){
         cd041_renderMatrix();
         cd041_updateSummary();
         cd041_renderResultPanel(allSaved, allSkipped, allErrors, total, total);
+        cd041_dirty=false;
         cd041_clearDraft();
         // if nothing left to save, soft-disable save
         var remaining = cd041_employees.filter(function(emp){ var st=(cd041_state[emp.id]||{}).status; return !st||st==='pending'||st==='error'; }).length;
@@ -1252,7 +1281,11 @@ function cd041_renderResultPanel(saved, skipped, errors, done, total){
     }
     if(er){
         html += '<div style="margin-top:6px;"><b>أخطاء:</b></div><ul>';
-        errors.forEach(function(x){ html += '<li>'+cd041_esc(x.name||('موظف #'+x.employee_id))+' — '+cd041_esc(x.message||x.error||'')+'</li>'; });
+        errors.forEach(function(x){
+            if(typeof x==='string'){ html += '<li>'+cd041_esc(x)+'</li>'; return; }
+            var who = x.name ? cd041_esc(x.name) : ('موظف #'+(x.employee_id||'?'));
+            html += '<li>'+who+' — '+cd041_esc(x.message||x.error||'')+'</li>';
+        });
         html += '</ul>';
     }
     body.innerHTML = html || '—';
@@ -1268,7 +1301,10 @@ function cd041_exportResult(saved,skipped,errors){
     lines.push('متخطّى:');
     (skipped||[]).forEach(function(x){ lines.push('  - '+x.name+' #'+x.evaluation_id+' ('+x.date+')'); });
     lines.push('أخطاء:');
-    (errors||[]).forEach(function(x){ lines.push('  - '+(x.name||x.employee_id)+': '+(x.message||x.error||'')); });
+    (errors||[]).forEach(function(x){
+        if(typeof x==='string'){ lines.push('  - '+x); return; }
+        lines.push('  - '+((x.name)||('#'+x.employee_id))+': '+(x.message||x.error||''));
+    });
     var blob=new Blob([lines.join('\\n')],{type:'text/plain;charset=utf-8'});
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cd042_result.txt'; a.click();
 }
@@ -1284,6 +1320,7 @@ function cd041_newBatch(){
     cd041_employees.forEach(function(e){ cd041_state[e.id]={status:'pending'}; });
     cd041_renderMatrix(); cd041_updateSummary(); cd041_dismissResult();
     var btn=document.getElementById('cd041-savebtn'); if(btn){ btn.disabled=false; btn.title=''; }
+    cd041_dirty=false;
     cd041_clearDraft();
 }
 /* undo reset */
@@ -1292,6 +1329,7 @@ function cd041_reset(){
     cd041_resetSnapshot = { employees: cd041_employees.slice(), results: JSON.parse(JSON.stringify(cd041_results)), grades: JSON.parse(JSON.stringify(cd041_final_grades)), state: JSON.parse(JSON.stringify(cd041_state)), existing: JSON.parse(JSON.stringify(cd041_existing)) };
     cd041_employees=[]; cd041_results={}; cd041_final_grades={}; cd041_state={}; cd041_existing={};
     cd041_renderMatrix(); cd041_updateSummary();
+    cd041_dirty=false; cd041_clearDraft();
     var u=document.getElementById('cd041-undo'); if(u){ u.classList.add('show'); }
     clearTimeout(cd041_undoTimer);
     cd041_undoTimer=setTimeout(function(){ var u=document.getElementById('cd041-undo'); if(u) u.classList.remove('show'); cd041_resetSnapshot=null; }, 10000);
@@ -1307,13 +1345,20 @@ function cd041_undoReset(){
     clearTimeout(cd041_undoTimer);
     var u=document.getElementById('cd041-undo'); if(u) u.classList.remove('show');
     cd041_renderMatrix(); cd041_updateSummary();
+    cd041_markDirty();
 }
 /* draft */
 function cd041_draftKey(){ return 'cd041_draft_'+(cd041_template?cd041_template.id:'0')+'_'+(document.getElementById('cd041-date').value||'')+'_'+((cd041_program&&cd041_program.id)||0); }
 function cd041_saveDraft(){
     try {
+        // لا مسودة لدفعة محفوظة بالكامل (تمنع مطالبة استعادة بلا فائدة)
+        var pending = cd041_employees.some(function(emp){ var st=(cd041_state[emp.id]||{}).status; return !st||st==='pending'||st==='error'; });
+        if(!cd041_employees.length || !pending){ cd041_clearDraft(); return; }
+        var key = cd041_draftKey();
         var data = { employees: cd041_employees, results: cd041_results, grades: cd041_final_grades, state: cd041_state, existing: cd041_existing, evaluator: document.getElementById('cd041-evaluator').value, title: document.getElementById('cd041-evaluator-title').value, date: document.getElementById('cd041-date').value, template: cd041_template?cd041_template.id:null };
-        localStorage.setItem(cd041_draftKey(), JSON.stringify(data));
+        localStorage.setItem(key, JSON.stringify(data));
+        // إزالة المسودات القديمة (تاريخ/قالب سابق) — best-effort
+        Object.keys(localStorage).forEach(function(k){ if(k.indexOf('cd041_draft_')===0 && k!==key) localStorage.removeItem(k); });
     } catch(e){}
 }
 function cd041_restoreDraft(){
@@ -1329,10 +1374,21 @@ function cd041_restoreDraft(){
     } catch(e){}
 }
 function cd041_clearDraft(){ try { localStorage.removeItem(cd041_draftKey()); } catch(e){} }
-var cd041_dirty=false;
-function cd041_markDirty(){ cd041_dirty=true; cd041_saveDraft(); }
-// hook dirty on input (best-effort): save draft after any change
-setInterval(function(){ if(cd041_employees.length) cd041_saveDraft(); }, 4000);
+var cd041_dirty=false, cd041_draftTimer=null;
+function cd041_markDirty(){
+    cd041_dirty=true;
+    clearTimeout(cd041_draftTimer);
+    cd041_draftTimer=setTimeout(cd041_saveDraft, 800); // debounce — لا كتابة عند كل حرف
+}
+// أي تغيير فعلي (خلية/حقل/قائمة) يعلّم المسودة كغير محفوظة
+function cd041_onAnyChange(e){
+    var t=e.target; if(!t) return;
+    var id=t.id||'';
+    if(id==='cd041-emp-search' || id==='cd041-rep-search') return; // حقول بحث فقط
+    cd041_markDirty();
+}
+document.addEventListener('input', cd041_onAnyChange, true);
+document.addEventListener('change', cd041_onAnyChange, true);
 
 /* ===== init ===== */
 var sx=document.getElementById('cd041-sticky-x'); if(sx) sx.addEventListener('click', cd041_dismissSticky);
@@ -1343,7 +1399,7 @@ cd041_restoreDraft();
 // beforeunload guard
 window.addEventListener('beforeunload', function(e){
     var hasPending = cd041_employees.some(function(emp){ var st=(cd041_state[emp.id]||{}).status; return !st||st==='pending'||st==='error'; });
-    if(hasPending && cd041_employees.length){ e.preventDefault(); e.returnValue=''; }
+    if(cd041_employees.length && (hasPending || cd041_dirty)){ e.preventDefault(); e.returnValue=''; }
 });
 // Enter key guard
 document.addEventListener('keydown', function(e){ if(e.key==='Enter' && cd041_saving){ e.preventDefault(); } });
