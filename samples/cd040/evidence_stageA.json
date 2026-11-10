@@ -1,0 +1,293 @@
+{
+  "startedAt": "2026-11-09T17:23:52.224Z",
+  "base": "http://localhost/employee-evaluation",
+  "steps": {
+    "login": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين"
+    },
+    "uat01_page": {
+      "title": "بدء تقييم جديد | نظام تقييم الموظفين",
+      "templates": [
+        {
+          "v": "",
+          "t": "— اختر القالب —"
+        },
+        {
+          "v": "105",
+          "t": "CD-040 UAT — أنواع مختلطة"
+        },
+        {
+          "v": "104",
+          "t": "CD-040 UAT — وزن ٥٠/٥٠"
+        },
+        {
+          "v": "3",
+          "t": "التقييم الرقمي للدورة"
+        },
+        {
+          "v": "1",
+          "t": "التقييم السنوي للموظف"
+        },
+        {
+          "v": "4",
+          "t": "التقييم المهاري"
+        },
+        {
+          "v": "2",
+          "t": "التقييم الوصفي للدورة · descriptive"
+        }
+      ],
+      "branchOptions": [
+        "🏢 كل الفروع",
+        "الفرع الرئيسي - الرياض",
+        "فرع الدمام",
+        "فرع جدة"
+      ],
+      "evaluatorPrefill": "سلمان علي الحربي",
+      "evaluatorHidden": ""
+    },
+    "uat01_employee_search": {
+      "count": 3,
+      "items": [
+        "عبدالله محمد العتيبي (EMP-001) /  —",
+        "عبدالله فهد المطيري (EMP-UAT-06) /  —",
+        "عبدالله محمد العتيبي (CD028-001) /  —"
+      ],
+      "raw": [
+        {
+          "id": 1,
+          "emp_code": "EMP-001",
+          "full_name": "عبدالله محمد العتيبي",
+          "position_id": 1
+        },
+        {
+          "id": 106,
+          "emp_code": "EMP-UAT-06",
+          "full_name": "عبدالله فهد المطيري",
+          "position_id": 6
+        },
+        {
+          "id": 7106,
+          "emp_code": "CD028-001",
+          "full_name": "عبدالله محمد العتيبي",
+          "position_id": 2
+        }
+      ]
+    },
+    "uat01_pick_employee": {
+      "picked": {
+        "id": 1,
+        "emp_code": "EMP-001",
+        "full_name": "عبدالله محمد العتيبي",
+        "position_id": 1
+      }
+    },
+    "uat01_pick_evaluator": {
+      "list": [
+        {
+          "id": 5,
+          "emp_code": "EMP-005",
+          "full_name": "خالد أحمد الغامدي",
+          "position_id": 2
+        },
+        {
+          "id": 7,
+          "emp_code": "EMP-007",
+          "full_name": "نورة خالد الحربي",
+          "position_id": 2
+        },
+        {
+          "id": 14,
+          "emp_code": "EMP-014",
+          "full_name": "بدر علي الخالدي",
+          "position_id": 3
+        },
+        {
+          "id": 104,
+          "emp_code": "EMP-UAT-04",
+          "full_name": "مريم خالد العتيبي",
+          "position_id": 6
+        },
+        {
+          "id": 7108,
+          "emp_code": "CD028-003",
+          "full_name": "خالد فهد الدوسري",
+          "position_id": 14
+        }
+      ],
+      "picked": {
+        "id": 5,
+        "emp_code": "EMP-005",
+        "full_name": "خالد أحمد الغامدي",
+        "position_id": 2
+      },
+      "hidden": "5",
+      "evalName": "خالد أحمد الغامدي",
+      "evalTitle": "مدير قسم"
+    },
+    "uat01_template104": {
+      "fields": [
+        {
+          "type": "percentage",
+          "name": "results[87][117][score]",
+          "max": "100"
+        },
+        {
+          "type": "numeric",
+          "name": "results[87][118][score]",
+          "max": "10"
+        }
+      ],
+      "sections": [
+        "الأداء الكلي"
+      ],
+      "liveVisible": "flex"
+    },
+    "uat09_live_score": {
+      "values": [
+        "85",
+        "8"
+      ],
+      "live": "٨٢.٥",
+      "grade": "جيد جدًا"
+    },
+    "uat07_preview": {
+      "text": "أطراف التقييم\nالموظف\nعبدالله محمد العتيبي\nالمُقيِّم\nخالد أحمد الغامدي — مدير قسم\nالقالب\nCD-040 UAT — وزن ٥٠/٥٠\nالبرنامج\n—\nتاريخ التقييم\n2026-11-09\nإجابات المعايير\nالأداء الكلي\nنسبة الإنجاز\n85\nالدرجة الرقمية\n8\nالدرجة المحسوبة\n٨٢.٥\nجيد جدًا",
+      "hasScore": true
+    },
+    "uat01_save": {
+      "savedUrl": "http://localhost/employee-evaluation/evaluations/show/191",
+      "evalId": 191,
+      "network": [
+        {
+          "url": "http://localhost/employee-evaluation/evaluations/save-unified",
+          "method": "POST",
+          "postData": "------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"_token\"\r\n\r\n7ce4b529446904c583631bd60f4bdf6c02297e73aa2e746e4841075d3eac6e97\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"evaluation_id\"\r\n\r\n0\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"employee_id\"\r\n\r\n1\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"template_id\"\r\n\r\n104\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"evaluator_employee_id\"\r\n\r\n5\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"template_id_select\"\r\n\r\n104\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"evaluation_date\"\r\n\r\n2026-11-09\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"context_id\"\r\n\r\n\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"context_type\"\r\n\r\n\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"final_grade_id\"\r\n\r\n\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"results[87][117][score]\"\r\n\r\n85\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"results[87][117][notes]\"\r\n\r\n\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"results[87][118][score]\"\r\n\r\n8\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"results[87][118][notes]\"\r\n\r\n\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"evaluator_name\"\r\n\r\nخالد أحمد الغامدي\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"evaluator_title\"\r\n\r\nمدير قسم\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP\r\nContent-Disposition: form-data; name=\"evaluator_notes\"\r\n\r\n\r\n------WebKitFormBoundary2vAyCHCFQGbvwLiP--\r\n",
+          "type": "Fetch",
+          "status": 200,
+          "mime": "application/json",
+          "body": null
+        }
+      ]
+    },
+    "uat03_departments": {
+      "disabled": false,
+      "options": [
+        {
+          "v": "",
+          "t": "📋 كل الأقسام"
+        },
+        {
+          "v": "1",
+          "t": "الإدارة العليا"
+        },
+        {
+          "v": "4",
+          "t": "المالية"
+        },
+        {
+          "v": "5",
+          "t": "المبيعات"
+        },
+        {
+          "v": "3",
+          "t": "الموارد البشرية"
+        },
+        {
+          "v": "2",
+          "t": "تقنية المعلومات"
+        }
+      ]
+    },
+    "uat03_filter_result": {
+      "apiCount": 3,
+      "apiFields": [
+        "id",
+        "emp_code",
+        "full_name",
+        "position_id"
+      ],
+      "apiBranch": [
+        {
+          "id": 1
+        },
+        {
+          "id": 107
+        },
+        {
+          "id": 7106
+        }
+      ],
+      "rendered": "لا توجد نتائج ضمن الفلتر\n＋ إضافة موظف جديد — غير مسجّل؟ أضف بياناته",
+      "shown": true
+    },
+    "uat04_quick_add": {
+      "selectedName": "موظف إضافة سريعة",
+      "selectedCode": "(CD040-QA-001)",
+      "employeeId": "7606",
+      "toast": [
+        "✅ تمت الإضافة والاختيار"
+      ],
+      "network": [
+        {
+          "url": "http://localhost/employee-evaluation/api/employees/quick-add",
+          "method": "POST",
+          "postData": "------WebKitFormBoundarymAxAeayS4bQmkMGu\r\nContent-Disposition: form-data; name=\"full_name\"\r\n\r\nموظف إضافة سريعة\r\n------WebKitFormBoundarymAxAeayS4bQmkMGu\r\nContent-Disposition: form-data; name=\"emp_code\"\r\n\r\nCD040-QA-001\r\n------WebKitFormBoundarymAxAeayS4bQmkMGu\r\nContent-Disposition: form-data; name=\"branch_id\"\r\n\r\n1\r\n------WebKitFormBoundarymAxAeayS4bQmkMGu\r\nContent-Disposition: form-data; name=\"department_id\"\r\n\r\n2\r\n------WebKitFormBoundarymAxAeayS4bQmkMGu\r\nContent-Disposition: form-data; name=\"_token\"\r\n\r\n7ce4b529446904c583631bd60f4bdf6c02297e73aa2e746e4841075d3eac6e97\r\n------WebKitFormBoundarymAxAeayS4bQmkMGu--\r\n",
+          "type": "Fetch",
+          "status": 200,
+          "mime": "application/json",
+          "body": "{\n    \"success\": true,\n    \"employee\": {\n        \"id\": 7606,\n        \"emp_code\": \"CD040-QA-001\",\n        \"full_name\": \"موظف إضافة سريعة\",\n        \"department_name\": \"تقنية المعلومات\",\n        \"branch_name\": \"الفرع الرئيسي - الرياض\"\n    }\n}"
+        }
+      ]
+    },
+    "uat14_evaluations_list": {
+      "title": "ملفات أداء الموظفين | نظام تقييم الموظفين",
+      "url": "http://localhost/employee-evaluation/evaluations",
+      "rows": 15,
+      "bodyStart": "س\nسلمان علي الحربي\nManager\nلوحة التحكم\nالموارد البشرية\nالموظفون\nعرض قائمة الموظفين\nالتقارير\nإنشاء تقرير موظف\nسجل التقارير\nمتصل\n20:24\nتسجيل الخروج\nأهلاً، uat_manager\nملفات أداء الموظفين\nاستيراد وتصدير Excel\n44\nموظف\n3\nفرع\n7\nقسم\n3\nصفحة\n بحث بالاسم أو الرقم الوظيفي\n الفرع\nالكل\nالفرع الرئيسي - الرياض\nفرع الدمام\nفرع جدة\n القسم\nالكل\nالإدارة العليا\nالمالية\nالمبيعات\nالموارد البشرية\nتقنية المعلومات\nالعمليات"
+    },
+    "uat14_bulk_create": {
+      "title": "التقييم الجماعي | نظام تقييم الموظفين",
+      "url": "http://localhost/employee-evaluation/evaluations/bulk-create",
+      "hasForm": true,
+      "templates": 13,
+      "bodyStart": "س\nسلمان علي الحربي\nManager\nلوحة التحكم\nالموارد البشرية\nالموظفون\nعرض قائمة الموظفين\nالتقارير\nإنشاء تقرير موظف\nسجل التقارير\nمتصل\n20:24\nتسجيل الخروج\nأهلاً، uat_manager\nالتقييم الجماعي\nقالب التقييم\n— اختر القالب —\nCD-040 UAT — أنواع مختلطة\nCD-040 UAT — وزن ٥٠/٥٠\nالتقييم الرقمي للدورة\nالتقييم السنوي للموظف\nالتقييم المهاري\nالتقييم الوصفي للدورة\n🔒 يُقفل بعد أول تقييم\nالتاريخ الموحد\nاسم المقيّم\nصفة المقي"
+    },
+    "uat12_mobile": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "topbarCols": "292px",
+      "qaCols": "1fr",
+      "overflow": false
+    },
+    "uat12_desktop": {
+      "innerWidth": 1440,
+      "scrollWidth": 1440,
+      "topbarCols": "441px 441px",
+      "overflow": false
+    },
+    "console_exceptions": [
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared",
+        "url": "http://localhost/employee-evaluation/evaluations/create",
+        "line": 1049
+      },
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared",
+        "url": "http://localhost/employee-evaluation/evaluations/create",
+        "line": 1049
+      },
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared",
+        "url": "http://localhost/employee-evaluation/evaluations/create",
+        "line": 1049
+      }
+    ]
+  },
+  "createdEvaluationId": 191
+}

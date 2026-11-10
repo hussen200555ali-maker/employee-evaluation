@@ -1,0 +1,68 @@
+CD-040.1 UAT — Database Evidence
+Generated: 2026-11-09 18:31:47
+Database: employee_evaluation_cd040
+==============================================================================
+
+-- Evaluations created/used during UAT (191 = UAT-1/2/5/8, 192 = UAT-11 boolean, 193 = foreign draft for UAT-10)
+SELECT id,template_id,status,evaluation_date,evaluated_employee_id,evaluator_employee_id,evaluator_name,evaluator_title,employee_name,final_score,created_by_user_id,created_at FROM evaluations WHERE id IN (191,192,193) ORDER BY id
+id | template_id | status | evaluation_date | evaluated_employee_id | evaluator_employee_id | evaluator_name | evaluator_title | employee_name | final_score | created_by_user_id | created_at
+------------------------------------------------------------------------------
+191 | 104 | completed | 2026-11-09 | 1 | 105 | خالد أحمد الغامدي | مدير قسم | عبدالله محمد العتيبي | 90.00 | 4486 | 2026-11-09 20:23:55
+192 | 105 | completed | 2026-11-09 | 2 | 105 | سلمان علي الحربي | مدير قسم | سعد عبدالعزيز المطيري | 80.00 | 4486 | 2026-11-09 20:27:26
+193 | 104 | draft | 2026-11-09 | 1 | 105 | سلمان علي الحربي | مدير قسم | عبدالله محمد العتيبي | NULL | 4486 | 2026-11-09 20:28:52
+
+-- Saved answers — shows evaluator values and normalized scores (boolean saved as 0.00)
+SELECT id,evaluation_id,section_id,raw_value,normalized_score,notes FROM evaluation_answers WHERE evaluation_id IN (191,192) ORDER BY evaluation_id,section_id
+id | evaluation_id | section_id | raw_value | normalized_score | notes
+------------------------------------------------------------------------------
+129 | 191 | 117 | 90 | 90.00 | 
+130 | 191 | 118 | 9 | 90.00 | 
+131 | 192 | 119 | 100 | 100.00 | 
+132 | 192 | 120 | 20 | 100.00 | 
+133 | 192 | 121 | 100 | 100.00 | 
+134 | 192 | 122 | 1 | 0.00 | 
+135 | 192 | 123 | ملاحظة UAT للقيمة النصية | NULL | NULL
+136 | 192 | 124 | ممتاز | NULL | NULL
+
+-- UAT-4 quick-add employee (position_id is NULL despite position selected in the UI)
+SELECT id,emp_code,full_name,branch_id,department_id,position_id,profile_status FROM employees WHERE emp_code='CD040-QA-001'
+id | emp_code | full_name | branch_id | department_id | position_id | profile_status
+------------------------------------------------------------------------------
+7606 | CD040-QA-001 | موظف إضافة سريعة | 1 | 2 | NULL | incomplete
+
+-- UAT test accounts
+SELECT u.id,u.username,u.employee_id,u.status,GROUP_CONCAT(r.name ORDER BY r.name) AS roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.id IN (4486,7141) GROUP BY u.id
+id | username | employee_id | status | roles
+------------------------------------------------------------------------------
+4486 | uat_manager | 105 | active | Manager
+7141 | cd040_other | 106 | active | CD040 Restricted
+
+-- Effective permissions — Manager (3) has no training.view; Restricted (689) has only create+fill
+SELECT r.id AS role_id, r.name AS role_name, p.name AS permission FROM roles r JOIN role_permissions rp ON rp.role_id=r.id JOIN permissions p ON p.id=rp.permission_id WHERE r.id IN (3,689) ORDER BY r.id, p.name
+role_id | role_name | permission
+------------------------------------------------------------------------------
+3 | Manager | employees.profile
+3 | Manager | employees.view
+3 | Manager | evaluations.create
+3 | Manager | evaluations.create.team
+3 | Manager | evaluations.delete
+3 | Manager | evaluations.edit
+3 | Manager | evaluations.fill
+3 | Manager | evaluations.review
+3 | Manager | evaluations.view.team
+3 | Manager | reports.view.all
+3 | Manager | reports.view.team
+689 | CD040 Restricted | evaluations.create
+689 | CD040 Restricted | evaluations.fill
+
+-- UAT-6 cleanup check — temporary training.view grant must be revoked
+SELECT COUNT(*) AS training_view_grants FROM role_permissions rp JOIN permissions p ON p.id=rp.permission_id WHERE rp.role_id IN (3,689) AND p.name='training.view'
+training_view_grants
+------------------------------------------------------------------------------
+0
+
+-- Expected score maths
+SELECT ROUND((85*0.5) + ((8/10*100)*0.5), 2) AS expected_eval191, ROUND((100*0.4) + (100*0.3) + (100*0.1) + (0*0.1), 2) AS expected_eval192_with_boolean_zero, ROUND((100*0.4) + (100*0.3) + (100*0.1) + (100*0.1), 2) AS ideal_eval192_with_boolean_100
+expected_eval191 | expected_eval192_with_boolean_zero | ideal_eval192_with_boolean_100
+------------------------------------------------------------------------------
+82.50 | 80.00 | 90.00

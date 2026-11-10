@@ -1,0 +1,83 @@
+CD-040.3 — DB Evidence (employee_evaluation_uat)
+
+1) grading_scales (السلم الخماسي) — max_value mapping (UAT-4)
+----------------------------------------------------------------
+id | scale_name     | grade_label | min_value | max_value | numeric_value | sort_order
+---+---------------+-------------+-----------+-----------+---------------+-----------
+1  | السلم الخماسي | ممتاز       | 90.00     | 100.00    | 5.00          | 1
+2  | السلم الخماسي | جيد جدًا    | 80.00     | 89.99     | 4.00          | 2
+3  | السلم الخماسي | جيد         | 70.00     | 79.99     | 3.00          | 3
+4  | السلم الخماسي | مقبول       | 60.00     | 69.99     | 2.00          | 4
+5  | السلم الخماسي | ضعيف        | 0.00      | 59.99     | 1.00          | 5
+=> final_score = max_value (ممتاز→100.00 ، جيد جدًا→89.99 ، جيد→79.99 ، مقبول→69.99 ، ضعيف→59.99)
+
+2) Legacy overall_grade sections still present (UAT-8) — for backward compat
+---------------------------------------------------------------------------
+template_id | sec_id | evaluation_type
+------------+--------+----------------
+2           | 10     | overall_grade   (التقدير العام — template "التقييم الوصفي للدورة")
+104         | 121    | overall_grade   (قسم جديد (التقدير العام) — template "الاستفادة والاخلق من الدورة")
+
+3) Legacy evaluations 155 / 3 (descriptive, saved BEFORE CD-040.3) — recalc after fix
+-------------------------------------------------------------------------------------
+id  | template_id | final_score | final_grade_label | final_grade_value | status
+----+-------------+-------------+-------------------+-------------------+-----------
+155 | 2           | 100.00      | ممتاز             | 5.00              | completed
+3   | 2           | 100.00      | ممتاز             | 5.00              | completed
+calculateFinalScore(155) BEFORE fix = NULL  (BUG: قراءة grade_label بدل final_grade_label)
+calculateFinalScore(155) AFTER fix  = 100.0
+calculateFinalScore(3)   AFTER fix  = 100.0
+Legacy evaluation_answers for 155 section 10 still present (1 row, raw_value=ممتاز)
+=> البيانات القديمة باقية، والحفظ الجديد لا ينشئ صفوفًا جديدة لها (انظر #4).
+
+4) ENterprise save via /evaluations/save-unified (UI, template 2 descriptive) — eval 196 (UAT-3)
+------------------------------------------------------------------------------------------------
+Request (preview + POST):
+  employee_id=5, template_id=2, final_grade_id=1 (ممتاز)
+  results[4][7][text]=UAT نص ١ UI
+  results[4][8][text]=UAT نص ٢ UI
+  results[4][9][text]=UAT نص ٣ UI
+  results[4][10][grade_label]=ممتاز   (قسم overall_grade القديم — يجب تخطّيه)
+
+Response: HTTP 200 {"success":true,"evaluation_id":196,"final_score":100,"message":"تم حفظ التقييم بنجاح"}
+
+SELECT id, final_score, final_grade_label, final_grade_value, status,
+       evaluated_employee_id, evaluator_employee_id
+FROM evaluations WHERE id=196;
+-- id=196 | final_score=100.00 | final_grade_label=ممتاز | final_grade_value=5.00 | status=completed
+-- evaluated_employee_id=5 | evaluator_employee_id=5
+
+SELECT section_id, raw_value, normalized_score FROM evaluation_answers
+WHERE evaluation_id=196 ORDER BY section_id;
+-- 7 | UAT نص ١ UI | NULL
+-- 8 | UAT نص ٢ UI | NULL
+-- 9 | UAT نص ٣ UI | NULL
+
+-- Overall check from directive (corrected column names):
+SELECT ea.* FROM evaluation_answers ea
+JOIN criteria_sections cs ON ea.section_id=cs.id
+WHERE ea.evaluation_id=196 AND cs.evaluation_type='overall_grade';
+-- المتوقّع: 0 صفوف — النتيجة: 0 ✓
+
+Temp records 196 (and model-level temp 192) were deleted after verification.
+Final DB state: evaluations=18, form_templates=5, temp mixed template 105 deleted.
+
+5) Model-level descriptive save (template 2) — temp eval 192 (UAT-3, no UI)
+----------------------------------------------------------------------------
+saveEvaluationResults(192, [textarea x3 + overall_grade grade_label])
+=> evaluation_answers = 3 rows (7,8,9), 0 rows for section 10 ✓
+updateScoreGradeAndStatus(192, 100.00, 'ممتاز', 5.00, 'completed') ✓
+
+6) Numeric weighted (UAT-6, template 1) — temp eval (deleted)
+---------------------------------------------------------------
+Answers: crit1 (80,60) crit2 (100,50) crit3 (90,70)
+calculateFinalScore = 75.30  (28.8 + 22.5 + 24.0) ✓
+final_grade_label derived = جيد (via updateScoreAndStatus range 70–79.99)
+
+7) Mixed temp template (UAT-5) — temp tpl 105 (deleted)
+-------------------------------------------------------
+WITH grade (ممتاز): final_score=100.00, final_grade_label=ممتاز ✓
+WITHOUT grade: calculateFinalScore=80.0 (percentage 80, textarea ignored) ✓
+
+NOTE on directive SQL: التوجيه يستخدم grade_label — العمود الفعلي هو
+final_grade_label (final_grade_value للقيمة 1-5). التقرير يستخدم الأسماء الصحيحة.

@@ -1,0 +1,19 @@
+CD-040.3 — PHP Log Evidence (storage/logs/php-error.log)
+
+Pre-existing (before CD-040.3, from CD-040 UAT):
+[09-Nov-2026 20:14:35] PHP Warning: Cannot modify header information — bulk-create.php line 4/5/6
+[09-Nov-2026 20:24:02] PHP Warning: Cannot modify header information — bulk-create.php line 4/5/6
+  => Pre-existing in bulk-create.php (headers after output), unrelated to CD-040.3 files.
+
+Test-harness artifact (our probe script, 22:20):
+[09-Nov-2026 22:20:01/06] PHP Fatal: Undefined constant DB_HOST in cd0403_test_before.php
+  => Missing require config/database.php in first probe draft; fixed and re-ran. Not app code.
+
+CD-040.3 app code (create / save-unified / builder / preview):
+  - php -l EvaluationController.php / BuilderController.php / Evaluation.php => No syntax errors
+  - node parse builder.js => OK, dropdown overall_grade=false, blocking alert=false
+  - Browser console on /builder/create, /evaluations/create, preview => 0 messages / 0 errors
+  - POST /evaluations/save-unified => 200, no PHP warnings added
+  => No new PHP errors from CD-040.3 code paths. UAT-9 PASS (with noted pre-existing bulk-create warnings out of scope).
+
+Note: php-error.log was truncated in this excerpt; full log remains in storage/logs/php-error.log.

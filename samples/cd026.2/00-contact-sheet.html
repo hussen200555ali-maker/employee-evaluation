@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>CD-026.2 — لقطات التحقق</title>
+<style>
+  body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:28px 34px}
+  .wrap{max-width:1320px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;color:#fff}
+  .meta{font-size:12.5px;color:#94a3b8;margin-bottom:18px;line-height:1.7}
+  .green{background:#052e24;border:1px solid #0f766e;color:#6ee7b7;border-radius:10px;padding:12px 16px;font-weight:700;font-size:13.5px;margin-bottom:18px}
+  .amber{background:#2a2107;border:1px solid #a16207;color:#fcd34d;border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.8;margin-bottom:18px}
+  .shot{background:#111c2e;border:1px solid #24344d;border-radius:12px;overflow:hidden;margin-bottom:20px}
+  .shot h2{font-size:14px;margin:0;padding:11px 16px;background:#17243a;color:#cbd5e1;border-bottom:1px solid #24344d}
+  .shot .desc{font-size:12px;color:#94a3b8;padding:8px 16px}
+  .shot img{display:block;max-width:100%;height:auto;background:#fff}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th{background:#17243a;color:#cbd5e1;padding:8px 12px;text-align:right;border-bottom:1px solid #24344d}
+  td{padding:7px 12px;border-bottom:1px solid #1e2d44;color:#cbd5e1;text-align:right}
+  code{font-family:Consolas,monospace;direction:ltr;color:#93c5fd}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CD-026.2 — لقطات التحقق من الواجهة</h1>
+  <div class="meta">التاريخ: 2026-11-08 · HEAD <code>d552130</code> (فوق <code>ee3c411</code>) · XAMPP / PHP 8.2.12 / MariaDB 10.4.32 · <code>employee_evaluation_uat</code><br>
+  لقطات حية من Chromium عبر Chrome DevTools Protocol، ملف تعريف جديد، الكاش معطّل، 1440×1080.</div>
+
+  <div class="green">✓ skill في باني القوالب (8 خيارات) · ✓ بطاقة بيانات المقيّم (4 حقول) · ✓ بطاقة الدورة التدريبية (select + required)</div>
+
+  <div class="shot">
+    <h2>١ — باني القوالب: خيار «تقييم مهاري (skill)»</h2>
+    <div class="desc">/builder/create — القائمة المنسدلة <code>target_type</code> موسّعة (size=8) لعرض الخيارات الثمانية كاملة بدل نافذة OS المنبثقة التي لا تُلتقط في المتصفح الآلي. الخيار الثامن <code>skill</code> محدد.</div>
+    <img src="01-builder-skill-option.png" alt="builder skill option">
+  </div>
+
+  <div class="shot">
+    <h2>٢ — شاشة التعبئة: بطاقة «بيانات المقيّم» (4 حقول)</h2>
+    <div class="desc">/evaluations/50551/fill — اسم المقيّم (مطلوب) · صفة المقيّم · تاريخ التقييم (مطلوب) · ملاحظات المقيّم العامة، قبل زر الحفظ.</div>
+    <img src="02-fill-evaluator-fields.png" alt="evaluator fields">
+  </div>
+
+  <div class="shot">
+    <h2>٣ — شاشة التعبئة: بطاقة «الدورة التدريبية»</h2>
+    <div class="desc">/evaluations/50644/fill — تقييم <code>draft</code> بقالب <code>employee_in_course</code> (template 21) أُنشئ من الواجهة. بطاقة <code>card border-warning</code> أعلى الاستمارة مع <code>select</code> إلزامي للدورة.</div>
+    <img src="03-fill-course-select.png" alt="course select">
+  </div>
+
+  <div class="shot">
+    <h2>٤ — لوحة أدلة (View Source + DOM + الكشف عن عيب P1)</h2>
+    <div class="desc">علامات <code>CD-026.2 UI active</code> في HTML المقدّم (cache: no-store)، والخيارات الثمانية، وحقول المقيّم، وخصائص حقل الدورة.</div>
+    <img src="04-evidence-panel.png" alt="evidence panel">
+  </div>
+
+  <div class="amber">
+    <strong>عيب P1 مكتشف (لم يُعدَّل أي كود):</strong>
+    في <code>app/Views/evaluations/fill.php:552</code> يُستخدم <code>Auth::user()-&gt;full_name</code> بدون <code>use App\Core\Auth;</code>.
+    عندما يكون <code>evaluations.evaluator_name = NULL</code> (كل تقييم جديد يُنشأ من مسار <code>flexible/.../employee-in-course</code>) يرمي PHP:
+    <code>Uncaught Error: Class "Auth" not found</code>، فيُقتطع المخرج عند <code>value="</code> ولا تُعرض بطاقة المقيّم ولا زر الحفظ.
+    التقييم 50551 يعمل لأن قيمته غير فارغة فيتخطى <code>??</code> الطرف الأيمن.
+    الدليل: <code>storage/logs/php-error.log</code> بتاريخ 08-Nov-2026 02:31:52.
+  </div>
+
+  <table>
+    <thead><tr><th>البند</th><th>النتيجة</th></tr></thead>
+    <tbody>
+      <tr><td>git log</td><td><code>d552130</code> — يعلو <code>ee3c411</code></td></tr>
+      <tr><td>علامة CD-026.2 في الملفات الثلاثة</td><td>✓ builder / fill / bulk-create</td></tr>
+      <tr><td>View Source marker</td><td>✓ builder + fill (50551 و50644)</td></tr>
+      <tr><td>خيار skill</td><td>✓ الخيار 8 من 8</td></tr>
+      <tr><td>بطاقة بيانات المقيّم</td><td>✓ على 50551 (تحذير P1 للقيم NULL)</td></tr>
+      <tr><td>بطاقة اختيار الدورة</td><td>✓ على 50644 (draft / employee_in_course)</td></tr>
+      <tr><td>الاختبارات</td><td>✓ 148/148 PASS</td></tr>
+      <tr><td>بوابة الترميز</td><td>✓ exit=0 (app 371 · tests 35)</td></tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

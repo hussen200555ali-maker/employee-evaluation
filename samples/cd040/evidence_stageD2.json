@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-11-09T17:29:04.691Z",
+  "draftId": 193,
+  "user": "cd040_other",
+  "steps": {
+    "login": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين"
+    },
+    "uat10_fill_foreign_draft": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين",
+      "flash": [],
+      "bodyStart": "ع\nعبدالله فهد المطيري\nCD040 Restricted\nلوحة التحكم\nمتصل\n20:29\nتسجيل الخروج\nأهلاً، cd040_other\nهذا التقييم غير مسند إلى حسابك.\nالمقيّم · التقييمات المسندة إليك\nصباح الأداء، عبدالله فهد المطيري\n\nهذه القراءة مصممة لدورك الحالي، ولا تعرض إلا التقييمات والمهام التي يسمح بها نطاق حسابك.\n\n مركز Excel\n بدء "
+    },
+    "uat10_save_unified_foreign_draft": {
+      "status": 403,
+      "body": "{\n    \"error\": \"هذا التقييم غير مسند إليك\"\n}"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+CD-040.3 — Network / Console Evidence (Chrome in-app, admin cd0403_uat)
+
+GET /builder/create
+  - Title: إنشاء قالب جديد | نظام تقييم الموظفين
+  - evaluate: hasOverallDrag=false, hasInfoNote=true
+  - body excerpt: "التقييم الوصفي (CD-023) / قسم نصي / التقدير العام — ناتج نظام تلقائي في أسفل الاستمارة (للأوضاع الوصفية/المختلطة). لا يُسحب كعنصر."
+  - screenshot: 01_builder_fullpage.jpeg
+
+GET /evaluations/create
+  - Title: بدء تقييم جديد | نظام تقييم الموظفين
+  - Initial: manualGradeCard display=none (no template selected)
+  - After selecting template 2 (descriptive) via change event:
+    - manualGradeCard display=block ✓
+    - criteriaStack text = "تقييم الاستفادة / مدى استفادة الموظف (نصي) / التطبيق العملي (نصي) / التوصيات (نصي)" — لا قسم overall_grade في الوسط ✓
+    - hasOverallInline (.cd040-overall-inline) = false ✓
+    - finalGradeSelect options = "السلم الخماسي — ممتاز | جيد جدًا | جيد | مقبول | ضعيف" (5 grades) ✓
+      (Before fix to EvaluationController::create: options were empty — bug fixed, see report §4)
+    - programCard display=block (employee_in_course) ✓
+  - GET /api/templates/2/schema => 200 (133ms), no console errors
+
+Preview (template 2 + final_grade_id=1):
+  - cd040_showPreview() modal open=true
+  - previewBody: "التقدير العام (ناتج النظام) / التقدير المختار: السلم الخماسي — ممتاز" ✓
+  - screenshot: 02_create_preview_modal.jpeg (modal + gold card + 3 textarea sections visible)
+
+POST /evaluations/save-unified (template 2, grade ممتاز)
+  - Status 200, body: {"success":true,"evaluation_id":196,"final_score":100,"message":"تم حفظ التقييم بنجاح"}
+  - DB: evaluations 196 final_score=100.00 final_grade_label=ممتاز (see DB_Evidence.txt)
+  - evaluation_answers 196: 3 rows, 0 overall_grade rows
+
+Console: no messages/errors on builder, create, or preview pages.

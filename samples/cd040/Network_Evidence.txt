@@ -1,0 +1,139 @@
+CD-040.1 UAT — Network / API Evidence
+Captured via Chrome DevTools Protocol (headless Chrome) on 2026-11-09.
+Base URL: http://localhost/employee-evaluation
+==============================================================================
+
+== UAT-1 / UAT-5 / UAT-8: POST /evaluations/save-unified (create, evaluation 191) ==
+HTTP status: 200
+_token = <csrf token>
+evaluation_id = 0
+employee_id = 1
+template_id = 104
+evaluator_employee_id = 5
+template_id_select = 104
+evaluation_date = 2026-11-09
+context_id = 
+context_type = 
+final_grade_id = 
+results[87][117][score] = 85
+results[87][117][notes] = 
+results[87][118][score] = 8
+results[87][118][notes] = 
+evaluator_name = خالد أحمد الغامدي
+evaluator_title = مدير قسم
+evaluator_notes = 
+Server response: 302 redirect to /evaluations/show/191 (evaluation created)
+DB result: evaluations.id=191, final_score=82.50, evaluator_employee_id=105
+NOTE: form posted evaluator_employee_id=5, but server persisted 105 → UAT-5 FAIL.
+
+== UAT-7: preview modal content (before save) ==
+أطراف التقييم
+الموظف
+عبدالله محمد العتيبي
+المُقيِّم
+خالد أحمد الغامدي — مدير قسم
+القالب
+CD-040 UAT — وزن ٥٠/٥٠
+البرنامج
+—
+تاريخ التقييم
+2026-11-09
+إجابات المعايير
+الأداء الكلي
+نسبة الإنجاز
+85
+الدرجة الرقمية
+8
+الدرجة المحسوبة
+٨٢.٥
+جيد جدًا
+Preview shows computed score block: true
+
+== UAT-3: employee search API + client-side cascade filter ==
+Request: GET /api/employees/search?q=محمد
+Returned status: 200, rows: 3
+Returned fields: id, emp_code, full_name, position_id
+Branch/department values returned by API: [{"id":1},{"id":107},{"id":7106}]
+Rendered search panel: "لا توجد نتائج ضمن الفلتر\n＋ إضافة موظف جديد — غير مسجّل؟ أضف بياناته"
+FINDING: API omits branch_id/department_id, so branch+department filtering cannot work; panel shows "لا توجد نتائج ضمن الفلتر".
+GET /api/departments/by-branch/1 returned: [{"v":"","t":"📋 كل الأقسام"},{"v":"1","t":"الإدارة العليا"},{"v":"4","t":"المالية"},{"v":"5","t":"المبيعات"},{"v":"3","t":"الموارد البشرية"},{"v":"2","t":"تقنية المعلومات"}] (cascade itself works)
+
+== UAT-4: POST /api/employees/quick-add ==
+HTTP status: 200
+Response body: {
+    "success": true,
+    "employee": {
+        "id": 7606,
+        "emp_code": "CD040-QA-001",
+        "full_name": "موظف إضافة سريعة",
+        "department_name": "تقنية المعلومات",
+        "branch_name": "الفرع الرئيسي - الرياض"
+    }
+}
+Selected employee: موظف إضافة سريعة ((CD040-QA-001)), hidden id=7606
+FINDING: position_id is NULL in DB (employee 7606) because quickAdd ignores the submitted position.
+
+== UAT-9: live score (template 104, 85% + 8/10) ==
+{"values":["85","8"],"live":"٨٢.٥","grade":"جيد جدًا"}
+Expected 82.5 and grade "جيد جدًا" → correct.
+
+== UAT-2: reopen + /fill prefill + update save ==
+Reopen POST: {"status":200,"finalUrl":"http://localhost/employee-evaluation/evaluations/191/fill"}
+Prefill: {"mode":"edit","title":"تعديل استمارة التقييم: عبدالله محمد العتيبي | نظام تقييم الموظفين","values":["85","8"],"live":"٨٢.٥","employeeLocked":"عبدالله محمد العتيبي","evaluatorName":"خالد أحمد الغامدي","evaluatorHidden":"","savedAnswers":{"117":{"raw_value":"85","notes":""},"118":{"raw_value":"8","notes":""}}}
+Live after edit (90 + 9/10): {"live":"٩٠.٠"}
+Update response: {"status":200,"body":"{\n    \"success\": true,\n    \"evaluation_id\": 191,\n    \"final_score\": 90,\n    \"message\": \"تم حفظ التقييم بنجاح\"\n}"}
+DB result: final_score 90.00, answers 90/90.
+
+== UAT-11: template 105 dynamic types + boolean ==
+Fields rendered: [{"type":"percentage","name":"results[88][119][score]"},{"type":"numeric","name":"results[88][120][score]"},{"type":"grade","name":"results[88][121][score]"},{"type":"boolean","name":"results[88][122][score]"},{"type":"textarea","name":"results[88][123][text]"},{"type":"overall_grade","name":"results[88][124][grade_label]"}]
+Entered values: {"perc":"100","num":"20","grade":"100","boolean":"1","textarea":"ملاحظة UAT للقيمة النصية","overall":"ممتاز","live":"٦٧.٠","gradeText":"مقبول"}
+Expected live score 90.0 (boolean yes = 100 × weight 10); actual 67.0 → FAIL (boolean hidden input counted as 1/100).
+Save response: {"status":200,"body":"{\n    \"success\": true,\n    \"evaluation_id\": 192,\n    \"final_score\": 80,\n    \"message\": \"تم حفظ التقييم بنجاح\"\n}"}
+Expected final 90.0; actual 80.0 → FAIL (normalized_score for boolean stored as 0.00).
+
+== UAT-10: permissions (cd040_other, role 689) ==
+Open /evaluations/192/fill (assigned to another user): {"url":"http://localhost/employee-evaluation/dashboard","title":"لوحة التحكم | نظام تقييم الموظفين"}
+Flash message shown: "هذا التقييم غير مسند إلى حسابك."
+POST save-unified on completed evaluation 192: {"status":400,"body":"{\n    \"error\": \"لا يمكن تعديل تقييم غير مسودة\"\n}"}
+POST save-unified on foreign DRAFT evaluation 193: {"status":403,"body":"{\n    \"error\": \"هذا التقييم غير مسند إليك\"\n}"}
+GET /evaluations: HTTP 403 — required permission: reports.view.all
+Access control behaves correctly (403 for foreign draft, redirect for /fill, 403 page for list).
+
+== UAT-6: training program filter (template 2 — course) ==
+As delivered: {"programCard":"block","label":"📚 الدورة التدريبية","count":"عرض 0 من 0 برنامج","options":["— اختر —"],"hasFilters":true,"apiStatuses":{"http://localhost/employee-evaluation/api/training-programs/list/course":403}}
+API GET /api/training-programs/list/course → HTTP 403 (TrainingProgramController requires training.view; Manager role lacks it).
+After temporary training.view grant: {"count":"عرض 3 من 3 برنامج","programs":[{"id":21,"title":"مهارات التواصل الفعال","branch":"فرع جدة","dept":"التسويق","start":"2026-12-10","end":"2026-12-12"},{"id":8,"title":"إدارة المشاريع","branch":"الفرع الرئيسي - الرياض","dept":"تقنية المعلومات","start":"2026-10-01","end":"2026-10-05"},{"id":4,"title":"إدارة المشاريع الاحترافية","branch":"فرع الدمام","dept":"العمليات","start":"2026-09-13","end":"2026-09-20"}],"options":["— اختر —","مهارات التواصل الفعال — فرع جدة/التسويق — 2026-12-10 → 2026-12-12","إدارة المشاريع — الفرع الرئيسي - الرياض/تقنية المعلومات — 2026-10-01 → 2026-10-05","إدارة المشاريع الاحترافية — فرع الدمام/العمليات — 2026-09-13 → 2026-09-20"]}
+Branch filter: {"count":"عرض 1 من 3 برنامج","selectedBranch":"1","deptOptions":[{"v":"","t":"📋 كل الأقسام"},{"v":"1","t":"الإدارة العليا"},{"v":"4","t":"المالية"},{"v":"5","t":"المبيعات"},{"v":"3","t":"الموارد البشرية"},{"v":"2","t":"تقنية المعلومات"}],"displayed":1}
+Department filter: {"count":"عرض 1 من 3 برنامج","deptValueAfter":"","displayed":1}
+FINDING: cd040_filterPrograms() reloads department options on every call and resets the selection to ""; department filter cannot be applied.
+Date filter: {"count":"عرض 1 من 3 برنامج","displayed":1}
+Program info card: {"branch":"الفرع الرئيسي - الرياض — تقنية المعلومات","dates":"2026-10-01 → 2026-10-05","trainer":"غير محدد","shown":true}
+Temporary grant revoked: {"action":"revoke","permission_id":21,"role_id":3,"now_granted":false}
+
+== UAT-14: list + bulk-create load ==
+GET /evaluations: {"title":"ملفات أداء الموظفين | نظام تقييم الموظفين","url":"http://localhost/employee-evaluation/evaluations","rows":15,"bodyStart":"س\nسلمان علي الحربي\nManager\nلوحة التحكم\nالموارد البشرية\nالموظفون\nعرض قائمة الموظفين\nالتقارير\nإنشاء تقرير موظف\nسجل التقارير\nمتصل\n20:24\nتسجيل الخروج\nأهلاً، uat_manager\nملفات أداء الموظفين\nاستيراد وتصدير Excel\n44\nموظف\n3\nفرع\n7\nقسم\n3\nصفحة\n بحث بالاسم أو الرقم الوظيفي\n الفرع\nالكل\nالفرع الرئيسي - الرياض\nفرع الدمام\nفرع جدة\n القسم\nالكل\nالإدارة العليا\nالمالية\nالمبيعات\nالموارد البشرية\nتقنية المعلومات\nالعمليات"}
+GET /evaluations/bulk-create: {"title":"التقييم الجماعي | نظام تقييم الموظفين","url":"http://localhost/employee-evaluation/evaluations/bulk-create","hasForm":true,"templates":13,"bodyStart":"س\nسلمان علي الحربي\nManager\nلوحة التحكم\nالموارد البشرية\nالموظفون\nعرض قائمة الموظفين\nالتقارير\nإنشاء تقرير موظف\nسجل التقارير\nمتصل\n20:24\nتسجيل الخروج\nأهلاً، uat_manager\nالتقييم الجماعي\nقالب التقييم\n— اختر القالب —\nCD-040 UAT — أنواع مختلطة\nCD-040 UAT — وزن ٥٠/٥٠\nالتقييم الرقمي للدورة\nالتقييم السنوي للموظف\nالتقييم المهاري\nالتقييم الوصفي للدورة\n🔒 يُقفل بعد أول تقييم\nالتاريخ الموحد\nاسم المقيّم\nصفة المقي"}
+
+== Console exceptions observed on the unified page ==
+[
+  {
+    "text": "Uncaught",
+    "desc": "SyntaxError: Identifier 'APP_URL' has already been declared",
+    "url": "http://localhost/employee-evaluation/evaluations/create",
+    "line": 1049
+  },
+  {
+    "text": "Uncaught",
+    "desc": "SyntaxError: Identifier 'APP_URL' has already been declared",
+    "url": "http://localhost/employee-evaluation/evaluations/create",
+    "line": 1049
+  },
+  {
+    "text": "Uncaught",
+    "desc": "SyntaxError: Identifier 'APP_URL' has already been declared",
+    "url": "http://localhost/employee-evaluation/evaluations/create",
+    "line": 1049
+  }
+]
+On every page load: "SyntaxError: Identifier 'APP_URL' has already been declared"
+Cause: app/Views/layouts/footer.php:45 and app/Views/evaluations/create.php:441 both declare global const APP_URL.

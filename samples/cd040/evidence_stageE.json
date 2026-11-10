@@ -1,0 +1,118 @@
+{
+  "startedAt": "2026-11-09T17:29:41.635Z",
+  "steps": {
+    "login": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين"
+    },
+    "uat06_as_delivered": {
+      "programCard": "block",
+      "label": "📚 الدورة التدريبية",
+      "count": "عرض 0 من 0 برنامج",
+      "options": [
+        "— اختر —"
+      ],
+      "hasFilters": true,
+      "apiStatuses": {
+        "http://localhost/employee-evaluation/api/training-programs/list/course": 403
+      }
+    },
+    "grant": "{\"action\":\"grant\",\"permission_id\":21,\"role_id\":3,\"now_granted\":true}",
+    "relogin": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين"
+    },
+    "uat06_programs_loaded": {
+      "count": "عرض 3 من 3 برنامج",
+      "programs": [
+        {
+          "id": 21,
+          "title": "مهارات التواصل الفعال",
+          "branch": "فرع جدة",
+          "dept": "التسويق",
+          "start": "2026-12-10",
+          "end": "2026-12-12"
+        },
+        {
+          "id": 8,
+          "title": "إدارة المشاريع",
+          "branch": "الفرع الرئيسي - الرياض",
+          "dept": "تقنية المعلومات",
+          "start": "2026-10-01",
+          "end": "2026-10-05"
+        },
+        {
+          "id": 4,
+          "title": "إدارة المشاريع الاحترافية",
+          "branch": "فرع الدمام",
+          "dept": "العمليات",
+          "start": "2026-09-13",
+          "end": "2026-09-20"
+        }
+      ],
+      "options": [
+        "— اختر —",
+        "مهارات التواصل الفعال — فرع جدة/التسويق — 2026-12-10 → 2026-12-12",
+        "إدارة المشاريع — الفرع الرئيسي - الرياض/تقنية المعلومات — 2026-10-01 → 2026-10-05",
+        "إدارة المشاريع الاحترافية — فرع الدمام/العمليات — 2026-09-13 → 2026-09-20"
+      ]
+    },
+    "uat06_branch_filter": {
+      "count": "عرض 1 من 3 برنامج",
+      "selectedBranch": "1",
+      "deptOptions": [
+        {
+          "v": "",
+          "t": "📋 كل الأقسام"
+        },
+        {
+          "v": "1",
+          "t": "الإدارة العليا"
+        },
+        {
+          "v": "4",
+          "t": "المالية"
+        },
+        {
+          "v": "5",
+          "t": "المبيعات"
+        },
+        {
+          "v": "3",
+          "t": "الموارد البشرية"
+        },
+        {
+          "v": "2",
+          "t": "تقنية المعلومات"
+        }
+      ],
+      "displayed": 1
+    },
+    "uat06_dept_filter": {
+      "count": "عرض 1 من 3 برنامج",
+      "deptValueAfter": "",
+      "displayed": 1
+    },
+    "uat06_date_filter": {
+      "count": "عرض 1 من 3 برنامج",
+      "displayed": 1
+    },
+    "uat06_program_info": {
+      "branch": "الفرع الرئيسي - الرياض — تقنية المعلومات",
+      "dates": "2026-10-01 → 2026-10-05",
+      "trainer": "غير محدد",
+      "shown": true
+    },
+    "console_exceptions": [
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared"
+      },
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared"
+      }
+    ]
+  },
+  "revoked": "{\"action\":\"revoke\",\"permission_id\":21,\"role_id\":3,\"now_granted\":false}"
+}

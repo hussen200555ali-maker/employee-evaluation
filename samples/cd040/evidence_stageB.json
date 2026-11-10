@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-11-09T17:25:08.922Z",
+  "evalId": 191,
+  "steps": {
+    "login": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين"
+    },
+    "uat02_reopen": {
+      "status": 200,
+      "finalUrl": "http://localhost/employee-evaluation/evaluations/191/fill"
+    },
+    "uat02_prefill": {
+      "mode": "edit",
+      "title": "تعديل استمارة التقييم: عبدالله محمد العتيبي | نظام تقييم الموظفين",
+      "values": [
+        "85",
+        "8"
+      ],
+      "live": "٨٢.٥",
+      "employeeLocked": "عبدالله محمد العتيبي",
+      "evaluatorName": "خالد أحمد الغامدي",
+      "evaluatorHidden": "",
+      "savedAnswers": {
+        "117": {
+          "raw_value": "85",
+          "notes": ""
+        },
+        "118": {
+          "raw_value": "8",
+          "notes": ""
+        }
+      }
+    },
+    "uat02_live_after_edit": {
+      "live": "٩٠.٠"
+    },
+    "uat02_save": {
+      "url": "http://localhost/employee-evaluation/evaluations/show/191",
+      "response": {
+        "status": 200,
+        "body": "{\n    \"success\": true,\n    \"evaluation_id\": 191,\n    \"final_score\": 90,\n    \"message\": \"تم حفظ التقييم بنجاح\"\n}"
+      }
+    },
+    "console_exceptions": [
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared"
+      }
+    ]
+  }
+}

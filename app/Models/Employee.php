@@ -413,12 +413,6 @@ public function search($query, $limit = 10, $offset = 0) {
             $params[':department_id'] = (int)$filters['department_id'];
         }
 
-        // CD-040.7: فلتر "شارك في" (دورة/ورشة/مهاري) — وجود تقييم بهذا القالب
-        if (!empty($filters['template_id'])) {
-            $sql .= " AND EXISTS (SELECT 1 FROM evaluations _e WHERE _e.evaluated_employee_id = e.id AND _e.template_id = :template_id)";
-            $params[':template_id'] = (int)$filters['template_id'];
-        }
-
         $sql .= " GROUP BY e.id, e.full_name, e.emp_code, p.title, b.name, d.name";
         $sql .= " ORDER BY last_evaluation_date DESC, e.full_name ASC";
 
@@ -457,12 +451,6 @@ public function search($query, $limit = 10, $offset = 0) {
         if (!empty($filters['department_id'])) {
             $sql .= " AND e.department_id = :department_id";
             $params[':department_id'] = (int)$filters['department_id'];
-        }
-
-        // CD-040.7: فلتر "شارك في" (دورة/ورشة/مهاري)
-        if (!empty($filters['template_id'])) {
-            $sql .= " AND EXISTS (SELECT 1 FROM evaluations _e WHERE _e.evaluated_employee_id = e.id AND _e.template_id = :template_id)";
-            $params[':template_id'] = (int)$filters['template_id'];
         }
 
         $this->db->query($sql);

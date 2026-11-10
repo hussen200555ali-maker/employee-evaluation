@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>CD-024.1 — لقطات التحقق الخمس</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background:#eef2f7; color:#0c2823; margin:0; padding:26px 34px; }
+  .wrap { max-width: 1250px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .meta { font-size: 12.5px; color:#64748b; margin-bottom: 20px; }
+  .shot { background:#fff; border-radius:14px; box-shadow:0 4px 18px rgba(15,23,42,.08); padding:16px 18px; margin-bottom:18px; }
+  .shot h2 { font-size: 15px; margin: 0 0 10px; color:#0c2823; border-right:4px solid #c8943f; padding-right:10px; }
+  .shot p { font-size: 12.5px; color:#475569; margin: 0 0 10px; }
+  img { max-width:100%; border:1px solid #dbe3ec; border-radius:10px; display:block; }
+  code { font-family: Consolas, monospace; direction:ltr; background:#f1f5f9; padding:1px 5px; border-radius:4px; }
+  .ok { color:#047857; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CD-024.1 — تحقق النشر: 5 لقطات حية</h1>
+  <div class="meta">2026-11-07 23:34 · Chrome headless بملف تعريف جديد وذاكرة معطلة · القوالب: 50 (نسبة)، 48 (تقدير)، 113 (وصفي)</div>
+
+  <div class="shot">
+    <h2>1) حقل نسبة مئوية — القالب 50</h2>
+    <p><code>&lt;input type="number" min="0" max="100"&gt;</code> — <span class="ok">لا أزرار 1-5</span></p>
+    <img src="01-percentage-input.png" alt="percentage input">
+  </div>
+
+  <div class="shot">
+    <h2>2) حقل تقدير (grade) — القالب 48</h2>
+    <p><code>&lt;select&gt;</code> منزلق بالخيارات (جيد / متوسط / ضعيف)</p>
+    <img src="02-grade-select.png" alt="grade select">
+  </div>
+
+  <div class="shot">
+    <h2>3) حقل نصي (textarea) — القالب 113</h2>
+    <p><code>&lt;textarea rows="3" maxlength="1000"&gt;</code></p>
+    <img src="03-textarea.png" alt="textarea">
+  </div>
+
+  <div class="shot">
+    <h2>4) التقدير العام (overall_grade) — القالب 113</h2>
+    <p><code>&lt;select&gt;</code> بالسلم الخماسي، وتم اختيار «ممتاز»</p>
+    <img src="04-overall-grade-select.png" alt="overall grade select">
+  </div>
+
+  <div class="shot">
+    <h2>5) وحدة التحكم — الرسالة الملتقطة</h2>
+    <p>لوحة موسومة تعرض نص Console الملتقط فعلياً عبر CDP، مع دليل View Source وAPI.</p>
+    <img src="05-console-marker.png" alt="console marker evidence">
+  </div>
+</div>
+</body>
+</html>

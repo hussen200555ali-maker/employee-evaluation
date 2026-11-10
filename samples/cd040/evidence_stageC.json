@@ -1,0 +1,63 @@
+{
+  "startedAt": "2026-11-09T17:27:23.467Z",
+  "steps": {
+    "login": {
+      "url": "http://localhost/employee-evaluation/dashboard",
+      "title": "لوحة التحكم | نظام تقييم الموظفين"
+    },
+    "uat11_template105_fields": [
+      {
+        "type": "percentage",
+        "name": "results[88][119][score]"
+      },
+      {
+        "type": "numeric",
+        "name": "results[88][120][score]"
+      },
+      {
+        "type": "grade",
+        "name": "results[88][121][score]"
+      },
+      {
+        "type": "boolean",
+        "name": "results[88][122][score]"
+      },
+      {
+        "type": "textarea",
+        "name": "results[88][123][text]"
+      },
+      {
+        "type": "overall_grade",
+        "name": "results[88][124][grade_label]"
+      }
+    ],
+    "uat11_boolean_filled": {
+      "perc": "100",
+      "num": "20",
+      "grade": "100",
+      "boolean": "1",
+      "textarea": "ملاحظة UAT للقيمة النصية",
+      "overall": "ممتاز",
+      "live": "٦٧.٠",
+      "gradeText": "مقبول"
+    },
+    "uat11_preview": {
+      "text": "أطراف التقييم\nالموظف\nسعد عبدالعزيز المطيري\nالمُقيِّم\nسلمان علي الحربي — مدير قسم\nالقالب\nCD-040 UAT — أنواع مختلطة\nالبرنامج\n—\nتاريخ التقييم\n2026-11-09\nإجابات المعايير\nتقييم شامل\nنسبة الإنجاز\n100\nالدرجة الرقمية\n20\nتقدير السلوك\n100\nالالتزام بالحضور\nنعم\nملاحظات نوعية\nملاحظة UAT للقيمة النصية\nالتقدير العام\nممتاز\nالدرجة المحسوبة\n٦٧.٠\nمقبول"
+    },
+    "uat11_save": {
+      "savedUrl": "http://localhost/employee-evaluation/evaluations/show/192",
+      "evalId": 192,
+      "response": {
+        "status": 200,
+        "body": "{\n    \"success\": true,\n    \"evaluation_id\": 192,\n    \"final_score\": 80,\n    \"message\": \"تم حفظ التقييم بنجاح\"\n}"
+      }
+    },
+    "console_exceptions": [
+      {
+        "text": "Uncaught",
+        "desc": "SyntaxError: Identifier 'APP_URL' has already been declared"
+      }
+    ]
+  },
+  "createdEvaluationId": 192
+}
