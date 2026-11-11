@@ -73,6 +73,8 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
 .lg{display:flex;align-items:center;gap:4px}
 .lg-c{width:14px;height:14px;border-radius:3px;border:1px solid #e0e8e4}
 .preview-scroll{overflow-x:auto;padding:10px 12px}
+.preview-state{padding:26px 12px;text-align:center;font-size:11px;color:#6c757d}
+.preview-state.err{color:#c62828}
 table.xl{border-collapse:collapse;font-size:10px;min-width:700px}
 table.xl th{padding:6px 4px;text-align:center;font-weight:700;border:1px solid #d1d5db}
 table.xl th.col-ltr{background:#0c2823;color:#c8943f;font-size:9px}
@@ -242,7 +244,65 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     dlLink.href = url;
   }
 
+  // CD-042-PERF: only the default tab's structure is embedded in the page.
+  // Other tabs fetch their structure on demand and cache it client-side.
+  var STRUCT_PENDING = {};
+  var currentRender = 0;
+
+  function previewState(kind, tplId){
+    if(!previewEl) return;
+    if(kind === 'loading'){
+      previewEl.innerHTML = '<div class="preview-state">⏳ جارٍ تحميل بنية القالب…</div>';
+      return;
+    }
+    previewEl.innerHTML = '<div class="preview-state err">✕ تعذر تحميل بنية القالب. ' +
+      '<a href="#" id="cd042-retry" style="color:#0c2823;font-weight:700;text-decoration:underline">إعادة المحاولة</a></div>';
+    var retry = document.getElementById('cd042-retry');
+    if (retry) retry.addEventListener('click', function(e){
+      e.preventDefault();
+      delete CD042_STRUCTURES[tplId];
+      renderPreview(tplId);
+    });
+  }
+
+  function ensureStructure(tplId, done){
+    tplId = parseInt(tplId, 10);
+    if (!tplId) { done(false); return; }
+    if (CD042_STRUCTURES[tplId]) { done(true); return; }
+    if (STRUCT_PENDING[tplId]) { STRUCT_PENDING[tplId].push(done); return; }
+    STRUCT_PENDING[tplId] = [done];
+    fetch(APP_URL_CONST + '/evaluations/excel/template-structure?template_id=' + encodeURIComponent(tplId), {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(res){
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function(data){
+      if (data && data.structure) CD042_STRUCTURES[tplId] = data.structure;
+      var cbs = STRUCT_PENDING[tplId] || [];
+      delete STRUCT_PENDING[tplId];
+      cbs.forEach(function(fn){ try { fn(!!CD042_STRUCTURES[tplId]); } catch(e){} });
+    }).catch(function(){
+      var cbs = STRUCT_PENDING[tplId] || [];
+      delete STRUCT_PENDING[tplId];
+      cbs.forEach(function(fn){ try { fn(false); } catch(e){} });
+    });
+  }
+
   function renderPreview(tplId){
+    tplId = parseInt(tplId, 10);
+    if (!previewEl || !tplId) return;
+    var seq = ++currentRender;
+    if (CD042_STRUCTURES[tplId]) { renderStructure(tplId); return; }
+    previewState('loading');
+    ensureStructure(tplId, function(ok){
+      if (seq !== currentRender) return;
+      if (CD042_STRUCTURES[tplId]) renderStructure(tplId);
+      else previewState('error', tplId);
+    });
+  }
+
+  function renderStructure(tplId){
     var st = CD042_STRUCTURES[tplId];
     if(!st || !previewEl) return;
     var cols = st.columns || [];

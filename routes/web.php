@@ -157,6 +157,8 @@ $router->get('api/evaluations/exists', 'App\Controllers\ApiController@evaluation
 // CD-034: ما زال مؤرشفًا (خارج نطاق CD-037) — Excel + الوحدات + المرن + الجدولة
 /*
 $router->get('evaluations/excel/import', 'App\Controllers\EvaluationExcelController@importForm');
+// CD-042-PERF: lazy-loaded template structure for the preview tabs.
+$router->get('evaluations/excel/template-structure', 'App\Controllers\EvaluationExcelController@templateStructure');
 $router->get('evaluations/excel/template', 'App\Controllers\EvaluationExcelController@downloadTemplate');
 $router->get('evaluations/excel/template/:id', 'App\Controllers\EvaluationExcelController@downloadTemplate');
 $router->post('evaluations/excel/preview', 'App\Controllers\EvaluationExcelController@preview');
