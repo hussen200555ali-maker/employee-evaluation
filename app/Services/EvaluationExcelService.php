@@ -70,16 +70,22 @@ final class EvaluationExcelService
             $fixedCount = 5;
             $instruction = 'كل صف = موظف واحد + تقييم واحد. الرقم الوظيفي أو الاسم الكامل أحدهما إلزامي. التاريخ YYYY-MM-DD أو DD-MM-YYYY وليس مستقبلاً. الأعمدة الصفراء للتحرير فقط. حتى ' . $maxRows . ' موظف.';
         }
-        // CD-042: Build expanded columns list — sections + notes columns (if allow_notes=1)
-        $expandedCols = []; // each: ['kind'=>'section'|'notes', 'section'=>array]
+        // Build grouped criteria (must happen before expanded columns)
+        $grouped = [];
+        foreach ($sections as $section) {
+            $cName = $section['criterion_name'];
+            if (!isset($grouped[$cName])) {
+                $grouped[$cName] = ['weight' => $section['criterion_weight'], 'sections' => []];
+            }
+            $grouped[$cName]['sections'][] = $section;
+        }
+        // CD-042.1 (forward-fix): adjacent criteria columns only (no interleaved notes columns).
+        // Per-criterion notes are intentionally NOT emitted; general notes live in the tail.
+        // A separate future CD will add end-to-end per-criterion notes if required.
+        $expandedCols = []; // each: ['kind'=>'section', 'section'=>array, 'criterion'=>string]
         foreach ($grouped as $cName => $group) {
             foreach ($group['sections'] as $section) {
                 $expandedCols[] = ['kind' => 'section', 'section' => $section, 'criterion' => $cName];
-                $secType = $section['evaluation_type'] ?? 'percentage';
-                $allowNotes = (int)($section['allow_notes'] ?? 0);
-                if ($allowNotes === 1 && !in_array($secType, ['textarea', 'overall_grade', 'text'], true)) {
-                    $expandedCols[] = ['kind' => 'notes', 'section' => $section, 'criterion' => $cName];
-                }
             }
         }
         $expandedCount = count($expandedCols);
@@ -111,14 +117,7 @@ final class EvaluationExcelService
         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(8)->getColor()->setRGB('555555');
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setWrapText(true);
         $sheet->getRowDimension(2)->setRowHeight(22);
-        $grouped = [];
-        foreach ($sections as $section) {
-            $cName = $section['criterion_name'];
-            if (!isset($grouped[$cName])) {
-                $grouped[$cName] = ['weight' => $section['criterion_weight'], 'sections' => []];
-            }
-            $grouped[$cName]['sections'][] = $section;
-        }
+        // grouped already built above (before expanded columns)
         // fixedHeaders already defined above
         foreach ($fixedHeaders as $idx => $header) {
             $col = $this->colLetter($idx + 1);
@@ -137,7 +136,7 @@ final class EvaluationExcelService
             $cName = $ec['criterion'];
             if ($prevCriterion !== null && $cName !== $prevCriterion) {
                 // Close previous criterion group
-                $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, $grouped[$prevCriterion]['weight']);
+                $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, (float) $grouped[$prevCriterion]['weight']);
                 $groupStartCol = $currentCol;
             }
             $col = $this->colLetter($currentCol);
@@ -160,7 +159,7 @@ final class EvaluationExcelService
         }
         // Close last criterion group
         if ($prevCriterion !== null) {
-            $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, $grouped[$prevCriterion]['weight']);
+            $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, (float) $grouped[$prevCriterion]['weight']);
         }
         $secHeaderStart = $this->colLetter($fixedCount + 1);
         $secHeaderEnd = $this->colLetter($fixedCount + $expandedCount);
