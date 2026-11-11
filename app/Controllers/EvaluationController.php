@@ -30,7 +30,8 @@ class EvaluationController extends Controller {
         $filters = [
             'search' => $_GET['search'] ?? '',
             'branch_id' => $_GET['branch_id'] ?? null,
-            'department_id' => $_GET['department_id'] ?? null
+            'department_id' => $_GET['department_id'] ?? null,
+            'template_id' => $_GET['template_id'] ?? null,
         ];
 
         // الترقيم
@@ -50,11 +51,22 @@ class EvaluationController extends Controller {
         $departmentModel = new \App\Models\Department();
         $departments = $departmentModel->getAll();
 
+        // CD-040.7: templates (course/workshop/skill) that have at least one evaluation
+        $db = \App\Core\Database::getInstance();
+        $db->query("SELECT t.id, t.template_name, t.target_type, COUNT(e.id) AS eval_count
+                    FROM form_templates t
+                    JOIN evaluations e ON e.template_id = t.id
+                    WHERE t.target_type IN ('employee_in_course','employee_in_workshop','skill')
+                    GROUP BY t.id, t.template_name, t.target_type
+                    ORDER BY t.target_type, t.template_name");
+        $templatesWithEvals = $db->fetchAll();
+
         $data = [
             'pageTitle' => 'ملفات أداء الموظفين',
             'employees' => $employees,
             'branches' => $branches,
             'departments' => $departments,
+            'templatesWithEvals' => $templatesWithEvals,
             'filters' => $filters,
             'pagination' => [
                 'currentPage' => $currentPage,
