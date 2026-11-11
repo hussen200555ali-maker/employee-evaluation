@@ -1,5 +1,18 @@
 <div dir="rtl">
 
+## 0.5 تصحيحات بعد المراجعة الفعلية (2026-11-11)
+
+> **المرجعية:** هذا القسم + تقرير التنفيذ (§13) يُلغِيان ما يتعارض معهما في الأقسام 4/5/7. الردّ (Post-Review) هو النافذ.
+
+| ما ورد في التوجيه الأصلي | الصحيح (اعتمد) |
+|---|---|
+| جدول `templates` | **`form_templates`** (الاسم الفعلي) |
+| DQ-7: هجرة `ALTER ENUM` لإضافة `skill` | **ملغاة** — `skill` موجود أصلاً في `form_templates.target_type` |
+| افتراض تعديل `php.ini` لـ 20MB | **غير مطلوب** — الحدود كافية (`upload_max_filesize=40M`, `post_max_size=40M`, `memory_limit=512M`) |
+| افتراض توفر `is_new_employee` | **كان غير موجود** — أُضيفه Phase 3 في `previewWorkbookPath()` |
+| أعمدة الملاحظات المتداخلة (commit `8eeb72c`) | **forward-fix** — استعادة تخطيط البنود متجاورة + ملاحظة عامة واحدة (commit `9bbe0bd`) |
+
+
 # CD-042 (UI Enhance) — توجيه التطوير الموجّه إلى مطوّر PHP
 
 **معرّف المهمة:** `CD-042-UI-ENHANCE`
@@ -305,3 +318,46 @@ git branch "backup/$tag" $tag
 **نهاية التوجيه — CD-042-UI-ENHANCE**
 
 </div>
+
+
+## 13. تقرير التنفيذ (Execution Summary)
+
+**الفرع:** `feature/cd-042-ui-enhance-work` — 8 commits (7 + docs).
+
+### Commits
+| Phase | Commit | الوصف |
+|---|---|---|
+| 0 | tag+branch+dump | نقطة عودة `pre-cd042-ui-enhance-20261111_050256` |
+| 1 | `9bbe0bd` | **fix**: استعادة تخطيط البنود متجاورة + إصلاح ترتيب `$grouped` (عطل إنتاجي) |
+| 2 | `f828ac3` | **feat**: `describeTemplateStructure()` (introspection → تطابق 100%) |
+| 3 | `ae97548` | **feat**: لوحة معاينة + drag-drop + شريط لاصق + 4 بطاقات + `is_new_employee` |
+| 4 | `8b4bb43` | **feat**: دعم `skill` (prefill/parse/validate/commit) |
+| 5 | `dbb0079` | **feat**: 2000 صف / 20MB + رفع صريح للتجاوز |
+| 6 | `39ddb53` | **docs**: CHANGELOG |
+| 7 | (this) | **docs**: تصحيحات التوجيه + تقرير التنفيذ |
+
+### before/after — قالب id=1 (التقييم السنوي)
+| | قبل (معطوب) | بعد |
+|---|---|---|
+| `getHighestColumn()` | `K` | `P` (15 عمود + helper) |
+| الصف 4 (ترويسات البنود) | **فارغ** | 6 بنود معروضة |
+| الذيل | يبدأ at F (خاطئ) | L ملاحظة عامة · M تاريخ · N مقيّم · O صفة |
+
+### التحقق
+- `php -l` (3 ملفات): ✅ لا أخطاء
+- `CD042DuplicateSmoke`: ✅ 1/1
+- `ExcelWorkflowSmoke`: ✅ 4/4
+- `ExcelImportConflictSmoke`: ✅ 3/3
+- Parity (describe vs buildTemplate): ✅ 5/5 قوالب نشطة (1, 2, 3, 4, 104) — 0 mismatches
+- Skill E2E (isolated DB): ✅ PASS (valid=1, commit=1, score=92, answer=92)
+
+### القرارات المعتمدة
+1. أعمدة الملاحظات المتداخلة → **(أ)** استعادة التخطيط السليم (forward-fix).
+2. التبويبات → **ديناميكية** (فردي/دورة/مهاري حالياً).
+3. الحد الأدنى للصفوف → **1**، الأعلى **2000**.
+4. دعم `skill` → **نعم** (لا هجرة enum).
+
+### متابعات مؤجلة
+1. `applyDropdowns()` لـ course/workshop — TODO مسجل (لا قوالب نشطة).
+2. ملاحظات البنود عبر Excel — مهمة CD منفصلة (end-to-end).
+3. هجرة `skill` enum — غير مطلوبة.
