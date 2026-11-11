@@ -36,10 +36,25 @@ final class EvaluationExcelController extends Controller
                 $evaluatorEmployeeId = (int)$user->employee_id;
             }
         }
-        $templateStructures = [];
+        // CD-042-PERF: only the default tab's structure is built on page load (≈one
+        // template). The remaining tabs are fetched on demand from
+        // /evaluations/excel/template-structure and cached client-side.
+        $typeOrder = ['employee','skill','employee_in_course','employee_in_workshop','course','workshop','unit'];
+        $templatesByType = [];
         foreach ($templates as $tpl) {
+            $templatesByType[$tpl->target_type][] = $tpl;
+        }
+        $defaultTemplateId = 0;
+        foreach ($typeOrder as $type) {
+            if (!empty($templatesByType[$type])) {
+                $defaultTemplateId = (int) $templatesByType[$type][0]->id;
+                break;
+            }
+        }
+        $templateStructures = [];
+        if ($defaultTemplateId > 0) {
             try {
-                $templateStructures[(int)$tpl->id] = $this->excel->describeTemplateStructure((int)$tpl->id, $evaluatorEmployeeId);
+                $templateStructures[$defaultTemplateId] = $this->excel->describeTemplateStructure($defaultTemplateId, $evaluatorEmployeeId);
             } catch (\Throwable $e) {
                 error_log('describeTemplateStructure error: ' . $e->getMessage());
             }
@@ -55,6 +70,36 @@ final class EvaluationExcelController extends Controller
             'gradingScales'  => (new GradingScale())->getActive(),
             'templateStructures' => $templateStructures,
         ]);
+    }
+    /**
+     * CD-042-PERF: on-demand template structure for the preview tabs.
+     * GET /evaluations/excel/template-structure?template_id={id}
+     */
+    public function templateStructure(): void
+    {
+        Auth::enforce('evaluations.fill');
+        $templateId = (int) ($_GET['template_id'] ?? 0);
+        if ($templateId <= 0) {
+            $this->json(['error' => 'معرف القالب غير صالح.'], 400);
+            return;
+        }
+        $pdo = \App\Core\Database::getInstance()->getPdo();
+        $stmt = $pdo->prepare('SELECT id FROM form_templates WHERE id = :id AND is_active = 1 LIMIT 1');
+        $stmt->execute(['id' => $templateId]);
+        if ($stmt->fetchColumn() === false) {
+            $this->json(['error' => 'القالب غير موجود أو غير نشط.'], 404);
+            return;
+        }
+        $user = Auth::user();
+        $evaluatorEmployeeId = ($user && !empty($user->employee_id)) ? (int) $user->employee_id : 0;
+        try {
+            $structure = $this->excel->describeTemplateStructure($templateId, $evaluatorEmployeeId);
+        } catch (\Throwable $e) {
+            error_log('templateStructure error: ' . $e->getMessage());
+            $this->json(['error' => 'تعذر تحميل بنية القالب.'], 500);
+            return;
+        }
+        $this->json(['structure' => $structure]);
     }
     public function downloadTemplate($id = null): void
     {
