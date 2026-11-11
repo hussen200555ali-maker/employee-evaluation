@@ -25,6 +25,7 @@ final class EvaluationExcelController extends Controller
         $branches = (new Branch())->getAllWithDepartments();
         $evaluatorName = '';
         $evaluatorTitle = '';
+        $evaluatorEmployeeId = 0;
         $user = Auth::user();
         if ($user && !empty($user->employee_id)) {
             $empModel = new \App\Models\Employee();
@@ -32,6 +33,15 @@ final class EvaluationExcelController extends Controller
             if ($emp) {
                 $evaluatorName = $emp->full_name;
                 $evaluatorTitle = $emp->position_title ?? '';
+                $evaluatorEmployeeId = (int)$user->employee_id;
+            }
+        }
+        $templateStructures = [];
+        foreach ($templates as $tpl) {
+            try {
+                $templateStructures[(int)$tpl->id] = $this->excel->describeTemplateStructure((int)$tpl->id, $evaluatorEmployeeId);
+            } catch (\Throwable $e) {
+                error_log('describeTemplateStructure error: ' . $e->getMessage());
             }
         }
         $this->view('evaluations/excel_import', [
@@ -43,6 +53,7 @@ final class EvaluationExcelController extends Controller
             'evaluatorName'  => $evaluatorName,
             'evaluatorTitle' => $evaluatorTitle,
             'gradingScales'  => (new GradingScale())->getActive(),
+            'templateStructures' => $templateStructures,
         ]);
     }
     public function downloadTemplate($id = null): void

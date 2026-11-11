@@ -471,12 +471,13 @@ final class EvaluationExcelService
                 $rowInsert->execute(['batch_id'=>$batchId,'source_row'=>$excelRowNumber,'payload'=>json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'valid'=>$isValid?1:0,'status'=>$isValid?'valid':'invalid']);
                 $importRowId=(int)$pdo->lastInsertId();
                 foreach($errors as $error){ $errorInsert->execute(['batch_id'=>$batchId,'row_id'=>$importRowId,'source_row'=>$excelRowNumber,'code'=>$error['code'],'message'=>$error['message']]); }
-                $previewRows[]=['row'=>$excelRowNumber,'payload'=>$payload,'section_values'=>$sectionValues,'notes'=>$notes,'columns_with_errors'=>$colsWithErrors,'errors'=>array_column($errors,'message')];
+                $previewRows[]=['row'=>$excelRowNumber,'payload'=>$payload,'section_values'=>$sectionValues,'notes'=>$notes,'columns_with_errors'=>$colsWithErrors,'errors'=>array_column($errors,'message'),'is_new_employee'=>!empty($payload['_is_new_employee'])];
                 $isValid?$validCount++:$invalidCount++;
                 $excelRowNumber++;
             }
             if ($previewRows === []) { $pdo->rollBack(); throw new RuntimeException('لا يحتوي الملف على أي صفوف بيانات قابلة للاستيراد.'); }
-            $summary=['total'=>count($previewRows),'valid'=>$validCount,'invalid'=>$invalidCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType];
+            $newEmployeeCount = 0; foreach ($previewRows as $_pr) { if (!empty($_pr['is_new_employee'])) { $newEmployeeCount++; } }
+            $summary=['total'=>count($previewRows),'valid'=>$validCount,'invalid'=>$invalidCount,'new_employees'=>$newEmployeeCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType];
             $pdo->prepare('UPDATE evaluation_import_batches SET total_rows=:total, valid_rows=:valid, invalid_rows=:invalid, summary_json=:summary WHERE id=:id')->execute(['total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'summary'=>json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'id'=>$batchId]);
             $pdo->commit();
             return ['batch_id'=>$batchId,'total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType,'rows'=>$previewRows];
@@ -898,6 +899,7 @@ final class EvaluationExcelService
             if($empCode!==''){ $existingEmployee=$this->findEmployeeByCode($empCode); }
             elseif($fullName!==''){ $existingEmployee=$this->findEmployeeByName($fullName,$branchName,$departmentName); }
             if($existingEmployee===false||$existingEmployee===null){
+                $payload['_is_new_employee'] = true;
                 if($branchName!==''&&!isset($branchMap[$branchName])){ $errors[]=['code'=>'BRANCH_NOT_FOUND','message'=>'الفرع '.$branchName.' غير موجود في النظام.','column'=>'D']; }
                 if($departmentName!==''&&!isset($departmentMap[$departmentName])){ $errors[]=['code'=>'DEPARTMENT_NOT_FOUND','message'=>'القسم '.$departmentName.' غير موجود في النظام.','column'=>'E']; }
                 if($branchName!==''&&$departmentName!==''&&isset($branchMap[$branchName])&&isset($departmentMap[$departmentName])){
