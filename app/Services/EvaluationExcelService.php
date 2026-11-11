@@ -216,7 +216,7 @@ final class EvaluationExcelService
         }
         $sheet->getStyle($helperCol . $dataStartRow . ':' . $helperCol . $dataEndRow)->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         $this->buildLookupSheet($book);
-        if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop'], true)) {
+        if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop','skill'], true)) {
             $prefill = $this->getPrefillEmployees($branchId, $departmentId, $maxRows);
             $rowIdx = $dataStartRow;
             foreach ($prefill as $emp) {
@@ -385,7 +385,7 @@ final class EvaluationExcelService
                 $empCode=''; $fullName=''; $nickname=''; $branchName=''; $departmentName='';
                 $courseId=''; $workshopId=''; $unitType=''; $unitCode=''; $period='';
                 $startDate=''; $endDate='';
-                if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop'], true)) {
+                if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop','skill'], true)) {
                     $empCode = trim((string) ($row[0] ?? ''));
                     $fullName = trim((string) ($row[1] ?? ''));
                     if (in_array($targetType, ['employee_in_course','employee_in_workshop'], true)) {
@@ -480,7 +480,7 @@ final class EvaluationExcelService
             $summary=['total'=>count($previewRows),'valid'=>$validCount,'invalid'=>$invalidCount,'new_employees'=>$newEmployeeCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType];
             $pdo->prepare('UPDATE evaluation_import_batches SET total_rows=:total, valid_rows=:valid, invalid_rows=:invalid, summary_json=:summary WHERE id=:id')->execute(['total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'summary'=>json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'id'=>$batchId]);
             $pdo->commit();
-            return ['batch_id'=>$batchId,'total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType,'rows'=>$previewRows];
+            return ['batch_id'=>$batchId,'total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'new_employees'=>$newEmployeeCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType,'rows'=>$previewRows];
         } catch (\Throwable $exception) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
             throw $exception;
@@ -518,7 +518,7 @@ final class EvaluationExcelService
                 $errors=$this->validateSingleRow($payload,$evaluatorEmployeeId,$recheckSeenCodes,$recheckSeenNames,$branchMap,$departmentMap,$sections);
                 $empCode=trim((string)($payload['emp_code']??''));
                 $fullName=trim((string)($payload['full_name']??''));
-                if(in_array($targetType,['employee','employee_in_course','employee_in_workshop'],true)){
+                if(in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)){
                     if($empCode!==''){
                         if(isset($recheckSeenCodes[$empCode])){ $errors[]=['code'=>'EMP_CODE_DUPLICATE','message'=>'رمز الموظف مكرر داخل الملف.']; }
                         else { $recheckSeenCodes[$empCode]=(int)$payload['excel_row']; }
@@ -890,7 +890,7 @@ final class EvaluationExcelService
         } else {
             if($empCode===''&&$fullName===''){ $errors[]=['code'=>'EMP_OR_NAME_REQUIRED','message'=>'يجب إدخال الرقم الوظيفي أو الاسم الكامل على الأقل في الصف '.($payload['excel_row']??'?').'.','column'=>'A']; }
         }
-        if(in_array($targetType,['employee','employee_in_course','employee_in_workshop'],true)){
+        if(in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)){
             if($empCode!==''&&preg_match('/^[=+@-]/',ltrim($empCode))){ $errors[]=['code'=>'FORMULA','message'=>'رمز الموظف لا يمكن أن يبدأ بصيغة Excel.','column'=>'A']; }
             if($fullName!==''&&preg_match('/^[=+@-]/',ltrim($fullName))){ $errors[]=['code'=>'FORMULA','message'=>'الاسم لا يمكن أن يبدأ بصيغة Excel.','column'=>'B']; }
             if($nickname!==''&&preg_match('/^[=+@-]/',ltrim($nickname))){ $errors[]=['code'=>'FORMULA','message'=>'الصفة لا يمكن أن تبدأ بصيغة Excel.','column'=>'C']; }
@@ -934,7 +934,7 @@ final class EvaluationExcelService
         if($evaluatorTitle!==''&&preg_match('/^[=+@-]/',ltrim($evaluatorTitle))){ $errors[]=['code'=>'FORMULA','message'=>'صفة المقيّم لا يمكن أن تبدأ بصيغة Excel.','column'=>$this->colLetter(6+count($sections)+3)]; }
         if($evaluatorName!==''&&mb_strlen($evaluatorName)>255){ $errors[]=['code'=>'EVALUATOR_NAME_TOO_LONG','message'=>'اسم المقيّم طويل جداً (255 حرف).','column'=>$this->colLetter(6+count($sections)+2)]; }
         if($evaluatorTitle!==''&&mb_strlen($evaluatorTitle)>255){ $errors[]=['code'=>'EVALUATOR_TITLE_TOO_LONG','message'=>'صفة المقيّم طويلة جداً (255 حرف).','column'=>$this->colLetter(6+count($sections)+3)]; }
-        $hasEntity=in_array($targetType,['employee','employee_in_course','employee_in_workshop'],true)?$empCode!==''||$fullName!=='':true;
+        $hasEntity=in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)?$empCode!==''||$fullName!=='':true;
         if($hasEntity){
             foreach($payload['section_values']??[] as $sectionId=>$value){
                 $trimmed=trim((string)$value);
