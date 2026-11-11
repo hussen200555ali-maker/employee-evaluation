@@ -1104,6 +1104,14 @@ final class EvaluationExcelService
      */
     public function describeTemplateStructure(int $templateId, int $evaluatorEmployeeId = 0): array
     {
+        // CD-042-PERF: request-scoped memoization. Key includes the evaluator because
+        // the prefill depends on it; the cache is transparent to callers.
+        $cacheKey = $templateId . ':' . $evaluatorEmployeeId;
+        static $cache = [];
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
         $book = $this->buildTemplate($templateId, $evaluatorEmployeeId, null, null, 2);
         $sheet = $book->getActiveSheet();
         $template = $this->getTemplateOrFail($templateId);
@@ -1280,7 +1288,7 @@ final class EvaluationExcelService
         if (isset($demo2['B'])) { $demo2['B'] = '＋ موظف جديد'; }
         $sampleRows[] = $demo2;
 
-        return [
+        $result = [
             'target_type' => $targetType,
             'template_name' => $template['template_name'],
             'fixed_count' => $fixedCount,
@@ -1294,6 +1302,9 @@ final class EvaluationExcelService
             ],
             'sample_rows' => $sampleRows,
         ];
+
+        $cache[$cacheKey] = $result;
+        return $result;
     }
 
 
