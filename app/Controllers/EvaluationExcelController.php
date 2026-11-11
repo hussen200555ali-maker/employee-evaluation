@@ -79,7 +79,7 @@ final class EvaluationExcelController extends Controller
             if ($branchId !== null && $branchId <= 0) $branchId = null;
             if ($departmentId !== null && $departmentId <= 0) $departmentId = null;
             $maxRows = isset($_GET['max_rows']) && $_GET['max_rows'] !== '' ? (int) $_GET['max_rows'] : 100;
-            $maxRows = max(1, min($maxRows, 1000));
+            $maxRows = max(1, min($maxRows, 2000));
             $book = $this->excel->buildTemplate($templateId, $employeeId, $branchId, $departmentId, $maxRows);
         } catch (RuntimeException $e) {
             Flash::set($e->getMessage(), 'danger');
@@ -210,7 +210,7 @@ final class EvaluationExcelController extends Controller
                 throw new RuntimeException('يرجى اختيار قالب التقييم.');
             }
             $maxRows = isset($_GET['max_rows']) && $_GET['max_rows'] !== '' ? (int) $_GET['max_rows'] : 100;
-            $maxRows = max(1, min($maxRows, 1000));
+            $maxRows = max(1, min($maxRows, 2000));
             $mode = $_GET['mode'] ?? 'prefill';
             $prefillIds = null;
             $pdo = \App\Core\Database::getInstance()->getPdo();

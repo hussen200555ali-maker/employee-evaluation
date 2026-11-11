@@ -17,9 +17,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use RuntimeException;
 final class EvaluationExcelService
 {
-    private const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    private const MAX_FILE_SIZE = 20 * 1024 * 1024;
     private const DEFAULT_MAX_ROWS = 100;
-    private const MAX_ROWS_LIMIT = 1000;
+    private const MAX_ROWS_LIMIT = 2000;
     private const MAX_ROWS = 100;
     private const SHEET_NAME = 'التقييمات';
     private const LOOKUP_SHEET = '__lookup';
@@ -325,7 +325,7 @@ final class EvaluationExcelService
     public function previewWorkbookPath(string $path, string $originalFilename, int $size, int $userId, int $evaluatorEmployeeId): array
     {
         if ($size <= 0 || $size > self::MAX_FILE_SIZE) {
-            throw new RuntimeException('حجم ملف الاستيراد يجب ألا يتجاوز 10 ميغابايت.');
+            throw new RuntimeException('حجم ملف الاستيراد يجب ألا يتجاوز 20 ميغابايت.');
         }
         if (strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) !== 'xlsx') {
             throw new RuntimeException('صيغة الملف المسموحة هي XLSX فقط.');
@@ -380,7 +380,7 @@ final class EvaluationExcelService
                     if (trim((string) $cell) !== '') { $isEmptyRow = false; break; }
                 }
                 if ($isEmptyRow) { $excelRowNumber++; continue; }
-                if (count($previewRows) >= self::MAX_ROWS_LIMIT) { break; }
+                if (count($previewRows) >= self::MAX_ROWS_LIMIT) { throw new RuntimeException('عدد صفوف البيانات يتجاوز الحد الأقصى (' . self::MAX_ROWS_LIMIT . ' صف).'); }
                 $targetType = $template['target_type'] ?? 'employee';
                 $empCode=''; $fullName=''; $nickname=''; $branchName=''; $departmentName='';
                 $courseId=''; $workshopId=''; $unitType=''; $unitCode=''; $period='';
