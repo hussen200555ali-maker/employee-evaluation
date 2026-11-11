@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD-042 — نظام استيراد وتصدير التقييمات</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#0c2823;--brand2:#0d5e52;--gold:#c8943f;--gold-d:#a87830;--gold-bg:#faefd9;--ink:#1a2e2a;--line:#e0e8e4;--bg:#f5f8f6;--surf:#fff;--muted:#6c757d;--ok:#1b6b32;--ok-bg:#e6f4ea;--err:#c62828;--err-bg:#fdecea;--warn:#856404;--warn-bg:#fff3cd;--blue:#1e40af;--blue-bg:#dbeafe;--purple:#6b21a8;--purple-bg:#f3e8ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.5}
+.p{max-width:1180px;margin:0 auto;padding:16px}
+/* Header */
+.hdr{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:16px 22px;border-radius:12px;margin-bottom:14px;position:relative}
+.hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold)}
+.hdr h2{font-size:17px;font-weight:800}
+.hdr .sub{font-size:11px;opacity:.85;margin-top:3px}
+/* Alert */
+.alert{padding:10px 14px;border-radius:8px;font-size:11px;display:flex;align-items:flex-start;gap:8px;margin-bottom:12px}
+.alert-warn{background:var(--warn-bg);color:var(--warn);border:1px solid #ffe69b}
+.alert-warn b{color:var(--brand)}
+/* Control panel */
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.panel-h{background:linear-gradient(180deg,#fbfdfc,#f1f7f3);padding:10px 16px;border-bottom:1px solid var(--line);font-weight:800;color:var(--brand);font-size:13px;display:flex;align-items:center;gap:8px}
+.panel-h .num{width:24px;height:24px;border-radius:50%;background:var(--brand);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.panel-b{padding:14px 16px}
+.ctrl-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr auto;gap:10px;align-items:end}
+.fld label{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px}
+.fld select,.fld input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:'Cairo';font-size:12px;background:#fff}
+.fld select:focus,.fld input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 2px rgba(200,148,63,.1)}
+.btn{padding:9px 18px;border:none;border-radius:8px;font-family:'Cairo';font-size:12px;font-weight:700;cursor:pointer;transition:transform .12s}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-ok:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(27,107,50,.25)}
+.btn-p{background:var(--brand);color:var(--gold)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(12,40,35,.25)}
+.btn-l{background:#e8e8e8;color:var(--muted)}
+/* Template preview */
+.preview-wrap{background:var(--surf);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.preview-tabs{display:flex;gap:4px;padding:8px 12px;background:linear-gradient(180deg,#fbfdfc,#f1f7f3);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ptab{padding:6px 14px;border:1.5px solid var(--line);border-radius:7px;background:#fff;cursor:pointer;font-family:'Cairo';font-size:11px;font-weight:700;color:var(--muted);transition:all .15s}
+.ptab:hover{border-color:var(--gold)}
+.ptab.active{background:var(--brand);color:var(--gold);border-color:var(--brand)}
+.preview-scroll{overflow:auto;max-height:520px}
+/* Excel table */
+table.xl{border-collapse:collapse;min-width:100%;font-family:'Cairo'}
+table.xl th,table.xl td{border:1px solid #d4d4d4;padding:0}
+/* Column letters */
+.col-ltr{background:#f0f0f0;text-align:center;font-size:8px;color:#aaa;height:16px;min-width:52px}
+/* Merged employee headers (rowspan=2) */
+th.emp{background:var(--brand);color:#fff;text-align:center;vertical-align:middle;padding:8px 4px;font-weight:700;font-size:10px}
+th.emp .star{color:var(--gold);font-size:8px}
+th.emp .dd{display:block;font-size:8px;opacity:.6;font-weight:400;margin-top:2px}
+/* Merged program headers (rowspan=2) */
+th.prog{background:var(--brand);color:#fff;text-align:center;vertical-align:middle;padding:8px 4px;font-weight:700;font-size:10px}
+th.prog .star{color:var(--gold);font-size:8px}
+th.prog .dd{display:block;font-size:8px;opacity:.6;font-weight:400;margin-top:2px}
+/* Merged trailing headers (rowspan=2): general notes, evaluator, date */
+th.gnotes{background:var(--brand);color:#fff;text-align:center;vertical-align:middle;padding:8px 4px;font-weight:700;font-size:10px}
+th.eval{background:var(--brand);color:#fff;text-align:center;vertical-align:middle;padding:8px 4px;font-weight:700;font-size:10px}
+th.eval .star{color:var(--gold);font-size:8px}
+th.eval .dd{display:block;font-size:8px;opacity:.6;font-weight:400;margin-top:2px}
+/* Criterion header (merged horizontally, row 1) */
+th.crit{background:var(--brand);color:#fff;text-align:center;font-weight:800;font-size:11px;padding:6px 4px;border-bottom:2px solid var(--gold)}
+th.crit .w{display:block;font-size:8px;opacity:.6;margin-top:1px}
+/* Section name (row 2) */
+th.sec{background:var(--brand);color:#fff;text-align:center;font-weight:700;font-size:9px;padding:4px 2px;border-bottom:1px solid rgba(255,255,255,.15)}
+th.sec .tag{display:block;font-size:7px;opacity:.6;font-weight:400;margin-top:1px}
+/* Notes column header (row 2) */
+th.notes-h{background:var(--brand);color:#fff;text-align:center;font-weight:700;font-size:8px;padding:4px 2px;border-bottom:1px solid rgba(255,255,255,.15)}
+th.notes-h .req{color:var(--gold);font-size:7px}
+/* Overall grade header (rowspan=2) */
+th.ograde{background:var(--brand);color:#fff;text-align:center;vertical-align:middle;padding:8px 4px;font-weight:700;font-size:10px;border-bottom:2px solid var(--gold)}
+th.ograde .dd{display:block;font-size:8px;opacity:.6;font-weight:400;margin-top:2px}
+/* Row numbers */
+td.rn{background:#f0f0f0;text-align:center;font-size:9px;color:#aaa;width:28px;min-width:28px}
+/* Data cells */
+td.d{padding:4px 6px;font-size:11px;text-align:center}
+td.d.dd{background:#fffbeb;position:relative}
+td.d.dd::after{content:'';position:absolute;left:2px;top:50%;transform:translateY(-50%);border:3px solid transparent;border-top-color:#999;width:0;height:0}
+td.d.num{background:#f0f7ff;font-weight:600;color:var(--brand)}
+td.d.txt{background:#fcfcfc;text-align:right;font-size:10px}
+td.d.nts{background:#faf5ff;text-align:right;font-size:10px;color:var(--purple)}
+td.d.grd{background:#fffbf3;font-weight:700;color:var(--gold)}
+td.d.gn{background:#f0fdf4;text-align:right;font-size:10px;color:#166534}
+td.d.new{background:var(--gold-bg)}
+/* Legend */
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#fff;border-radius:8px;margin-bottom:10px;font-size:9px;border:1px solid var(--line)}
+.lg{display:flex;align-items:center;gap:3px}
+.lg-c{width:12px;height:12px;border-radius:3px;border:1px solid #d0d0d0}
+/* Upload zone */
+.upload-zone{border:2px dashed var(--line);border-radius:10px;padding:20px;text-align:center;transition:border-color .2s;cursor:pointer}
+.upload-zone:hover{border-color:var(--gold);background:#fffbf3}
+.upload-zone .ic{font-size:28px;opacity:.4;margin-bottom:4px}
+.upload-zone .tx{font-size:11px;color:var(--muted)}
+.upload-zone .tx b{color:var(--brand)}
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.stat .v{font-size:18px;font-weight:800;color:var(--brand)}
+.stat .l{font-size:9px;color:var(--muted);font-weight:600}
+.stat.ok .v{color:var(--ok)} .stat.err .v{color:var(--err)} .stat.warn .v{color:var(--warn)}
+/* Save bar */
+.bar{position:sticky;bottom:0;background:rgba(245,248,246,.97);backdrop-filter:blur(6px);border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;align-items:center}
+.hidden{display:none}
+@media(max-width:768px){.ctrl-grid{grid-template-columns:1fr 1fr}.preview-scroll{overflow-x:scroll}table.xl{min-width:900px}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="p">
+
+<div class="hdr">
+  <h2>📊 نظام استيراد وتصدير التقييمات</h2>
+  <div class="sub">CD-042 · تصدير قالب Excel ← تعبئة ← استيراد ← معاينة ← التزام · مؤسسي</div>
+</div>
+
+<div class="alert alert-warn">
+  <span>⚠️</span>
+  <div><b>ملاحظة:</b> يمكنك إضافة موظفين جدد من خلال هذا الملف. تأكد من إدخال (الاسم أو الرقم الوظيفي) و (الفرع أو القسم) لكل موظف. الموظفون غير المسجّلين سيُنشأون تلقائيًا.</div>
+</div>
+
+<!-- Export panel -->
+<div class="panel">
+  <div class="panel-h"><span class="num">١</span> تصدير قالب Excel</div>
+  <div class="panel-b">
+    <div class="ctrl-grid">
+      <div class="fld"><label>نوع التقييم</label>
+        <select id="typeSelect" onchange="switchType(this.value)">
+          <option value="employee">① موظف فردي عام</option>
+          <option value="skill">④ تقييم مهاري</option>
+          <option value="course">② موظف داخل دورة (وصفي)</option>
+          <option value="workshop">③ موظف داخل ورشة</option>
+        </select>
+      </div>
+      <div class="fld"><label>الفرع (للقائمة المنسدلة)</label>
+        <select id="brFilter"><option value="">كل الفروع</option><option>الرياض</option><option>جدة</option><option>الدمام</option></select>
+      </div>
+      <div class="fld"><label>القسم (للقائمة المنسدلة)</label>
+        <select id="deptFilter" disabled><option value="">كل الأقسام</option></select>
+      </div>
+      <div class="fld"><label>عدد الصفوف</label><input type="number" id="maxRows" value="100" min="50" max="2000" step="50"></div>
+      <div class="fld"><button class="btn btn-ok" onclick="exportTpl()">⬇ تصدير القالب</button></div>
+    </div>
+    <div style="margin-top:6px;font-size:10px;color:var(--muted)">الحد: ٥٠ صف كحد أدنى · ٢٠٠٠ صف كحد أقصى · القوائم المنسدلة للفرع/القسم تُصدّر حسب الاختيار</div>
+  </div>
+</div>
+
+<!-- Template preview -->
+<div class="preview-wrap">
+  <div class="preview-tabs">
+    <div class="ptab active" onclick="showSheet('employee',this)">① موظف فردي</div>
+    <div class="ptab" onclick="showSheet('skill',this)">④ مهاري</div>
+    <div class="ptab" onclick="showSheet('course',this)">② دورة (وصفي)</div>
+    <div class="ptab" onclick="showSheet('workshop',this)">③ ورشة</div>
+  </div>
+  <div class="legend">
+    <div class="lg"><div class="lg-c" style="background:var(--brand)"></div>الترويسة (رسمية موحّدة)</div>
+    <div class="lg"><div class="lg-c" style="background:#f5f8f6"></div>الأقسام</div>
+    <div class="lg"><div class="lg-c" style="background:var(--gold)"></div>الوزن / التقدير (ذهبي)</div>
+    <div class="lg"><div class="lg-c" style="background:#fffbeb"></div>قائمة منسدلة</div>
+    <div class="lg"><div class="lg-c" style="background:#f0f7ff"></div>رقم</div>
+    <div class="lg"><div class="lg-c" style="background:#fcfcfc"></div>نصّي</div>
+    <div class="lg"><div class="lg-c" style="background:var(--gold-bg)"></div>موظف جديد</div>
+  </div>
+  <div class="preview-scroll">
+
+<!-- ====== SHEET: EMPLOYEE ====== -->
+<div id="sheet-employee">
+<table class="xl">
+<thead>
+<tr><th class="col-ltr" style="min-width:28px"></th>
+<th class="col-ltr">A</th><th class="col-ltr">B</th><th class="col-ltr">C</th><th class="col-ltr">D</th>
+<th class="col-ltr" colspan="2">E–F</th><th class="col-ltr" colspan="4">G–J</th>
+<th class="col-ltr">K</th><th class="col-ltr">L</th><th class="col-ltr">M</th><th class="col-ltr">N</th></tr>
+<tr>
+<th class="rn"></th>
+<th class="emp" rowspan="2">الاسم<span class="star">*</span></th>
+<th class="emp" rowspan="2">الرقم الوظيفي<span class="star">*</span></th>
+<th class="emp" rowspan="2">الفرع<span class="dd">قائمة منسدلة ▼</span></th>
+<th class="emp" rowspan="2">القسم<span class="dd">قائمة منسدلة ▼</span></th>
+<th class="crit" colspan="2">الأداء الوظيفي<span class="w">الوزن ٦٠٪</span></th>
+<th class="crit" colspan="4">السلوك والجدارة<span class="w">الوزن ٤٠٪</span></th>
+<th class="gnotes" rowspan="2">ملاحظات<br>عامة</th>
+<th class="eval" rowspan="2">اسم<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">صفة<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">تاريخ<br>التقييم</th>
+</tr>
+<tr>
+<th class="sec">الأهداف<span class="tag">نسبة ٠–١٠٠</span></th>
+<th class="notes-h">ملاحظة<span class="req">*</span></th>
+<th class="sec">الحضور<span class="tag">نعم/لا ▼</span></th>
+<th class="notes-h">ملاحظة</th>
+<th class="sec">التواصل<span class="tag">رقمي ١–١٠</span></th>
+<th class="notes-h">ملاحظة</th>
+</tr>
+</thead>
+<tbody>
+<tr><td class="rn">3</td><td class="d txt">أحمد العتيبي</td><td class="d num">EMP-101</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td><td class="d num">٨٥</td><td class="d nts">التزم بالمواعيد</td><td class="d dd">نعم</td><td class="d nts"></td><td class="d num">٨</td><td class="d nts"></td><td class="d gn">أداء ممتاز</td><td class="d txt">عبدالله السبيعي</td><td class="d txt">مدير قسم</td><td class="d num" dir="ltr">2026-11-10</td></tr>
+<tr><td class="rn">4</td><td class="d txt">سارة الحربي</td><td class="d num">EMP-104</td><td class="d dd">الرياض</td><td class="d dd">الموارد البشرية</td><td class="d num">٩٢</td><td class="d nts">إنجاز متميز</td><td class="d dd">نعم</td><td class="d nts"></td><td class="d num">٩</td><td class="d nts"></td><td class="d gn"></td><td class="d txt">عبدالله السبيعي</td><td class="d txt">مدير قسم</td><td class="d num" dir="ltr">2026-11-10</td></tr>
+<tr><td class="rn">5</td><td class="d txt new">＋ موظف جديد</td><td class="d num new">EMP-999</td><td class="d dd new">جدة</td><td class="d dd new">التسويق</td><td class="d num new">٧٥</td><td class="d nts new"></td><td class="d dd new">لا</td><td class="d nts new"></td><td class="d num new">٦</td><td class="d nts new"></td><td class="d gn new"></td><td class="d txt new">عبدالله السبيعي</td><td class="d txt new">مدير قسم</td><td class="d num new" dir="ltr">2026-11-10</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ====== SHEET: SKILL ====== -->
+<div id="sheet-skill" class="hidden">
+<table class="xl">
+<thead>
+<tr><th class="col-ltr" style="min-width:28px"></th>
+<th class="col-ltr">A</th><th class="col-ltr">B</th><th class="col-ltr">C</th><th class="col-ltr">D</th>
+<th class="col-ltr" colspan="2">E–F</th><th class="col-ltr" colspan="2">G–H</th>
+<th class="col-ltr">I</th><th class="col-ltr">J</th><th class="col-ltr">K</th><th class="col-ltr">L</th></tr>
+<tr>
+<th class="rn"></th>
+<th class="emp" rowspan="2">الاسم<span class="star">*</span></th>
+<th class="emp" rowspan="2">الرقم الوظيفي<span class="star">*</span></th>
+<th class="emp" rowspan="2">الفرع<span class="dd">قائمة ▼</span></th>
+<th class="emp" rowspan="2">القسم<span class="dd">قائمة ▼</span></th>
+<th class="crit" colspan="2">المهارة التقنية<span class="w">الوزن ٥٠٪</span></th>
+<th class="crit" colspan="2">المهارة القيادية<span class="w">الوزن ٥٠٪</span></th>
+<th class="gnotes" rowspan="2">ملاحظات<br>عامة</th>
+<th class="eval" rowspan="2">اسم<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">صفة<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">تاريخ<br>التقييم</th>
+</tr>
+<tr>
+<th class="sec">مستوى الإتقان<span class="tag">تقدير ▼</span></th>
+<th class="notes-h">ملاحظة</th>
+<th class="sec">مستوى القيادة<span class="tag">تقدير ▼</span></th>
+<th class="notes-h">ملاحظة</th>
+</tr>
+</thead>
+<tbody>
+<tr><td class="rn">3</td><td class="d txt">أحمد العتيبي</td><td class="d num">EMP-101</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td><td class="d dd">متقدم</td><td class="d nts">إتقان عالٍ في PHP</td><td class="d dd">جيد</td><td class="d nts"></td><td class="d gn"></td><td class="d txt">عبدالله السبيعي</td><td class="d txt">مدير قسم</td><td class="d num" dir="ltr">2026-11-10</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ====== SHEET: COURSE (descriptive) ====== -->
+<div id="sheet-course" class="hidden">
+<table class="xl">
+<thead>
+<tr><th class="col-ltr" style="min-width:28px"></th>
+<th class="col-ltr" colspan="6">A–F: بيانات البرنامج</th>
+<th class="col-ltr" colspan="4">G–J: بيانات الموظف</th>
+<th class="col-ltr" colspan="3">K–M: التقييم</th>
+<th class="col-ltr">N</th><th class="col-ltr">O</th>
+<th class="col-ltr" colspan="3">P–R: المُقيِّم</th></tr>
+<tr>
+<th class="rn"></th>
+<th class="prog" rowspan="2">اسم البرنامج<span class="star">*</span></th>
+<th class="prog" rowspan="2">الفرع المنفّذ<span class="dd">قائمة ▼</span></th>
+<th class="prog" rowspan="2">القسم المنفّذ<span class="dd">قائمة ▼</span></th>
+<th class="prog" rowspan="2">تاريخ البدء<span class="dd">YYYY-MM-DD</span></th>
+<th class="prog" rowspan="2">تاريخ الانتهاء<span class="dd">YYYY-MM-DD</span></th>
+<th class="prog" rowspan="2">المسؤول</th>
+<th class="emp" rowspan="2">الاسم<span class="star">*</span></th>
+<th class="emp" rowspan="2">الرقم الوظيفي<span class="star">*</span></th>
+<th class="emp" rowspan="2">الفرع<span class="dd">قائمة ▼</span></th>
+<th class="emp" rowspan="2">القسم<span class="dd">قائمة ▼</span></th>
+<th class="crit" colspan="3">التقييم الوصفي للدورة<span class="w">الوزن ١٠٠٪</span></th>
+<th class="ograde" rowspan="2">التقدير العام<span class="dd">قائمة من السلم ▼</span></th>
+<th class="gnotes" rowspan="2">ملاحظات<br>عامة</th>
+<th class="eval" rowspan="2">اسم<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">صفة<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">تاريخ<br>التقييم</th>
+</tr>
+<tr>
+<th class="sec">نقاط القوة<span class="tag">نصّي</span></th>
+<th class="sec">نقاط التطوير<span class="tag">نصّي</span></th>
+<th class="sec">التوصيات<span class="tag">نصّي</span></th>
+</tr>
+</thead>
+<tbody>
+<tr><td class="rn">3</td>
+<td class="d txt">إدارة المشاريع</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td><td class="d num" dir="ltr">2026-11-15</td><td class="d num" dir="ltr">2026-11-19</td><td class="d txt">د. خالد العتيبي</td>
+<td class="d txt">أحمد العتيبي</td><td class="d num">EMP-101</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td>
+<td class="d txt">يتميز بدقة عالية في الإنجاز</td><td class="d txt">يحتاج تطوير مهارات العرض</td><td class="d txt">يُوصى بتدريب متقدم</td>
+<td class="d grd">ممتاز</td><td class="d gn"></td>
+<td class="d txt">عبدالله السبيعي</td><td class="d txt">مدير قسم</td><td class="d num" dir="ltr">2026-11-10</td></tr>
+<tr><td class="rn">4</td>
+<td class="d txt">إدارة المشاريع</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td><td class="d num" dir="ltr">2026-11-15</td><td class="d num" dir="ltr">2026-11-19</td><td class="d txt">د. خالد العتيبي</td>
+<td class="d txt">سارة الحربي</td><td class="d num">EMP-104</td><td class="d dd">الرياض</td><td class="d dd">الموارد البشرية</td>
+<td class="d txt">مشاركة فعّالة وتفاعل ممتاز</td><td class="d txt"></td><td class="d txt"></td>
+<td class="d grd">جيد جدًا</td><td class="d gn"></td>
+<td class="d txt">عبدالله السبيعي</td><td class="d txt">مدير قسم</td><td class="d num" dir="ltr">2026-11-10</td></tr>
+<tr><td class="rn">5</td>
+<td class="d txt">إدارة المشاريع</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td><td class="d num" dir="ltr">2026-11-15</td><td class="d num" dir="ltr">2026-11-19</td><td class="d txt">د. خالد العتيبي</td>
+<td class="d txt new">＋ موظف جديد</td><td class="d num new">EMP-999</td><td class="d dd new">جدة</td><td class="d dd new">التسويق</td>
+<td class="d txt new"></td><td class="d txt new"></td><td class="d txt new"></td>
+<td class="d grd new">مقبول</td><td class="d gn new"></td>
+<td class="d txt new">عبدالله السبيعي</td><td class="d txt new">مدير قسم</td><td class="d num new" dir="ltr">2026-11-10</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ====== SHEET: WORKSHOP ====== -->
+<div id="sheet-workshop" class="hidden">
+<table class="xl">
+<thead>
+<tr><th class="col-ltr" style="min-width:28px"></th>
+<th class="col-ltr" colspan="6">A–F: بيانات البرنامج</th>
+<th class="col-ltr" colspan="4">G–J: بيانات الموظف</th>
+<th class="col-ltr" colspan="2">K–L: التقييم</th>
+<th class="col-ltr">M</th>
+<th class="col-ltr" colspan="3">N–P: المُقيِّم</th></tr>
+<tr>
+<th class="rn"></th>
+<th class="prog" rowspan="2">اسم الورشة<span class="star">*</span></th>
+<th class="prog" rowspan="2">الفرع المنفّذ<span class="dd">قائمة ▼</span></th>
+<th class="prog" rowspan="2">القسم المنفّذ<span class="dd">قائمة ▼</span></th>
+<th class="prog" rowspan="2">تاريخ البدء<span class="dd">YYYY-MM-DD</span></th>
+<th class="prog" rowspan="2">تاريخ الانتهاء<span class="dd">YYYY-MM-DD</span></th>
+<th class="prog" rowspan="2">المسؤول</th>
+<th class="emp" rowspan="2">الاسم<span class="star">*</span></th>
+<th class="emp" rowspan="2">الرقم الوظيفي<span class="star">*</span></th>
+<th class="emp" rowspan="2">الفرع<span class="dd">قائمة ▼</span></th>
+<th class="emp" rowspan="2">القسم<span class="dd">قائمة ▼</span></th>
+<th class="crit" colspan="2">مهارات حل المشكلات<span class="w">الوزن ١٠٠٪</span></th>
+<th class="gnotes" rowspan="2">ملاحظات<br>عامة</th>
+<th class="eval" rowspan="2">اسم<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">صفة<br>المُقيِّم<span class="dd">أحدهما*</span></th>
+<th class="eval" rowspan="2">تاريخ<br>التقييم</th>
+</tr>
+<tr>
+<th class="sec">سرعة البديهة<span class="tag">رقمي ٠–١٠٠</span></th>
+<th class="sec">جودة الحلول<span class="tag">رقمي ٠–١٠٠</span></th>
+</tr>
+</thead>
+<tbody>
+<tr><td class="rn">3</td>
+<td class="d txt">التواصل الفعّال</td><td class="d dd">الرياض</td><td class="d dd">الموارد البشرية</td><td class="d num" dir="ltr">2026-11-20</td><td class="d num" dir="ltr">2026-11-22</td><td class="d txt">د. منى الزهراني</td>
+<td class="d txt">أحمد العتيبي</td><td class="d num">EMP-101</td><td class="d dd">الرياض</td><td class="d dd">تقنية المعلومات</td>
+<td class="d num">٨٥</td><td class="d num">٩٠</td>
+<td class="d gn"></td>
+<td class="d txt">عبدالله السبيعي</td><td class="d txt">مدير قسم</td><td class="d num" dir="ltr">2026-11-10</td></tr>
+</tbody>
+</table>
+</div>
+
+  </div><!-- /preview-scroll -->
+</div><!-- /preview-wrap -->
+
+<!-- Import panel -->
+<div class="panel">
+  <div class="panel-h"><span class="num">٢</span> استيراد الملف المعبّأ</div>
+  <div class="panel-b">
+    <div class="upload-zone" onclick="alert('اختر ملف XLSX')">
+      <div class="ic">📁</div>
+      <div class="tx">اسحب ملف <b>XLSX</b> هنا أو انقر للاختيار<br><span style="font-size:10px">حد أقصى ٢٠ ميغابايت (يتّسع لـ 2000 موظف) · .xlsx فقط · استعمل القالب المُصدّر</span></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px"><button class="btn btn-p" onclick="doPreview()">🔍 معاينة</button></div>
+  </div>
+</div>
+
+<!-- Stats (simulated) -->
+<div class="stats" id="statsRow" style="display:none">
+  <div class="stat"><div class="v" id="stTotal">٠</div><div class="l">إجمالي الصفوف</div></div>
+  <div class="stat ok"><div class="v" id="stValid">٠</div><div class="l">صالحة</div></div>
+  <div class="stat warn"><div class="v" id="stNew">٠</div><div class="l">موظف جديد</div></div>
+  <div class="stat err"><div class="v" id="stErr">٠</div><div class="l">أخطاء</div></div>
+</div>
+
+<!-- Save bar -->
+<div class="bar">
+  <div style="font-size:11px;color:var(--muted)">القالب محمي: تعديل البيانات فقط — لا إضافة أعمدة أو تغيير أنواع الخلايا</div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-l">↺ تفريغ</button>
+    <button class="btn btn-ok" id="commitBtn" disabled>✅ تأكيد الاستيراد</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+function showSheet(id,el){
+  document.querySelectorAll('[id^="sheet-"]').forEach(function(s){s.classList.add('hidden');});
+  document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('sheet-'+id).classList.remove('hidden');
+  el.classList.add('active');
+  var ts=document.getElementById('typeSelect');
+  if(ts) ts.value=id;
+}
+function switchType(v){
+  document.querySelectorAll('[id^="sheet-"]').forEach(function(s){s.classList.add('hidden');});
+  document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('sheet-'+v).classList.remove('hidden');
+  document.querySelectorAll('.ptab').forEach(function(t){if(t.textContent.indexOf(v===('employee')?'①':v===('skill')?'④':v===('course')?'②':'③')>=0)t.classList.add('active');});
+}
+function exportTpl(){alert('⬇ سيُصدّر القالب ('+document.getElementById('maxRows').value+' صف)');}
+function doPreview(){
+  var s=document.getElementById('statsRow');s.style.display='grid';
+  document.getElementById('stTotal').textContent='٦';
+  document.getElementById('stValid').textContent='٤';
+  document.getElementById('stNew').textContent='١';
+  document.getElementById('stErr').textContent='١';
+  document.getElementById('commitBtn').disabled=false;
+}
+document.getElementById('brFilter').addEventListener('change',function(){
+  var df=document.getElementById('deptFilter');
+  if(this.value){df.disabled=false;df.innerHTML='<option value="">كل الأقسام</option><option>تقنية المعلومات</option><option>المالية</option>';}
+  else{df.disabled=true;df.innerHTML='<option value="">كل الأقسام</option>';}
+});
+</script>
+</body>
+</html>
