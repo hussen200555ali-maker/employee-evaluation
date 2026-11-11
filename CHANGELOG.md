@@ -345,3 +345,13 @@
   > **إعادة بناء نصية (2026-09-29):** كما سبق — المصدر الباقي هو الملف نفسه، والقيم الرقمية محفوظة من الشظايا الباقية في السطر الأصلي.
 [2026-10-19] OOS-12 closed: check-encoding.php now supports --path=delivery|app|all, hook passes --path=delivery, app/ scanned clean (426/73177), 6 negative tests, all 93 tests pass.
 [2026-10-19] CD-008: CP-A  —  reporting data mart and ReportEngine scaffolding.
+
+## 2026-11-11 — CD-042 (UI Enhance): معاينة بصرية لهيكل قالب Excel + رفع الحدود + دعم skill
+
+- إصلاح عطل إنتاجي: buildTemplate() كان يُنتج قالبًا بلا أعمدة بنود (grouped مُستخدم قبل تعريفه) — forward-fix: بنود متجاورة + ملاحظة عامة واحدة (commit 9bbe0bd).
+- إضافة describeTemplateStructure() (توليد القالب في الذاكرة + استخراج) — تطابق 100% مع الملف (commit f828ac3).
+- واجهة: لوحة معاينة بتبويبات ديناميكية + legend + drag-and-drop + 4 بطاقات (incl. موظف جديد) + شريط حفظ لاصق (commit ae97548).
+- دعم skill في مسار Excel (prefill/parse/validate/commit) (commit 8b4bb43).
+- رفع الحدود: 2000 صف / 20MB + رفض صريح >2000 صف (commit dbb0079).
+- is_new_employee + new_employees في مخرجات المعاينة.
+- متابعات مؤجلة: applyDropdowns لـ course/workshop؛ ملاحظات البنود عبر Excel (مهمة منفصلة).

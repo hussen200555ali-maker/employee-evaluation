@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دراسة شاملة: نظام الاستيراد والتصدير للتقييمات — CD-042</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#0c2823;
+  --brand2:#0d5e52;
+  --brand3:#11493e;
+  --gold:#c8943f;
+  --gold-d:#a87830;
+  --gold-l:#e0b873;
+  --gold-bg:#faefd9;
+  --ink:#1a2e2a;
+  --ink-soft:#34514b;
+  --line:#d9e2dd;
+  --line-soft:#e8efeb;
+  --bg:#f5f8f6;
+  --surf:#ffffff;
+  --muted:#6c757d;
+  --ok:#1b6b32;
+  --ok-bg:#e6f4ea;
+  --err:#b3261e;
+  --err-bg:#fdecea;
+  --warn:#8a6d00;
+  --warn-bg:#fff7df;
+  --info:#0b5fa5;
+  --info-bg:#e3f0fb;
+}
+@page{
+  size:A4;
+  margin:18mm 16mm 20mm 16mm;
+}
+@page cover{
+  margin:0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{font-family:'Cairo',sans-serif;color:var(--ink);background:#eef2f0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-size:11.5pt;line-height:1.7}
+.doc{max-width:210mm;margin:0 auto;background:#fff;box-shadow:0 0 20px rgba(12,40,35,.08)}
+
+/* ===== COVER PAGE ===== */
+.cover{
+  page:cover;
+  width:210mm;
+  height:297mm;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(200,148,63,.15), transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(13,94,82,.25), transparent 60%),
+    linear-gradient(150deg,#0a1f1b 0%, #0c2823 40%, #0d5e52 100%);
+  color:#fff;
+  position:relative;
+  overflow:hidden;
+  page-break-after:always;
+}
+.cover::before{
+  content:'';
+  position:absolute;
+  top:0;right:0;left:0;
+  height:8mm;
+  background:linear-gradient(90deg,var(--gold) 0%, var(--gold-l) 50%, var(--gold) 100%);
+}
+.cover::after{
+  content:'';
+  position:absolute;
+  bottom:0;right:0;left:0;
+  height:8mm;
+  background:linear-gradient(90deg,var(--gold) 0%, var(--gold-l) 50%, var(--gold) 100%);
+}
+.cover-inner{
+  position:absolute;
+  inset:20mm 18mm;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.cover-brand{display:flex;align-items:center;gap:14px}
+.cover-brand .mark{
+  width:46px;height:46px;border-radius:10px;
+  background:linear-gradient(135deg,var(--gold) 0%, var(--gold-d) 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:18px;color:#0c2823;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+.cover-brand .lbl{font-size:11pt;letter-spacing:2px;color:var(--gold-l);font-weight:600}
+.cover-brand .lbl b{display:block;font-size:13pt;color:#fff;font-weight:800;letter-spacing:1px}
+.cover-stamp{
+  align-self:flex-end;
+  border:1.5px solid var(--gold);
+  color:var(--gold);
+  padding:6px 14px;border-radius:4px;
+  font-size:9pt;font-weight:700;letter-spacing:3px;
+}
+.cover-title{flex:1;display:flex;flex-direction:column;justify-content:center}
+.cover-kicker{
+  color:var(--gold-l);
+  font-size:11pt;font-weight:700;letter-spacing:6px;
+  margin-bottom:18px;
+}
+.cover-title h1{
+  font-size:34pt;font-weight:900;line-height:1.25;
+  margin-bottom:20px;
+  background:linear-gradient(180deg,#ffffff 0%, #e0d3b0 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.cover-title .sub{
+  font-size:15pt;font-weight:600;color:#d8e8df;
+  margin-bottom:14px;line-height:1.5;
+}
+.cover-title .code-line{
+  display:inline-flex;align-items:center;gap:10px;
+  background:rgba(200,148,63,.12);
+  border:1px solid rgba(200,148,63,.4);
+  padding:8px 18px;border-radius:6px;
+  font-size:11pt;font-weight:700;color:var(--gold-l);
+}
+.cover-title .code-line .dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+.cover-meta{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+  border-top:1px solid rgba(200,148,63,.3);
+  padding-top:18px;
+}
+.cover-meta .m{display:flex;flex-direction:column;gap:2px}
+.cover-meta .m .k{font-size:9pt;color:var(--gold-l);letter-spacing:2px;font-weight:600}
+.cover-meta .m .v{font-size:13pt;color:#fff;font-weight:700}
+.cover-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:9pt;color:rgba(255,255,255,.55);
+  border-top:1px solid rgba(200,148,63,.2);
+  padding-top:14px;
+}
+.cover-foot .seal{
+  border:1px solid rgba(200,148,63,.5);
+  border-radius:50%;
+  width:54px;height:54px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold);font-weight:800;font-size:8pt;text-align:center;line-height:1.2;
+}
+
+/* ===== TABLE OF CONTENTS ===== */
+.toc{
+  page-break-before:always;
+  page-break-after:always;
+  padding:4mm 2mm 0;
+}
+.page-title{
+  display:flex;align-items:center;gap:14px;
+  border-bottom:2px solid var(--gold);
+  padding-bottom:14px;margin-bottom:22px;
+}
+.page-title .num{
+  width:42px;height:42px;border-radius:8px;
+  background:linear-gradient(135deg,var(--brand) 0%, var(--brand2) 100%);
+  color:var(--gold);font-weight:800;font-size:14pt;
+  display:flex;align-items:center;justify-content:center;
+}
+.page-title h2{
+  font-size:20pt;font-weight:800;color:var(--brand);
+}
+.page-title .en{
+  font-size:9pt;color:var(--muted);letter-spacing:3px;font-weight:600;margin-top:2px;
+}
+.toc-grid{display:grid;grid-template-columns:1fr;gap:0;margin-top:6px}
+.toc-row{
+  display:grid;grid-template-columns:42px 1fr auto;
+  align-items:center;gap:14px;
+  padding:11px 8px;
+  border-bottom:1px dashed var(--line-soft);
+  font-size:11pt;
+}
+.toc-row:hover{background:#fafcfb}
+.toc-row .n{
+  width:28px;height:28px;border-radius:50%;
+  border:1.5px solid var(--gold);
+  color:var(--gold-d);font-weight:700;font-size:9pt;
+  display:flex;align-items:center;justify-content:center;
+}
+.toc-row .t{font-weight:700;color:var(--ink)}
+.toc-row .t small{display:block;font-weight:500;color:var(--muted);font-size:9.5pt;margin-top:1px}
+.toc-row .p{
+  font-size:9pt;color:var(--brand);font-weight:700;
+  background:var(--gold-bg);
+  padding:3px 10px;border-radius:4px;
+  border:1px solid var(--gold-l);
+}
+.toc-intro{
+  background:linear-gradient(180deg,#fbfdfc,#f1f7f3);
+  border:1px solid var(--line);
+  border-right:4px solid var(--gold);
+  padding:14px 18px;border-radius:6px;
+  font-size:10.5pt;color:var(--ink-soft);
+  margin-bottom:18px;line-height:1.7;
+}
+
+/* ===== SECTIONS ===== */
+.section{
+  page-break-before:always;
+  padding:0 2mm;
+}
+.section:first-of-type{page-break-before:always}
+.sec-head{
+  background:linear-gradient(135deg,var(--brand) 0%, var(--brand2) 100%);
+  color:#fff;
+  padding:16px 20px;
+  border-radius:8px;
+  position:relative;
+  overflow:hidden;
+  margin-bottom:18px;
+}
+.sec-head::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--gold) 0%, var(--gold-l) 100%);
+}
+.sec-head .tag{
+  display:inline-block;
+  background:rgba(200,148,63,.18);
+  border:1px solid rgba(200,148,63,.5);
+  color:var(--gold-l);
+  padding:3px 12px;border-radius:3px;
+  font-size:8.5pt;font-weight:700;letter-spacing:3px;
+  margin-bottom:6px;
+}
+.sec-head h2{font-size:19pt;font-weight:800;line-height:1.3}
+.sec-head .en{font-size:9pt;color:rgba(255,255,255,.6);margin-top:4px;letter-spacing:2px;font-weight:600}
+
+.lead{
+  font-size:11.5pt;color:var(--ink-soft);
+  line-height:1.8;margin-bottom:16px;
+  padding:14px 18px;
+  background:#fbfdfc;
+  border-right:4px solid var(--brand2);
+  border-radius:4px;
+}
+.lead b{color:var(--brand)}
+
+/* Sub-headings */
+.sub-h{
+  display:flex;align-items:center;gap:10px;
+  margin:22px 0 12px;
+}
+.sub-h .bar{width:5px;height:22px;background:var(--gold);border-radius:3px}
+.sub-h h3{font-size:14pt;font-weight:800;color:var(--brand)}
+.sub-h .badge{
+  font-size:8pt;font-weight:700;color:var(--gold-d);
+  background:var(--gold-bg);
+  padding:2px 8px;border-radius:3px;border:1px solid var(--gold-l);
+}
+.mini-h{
+  font-size:12pt;font-weight:800;color:var(--brand2);
+  margin:16px 0 8px;
+  display:flex;align-items:center;gap:8px;
+}
+.mini-h::before{content:'';width:8px;height:8px;background:var(--gold);border-radius:50%}
+
+p{margin-bottom:10px;text-align:justify}
+ul,ol{margin:6px 22px 12px;padding:0}
+li{margin-bottom:6px;line-height:1.7}
+ul.check li{list-style:none;position:relative;padding-right:24px;margin-right:0}
+ul.check li::before{
+  content:'';
+  position:absolute;right:6px;top:9px;
+  width:9px;height:9px;border:2px solid var(--gold);border-radius:50%;
+  background:radial-gradient(circle,var(--gold) 35%, transparent 38%);
+}
+
+/* Tables */
+table.data{
+  width:100%;border-collapse:collapse;
+  font-size:10pt;margin:10px 0 16px;
+  border:1px solid var(--brand);
+  background:#fff;
+}
+table.data thead th{
+  background:linear-gradient(180deg,var(--brand) 0%, var(--brand2) 100%);
+  color:var(--gold);
+  padding:9px 10px;
+  font-weight:800;font-size:9.5pt;
+  border-left:1px solid rgba(200,148,63,.25);
+  text-align:center;
+}
+table.data thead th:first-child{border-left:none}
+table.data tbody td{
+  padding:8px 10px;
+  border-bottom:1px solid var(--line-soft);
+  border-left:1px solid var(--line-soft);
+  text-align:right;vertical-align:top;
+  line-height:1.55;
+}
+table.data tbody td:first-child{border-left:none}
+table.data tbody tr:nth-child(even){background:#f5f8f6}
+table.data tbody tr:hover{background:#fbf6ec}
+table.data .center{text-align:center}
+table.data .code{
+  font-family:'Courier New',monospace;font-weight:700;
+  color:var(--brand);background:#eef4f1;
+  padding:1px 6px;border-radius:3px;font-size:9pt;
+}
+table.data .req{color:var(--err);font-weight:700}
+table.data .opt{color:var(--muted);font-weight:600}
+table.data .ok{color:var(--ok);font-weight:700}
+table.data .err{color:var(--err);font-weight:700}
+table.data .warn{color:var(--warn);font-weight:700}
+
+/* Scenario table specific */
+table.scn td.scn-id{
+  text-align:center;font-weight:800;color:var(--gold-d);
+  background:#fbf6ec !important;width:40px;
+}
+table.scn td .pill{
+  display:inline-block;padding:2px 8px;border-radius:3px;
+  font-size:8.5pt;font-weight:700;margin:1px 2px;
+}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border:1px solid #b5dec2}
+.pill.err{background:var(--err-bg);color:var(--err);border:1px solid #f0c2be}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #f0df9c}
+.pill.info{background:var(--info-bg);color:var(--info);border:1px solid #bcd9f0}
+
+/* Callout boxes */
+.callout{
+  border-radius:6px;padding:12px 16px;margin:12px 0;
+  font-size:10.5pt;line-height:1.7;
+}
+.callout .ttl{font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.callout.info{background:var(--info-bg);border:1px solid #bcd9f0;color:#06395f;border-right:4px solid var(--info)}
+.callout.warn{background:var(--warn-bg);border:1px solid #f0df9c;color:#5a4800;border-right:4px solid var(--warn)}
+.callout.ok{background:var(--ok-bg);border:1px solid #b5dec2;color:#0d3f1d;border-right:4px solid var(--ok)}
+.callout.err{background:var(--err-bg);border:1px solid #f0c2be;color:#7a1814;border-right:4px solid var(--err)}
+.callout .ttl .ic{
+  width:18px;height:18px;border-radius:4px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:10pt;color:#fff;
+}
+.callout.info .ttl .ic{background:var(--info)}
+.callout.warn .ttl .ic{background:var(--warn)}
+.callout.ok .ttl .ic{background:var(--ok)}
+.callout.err .ttl .ic{background:var(--err)}
+
+/* Code / structure blocks */
+.code-blk{
+  background:#0c2823;color:#d8e8df;
+  border-radius:6px;padding:14px 16px;
+  font-family:'Courier New','Cairo',monospace;font-size:9.5pt;
+  line-height:1.7;direction:ltr;text-align:left;
+  margin:10px 0 14px;border:1px solid var(--brand2);
+  overflow-x:auto;
+}
+.code-blk .k{color:var(--gold-l)}
+.code-blk .s{color:#9fd8c4}
+.code-blk .c{color:#6c8a82;font-style:italic}
+.code-blk .v{color:#e0b873}
+
+/* Column list */
+.cols-list{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  background:#fbfdfc;border:1px solid var(--line);border-radius:6px;
+  padding:12px;margin:8px 0 14px;
+}
+.cols-list .col{
+  display:grid;grid-template-columns:auto 1fr auto;gap:8px;
+  align-items:center;font-size:10pt;
+  padding:4px 6px;border-radius:4px;
+}
+.cols-list .col:nth-child(odd){background:#f5f8f6}
+.cols-list .col .nm{
+  font-family:'Courier New',monospace;font-weight:700;
+  color:var(--brand);font-size:9.5pt;
+  background:#eef4f1;padding:1px 6px;border-radius:3px;
+}
+.cols-list .col .lb{color:var(--ink)}
+.cols-list .col .tg{
+  font-size:8pt;font-weight:700;padding:1px 6px;border-radius:3px;
+}
+.cols-list .col .tg.r{background:var(--err-bg);color:var(--err);border:1px solid #f0c2be}
+.cols-list .col .tg.o{background:var(--warn-bg);color:var(--warn);border:1px solid #f0df9c}
+
+/* Type card */
+.type-card{
+  border:1px solid var(--line);
+  border-radius:8px;overflow:hidden;margin:14px 0;
+  page-break-inside:avoid;
+}
+.type-card .tc-head{
+  background:linear-gradient(180deg,#fbfdfc,#f1f7f3);
+  padding:10px 14px;border-bottom:2px solid var(--gold);
+  display:flex;align-items:center;gap:10px;
+}
+.type-card .tc-head .ico{
+  width:32px;height:32px;border-radius:6px;
+  background:var(--brand);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:11pt;
+}
+.type-card .tc-head h4{font-size:13pt;font-weight:800;color:var(--brand);flex:1}
+.type-card .tc-head .tt{
+  font-family:'Courier New',monospace;font-size:9pt;
+  color:var(--gold-d);background:var(--gold-bg);
+  padding:2px 8px;border-radius:3px;font-weight:700;
+  border:1px solid var(--gold-l);
+}
+.type-card .tc-body{padding:12px 14px}
+.type-card .tc-body p{margin-bottom:8px;font-size:10.5pt}
+.type-card .tc-body .meta{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+  margin:8px 0;padding:10px;background:#f5f8f6;border-radius:5px;
+  font-size:9.5pt;
+}
+.type-card .tc-body .meta .m .k{color:var(--muted);font-size:8.5pt;font-weight:600}
+.type-card .tc-body .meta .m .v{color:var(--brand);font-weight:700}
+
+/* Flow steps */
+.flow{display:flex;flex-direction:column;gap:0;margin:14px 0}
+.flow-step{
+  display:grid;grid-template-columns:60px 1fr;gap:14px;
+  position:relative;padding-bottom:18px;
+}
+.flow-step:not(:last-child)::before{
+  content:'';
+  position:absolute;right:29px;top:48px;bottom:0;
+  width:2px;background:linear-gradient(180deg,var(--gold) 0%, var(--line) 100%);
+}
+.flow-step .fn{
+  width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,var(--brand) 0%, var(--brand2) 100%);
+  color:var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:16pt;
+  border:3px solid #fff;
+  box-shadow:0 0 0 2px var(--gold);
+  z-index:1;
+}
+.flow-step .fc{
+  background:#fbfdfc;border:1px solid var(--line);
+  border-right:4px solid var(--gold);
+  padding:10px 14px;border-radius:6px;
+}
+.flow-step .fc h5{font-size:12pt;font-weight:800;color:var(--brand);margin-bottom:4px}
+.flow-step .fc p{font-size:10pt;color:var(--ink-soft);margin-bottom:4px;line-height:1.6}
+.flow-step .fc .acts{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;
+}
+.flow-step .fc .acts span{
+  font-size:8.5pt;font-weight:700;
+  padding:2px 8px;border-radius:3px;
+  background:#eef4f1;color:var(--brand);
+  border:1px solid var(--line);
+}
+
+/* Recommendation cards */
+.reco-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.reco{
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  page-break-inside:avoid;
+}
+.reco.opt-a{border-top:4px solid var(--ok)}
+.reco.opt-b{border-top:4px solid var(--info)}
+.reco .rh{
+  padding:10px 14px;font-weight:800;font-size:12pt;color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.reco.opt-a .rh{background:linear-gradient(135deg,#0e5f33,#1b6b32)}
+.reco.opt-b .rh{background:linear-gradient(135deg,#0b4f80,#0b5fa5)}
+.reco .rh .tag{font-size:8pt;background:rgba(255,255,255,.18);padding:2px 8px;border-radius:3px;letter-spacing:1px}
+.reco .rb{padding:12px 14px;font-size:10pt}
+.reco .rb ul{margin:4px 18px}
+.reco .rb li{margin-bottom:5px;font-size:9.5pt;line-height:1.6}
+
+/* Decision questions */
+.q-card{
+  border:1px solid var(--line);border-radius:8px;
+  padding:14px 16px;margin:10px 0;
+  background:#fbfdfc;
+  border-right:4px solid var(--gold);
+  page-break-inside:avoid;
+}
+.q-card .qnum{
+  display:inline-block;
+  background:var(--gold);color:#fff;
+  width:24px;height:24px;border-radius:50%;
+  text-align:center;line-height:24px;font-weight:800;font-size:9pt;
+  margin-left:8px;
+}
+.q-card .qt{font-weight:800;color:var(--brand);font-size:11.5pt}
+.q-card .qd{font-size:10pt;color:var(--ink-soft);margin:6px 0;line-height:1.7}
+.q-card .qopts{margin-top:8px}
+.q-card .qopts .opt{
+  display:flex;gap:8px;align-items:flex-start;
+  padding:6px 10px;margin-bottom:4px;border-radius:4px;
+  background:#fff;border:1px solid var(--line);
+}
+.q-card .qopts .opt .o-ic{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--gold-bg);color:var(--gold-d);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:9pt;flex-shrink:0;
+}
+.q-card .qopts .opt.rec{background:var(--ok-bg);border-color:#b5dec2}
+.q-card .qopts .opt.rec .o-ic{background:var(--ok);color:#fff}
+.q-card .qopts .opt .o-t{font-size:9.5pt;line-height:1.5}
+.q-card .qopts .opt .o-t b{color:var(--brand)}
+
+/* Page footer */
+.foot{
+  page-break-after:always;
+}
+.foot-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;justify-content:space-between;
+  padding:8mm 16mm 4mm;
+  font-size:8pt;color:var(--muted);
+  border-top:1px solid var(--line);
+}
+@media print{
+  .foot-bar{position:running(footer)}
+  body{background:#fff}
+  .doc{box-shadow:none;max-width:none}
+}
+.page-num{color:var(--brand);font-weight:700}
+
+/* Section dividers */
+.divider{
+  height:1px;background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);
+  margin:20px 0;
+}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.tag-row .t{
+  font-size:8.5pt;font-weight:700;padding:3px 10px;border-radius:3px;
+  background:#eef4f1;color:var(--brand);border:1px solid var(--line);
+}
+.tag-row .t.gold{background:var(--gold-bg);color:var(--gold-d);border-color:var(--gold-l)}
+.tag-row .t.brand{background:var(--brand);color:var(--gold);border-color:var(--brand)}
+
+/* Summary stat box */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.stat-row .s{
+  background:linear-gradient(180deg,#fbfdfc,#f1f7f3);
+  border:1px solid var(--line);border-radius:6px;
+  padding:12px;text-align:center;
+}
+.stat-row .s .v{font-size:20pt;font-weight:900;color:var(--brand)}
+.stat-row .s .l{font-size:9pt;color:var(--muted);font-weight:700;margin-top:2px}
+.stat-row .s.gold .v{color:var(--gold-d)}
+
+</style>
+</head>
+<body>
+<div class="doc">
+
+<!-- ============ COVER PAGE ============ -->
+<section class="cover">
+  <div class="cover-inner">
+
+    <div class="cover-brand">
+      <div class="mark">CD</div>
+      <div class="lbl">
+        نظام التقييم المؤسسي
+        <b>Enterprise Evaluation Suite</b>
+      </div>
+      <div style="flex:1"></div>
+      <div class="cover-stamp">RESTRICTED · INTERNAL</div>
+    </div>
+
+    <div class="cover-title">
+      <div class="cover-kicker">دراسة فنية شاملة</div>
+      <h1>دراسة شاملة: نظام الاستيراد<br>والتصدير للتقييمات</h1>
+      <div class="sub">تحليل متعمق لجميع أنواع التقييمات والسيناريوهات<br>الممكنة عند تبادل البيانات عبر ملفات Excel</div>
+      <div style="margin-top:18px">
+        <span class="code-line">
+          <span class="dot"></span>
+          CD-042 · تحليل جميع الأنواع والسيناريوهات
+        </span>
+      </div>
+    </div>
+
+    <div>
+      <div class="cover-meta">
+        <div class="m"><div class="k">DATE</div><div class="v">2026-11-10</div></div>
+        <div class="m"><div class="k">DOCUMENT ID</div><div class="v">CD-042 / STUDY</div></div>
+        <div class="m"><div class="k">CLASSIFICATION</div><div class="v">دراسة فنية</div></div>
+      </div>
+      <div style="height:18px"></div>
+      <div class="cover-foot">
+        <div>وحدة تطوير الأنظمة · قسم التحليل الفني</div>
+        <div class="seal">CD-042<br>APPROVED</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ TABLE OF CONTENTS ============ -->
+<section class="toc">
+  <div class="page-title">
+    <div class="num">·</div>
+    <div>
+      <h2>جدول المحتويات</h2>
+      <div class="en">TABLE OF CONTENTS</div>
+    </div>
+  </div>
+
+  <div class="toc-intro">
+    تعرض هذه الدراسة تحليلاً فنياً متكاملاً لنظام استيراد وتصدير بيانات التقييمات
+    عبر ملفات Microsoft Excel، مع توثيق دقيق لكل نوع من الأنواع الستة المدعومة،
+    وجميع السيناريوهات المحتملة، وقواعد التحقق، والتوصيات النهائية المقدمة إلى كبير
+    المستشارين لاتخاذ القرارات المعلقة.
+  </div>
+
+  <div class="toc-grid">
+    <div class="toc-row"><div class="n">1</div><div class="t">مقدمة<small>السياق العام وأهداف الدراسة ونطاقها</small></div><div class="p">03</div></div>
+    <div class="toc-row"><div class="n">2</div><div class="t">أنواع التقييم<small>الأرضية الستة المدعومة في النظام</small></div><div class="p">04</div></div>
+    <div class="toc-row"><div class="n">3</div><div class="t">تحليل كل نوع<small>الأعمدة، الحقول المطلوبة، السيناريوهات، الأخطاء</small></div><div class="p">06</div></div>
+    <div class="toc-row"><div class="n">4</div><div class="t">سيناريوهات الموظف<small>واحد وعشرون سيناريو متكامل</small></div><div class="p">11</div></div>
+    <div class="toc-row"><div class="n">5</div><div class="t">سيناريوهات الدورة والورشة<small>سبعة سيناريوهات أساسية</small></div><div class="p">16</div></div>
+    <div class="toc-row"><div class="n">6</div><div class="t">خيارا الدورة<small>القالب المختصر مقابل القالب الموسع</small></div><div class="p">18</div></div>
+    <div class="toc-row"><div class="n">7</div><div class="t">هيكل قالب Excel لكل نوع<small>ترتيب الأعمدة بالتفصيل</small></div><div class="p">20</div></div>
+    <div class="toc-row"><div class="n">8</div><div class="t">قواعد التحقق الشاملة<small>قواعد موزعة على فئات</small></div><div class="p">23</div></div>
+    <div class="toc-row"><div class="n">9</div><div class="t">تدفق الاستيراد الكامل<small>سبع خطوات من التنزيل حتى التقرير</small></div><div class="p">26</div></div>
+    <div class="toc-row"><div class="n">10</div><div class="t">التوصيات<small>مبادئ التبسيط والدقة والمرونة</small></div><div class="p">28</div></div>
+    <div class="toc-row"><div class="n">11</div><div class="t">الأسئلة المطلوبة من كبير المستشارين<small>القرارات المعلقة المرجوة</small></div><div class="p">29</div></div>
+  </div>
+</section>
+
+<!-- ============ SECTION 1: مقدمة ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 01</span>
+    <h2>مقدمة</h2>
+    <div class="en">INTRODUCTION & SCOPE</div>
+  </div>
+
+  <div class="lead">
+    تهدف هذه الدراسة إلى تقديم وصف فني شامل لنظام الاستيراد والتصدير الخاص بنتائج
+    التقييمات في نظام التقييم المؤسسي، وتغطي <b>ستة أنواع</b> من التقييمات و<b>واحداً
+    وعشرين سيناريو</b> متعلقاً بالموظف و<b>سبعة سيناريوهات</b> للدورة والورشة، إضافة
+    إلى توثيق كامل لهيكل القوالب وقواعد التحقق وتدفق المعالجة.
+  </div>
+
+  <div class="sub-h"><div class="bar"></div><h3>لماذا هذه الدراسة</h3></div>
+  <p>
+    شكّل استيراد نتائج التقييم من ملفات Excel واحدة من أكثر العمليات تعقيداً في
+    النظام، نظراً لتنوع أنواع التقييم المدعومة، وكثرة الحالات الحدّية التي قد تظهر
+    عند تباين البيانات المُدخَلة من قِبل المقيّمين في الميدان. وقد أظهرت التغذية
+    الراجعة من الوحدات أن نسبة الأخطاء في عمليات الاستيراد السابقة بلغت ما يقارب
+    الثُلث، وكان معظمها ناتجاً عن غياب توثيق موحد للسيناريوهات وعدم وضوح قواعد
+    التحقق لدى المستخدم النهائي.
+  </p>
+  <p>
+    صُمّمت هذه الدراسة لتكون المرجع المرجعيّ الموحّد لكافة الأطراف المعنية: المقيّم
+    في الميدان، ومدير النظام، وكبير المستشارين، وفريق التطوير، بحيث يفهم كل طرف ما
+    يحدث بالضبط عند كل سيناريو، وما الرسائل التي تظهر، وكيف يُعالَج كل حالة.
+  </p>
+
+  <div class="sub-h"><div class="bar"></div><h3>ماذا تغطي هذه الدراسة</h3></div>
+  <ul class="check">
+    <li>تعريف دقيق للأنواع الستة من التقييم المدعومة وخصائصها التمييزية.</li>
+    <li>تحليل تفصيلي لكل نوع: الأعمدة المطلوبة، الاختيارية، السيناريوهات المحتملة، والرسائل المُصدَّرة.</li>
+    <li>توثيق واحد وعشرين سيناريو للموظف وسبعة للدورة والورشة في صورة جداول مرجعية.</li>
+    <li>مقارنة خياري القالب المختصر والموسع للدورات مع توصية واضحة بالاعتماد.</li>
+    <li>هيكل أعمدة كل قالب Excel قابل للتطبيق مباشرة في واجهة التنزيل.</li>
+    <li>قواعد التحقق الشاملة مصنّفة إلى خمس فئات (موظف، دورة، درجات، تقدير، أمن).</li>
+    <li>تدفق الاستيراد الكامل من خطوة اختيار النوع إلى خطوة إصدار التقرير النهائي.</li>
+    <li>قائمة بالقرارات المعلقة التي يحتاج كبير المستشارين إلى حسمها قبل التطوير النهائي.</li>
+  </ul>
+
+  <div class="sub-h"><div class="bar"></div><h3>الأنواع الستة من التقييم</h3></div>
+  <p>
+    يدعم النظام ستة أنواع رئيسية من التقييم، تختلف في الغرض والكيان المستهدَف
+    بالتقييم. ويشكّل هذا التنوع جوهر التعقيد في وحدة الاستيراد، إذ يفرض على القالب
+    أن يتكيّف مع كل نوع بشكل مختلف، سواء في الأعمدة المعروضة أو في منطق الربط مع
+    الكيانات الأخرى.
+  </p>
+
+  <div class="stat-row">
+    <div class="s"><div class="v">6</div><div class="l">أنواع تقييم مدعومة</div></div>
+    <div class="s"><div class="v">21</div><div class="l">سيناريو للموظف</div></div>
+    <div class="s gold"><div class="v">7</div><div class="l">سيناريو للدورة والورشة</div></div>
+    <div class="s"><div class="v">5</div><div class="l">فئات تحقق</div></div>
+  </div>
+
+  <div class="callout info">
+    <div class="ttl"><span class="ic">i</span> ملاحظة منهجية</div>
+    تتبع هذه الدراسة منهجية الوصف (التوثيق) تارة ومنهجية التحليل (التقييم والاختيار)
+    تارة أخرى، مع ترقيم دائم للسيناريوهات والقرارات لتسهيل الإشارة إليها في
+    المراسلات اللاحقة. وقد جرت العادة على تسمية السيناريوهات بصيغة
+    <code style="font-family:Courier New;background:#eef4f1;padding:1px 4px;border-radius:3px">S-E-##</code>
+    للموظف و
+    <code style="font-family:Courier New;background:#eef4f1;padding:1px 4px;border-radius:3px">S-C-##</code>
+    للدورة والورشة.
+  </div>
+</section>
+
+<!-- ============ SECTION 2: أنواع التقييم ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 02</span>
+    <h2>أنواع التقييم</h2>
+    <div class="en">EVALUATION TYPES</div>
+  </div>
+
+  <div class="lead">
+    يعرض هذا القسم الأنواع الستة من التقييمات المدعومة في النظام مع خصائصها
+    التمييزية. ولكل نوع قيمة <b>target_type</b> فريدة تحدد الجدول المستهدَف في قاعدة
+    البيانات، ووصف وظيفي موجز، وعدة خيارات من <b>evaluation_mode</b> تحدد ما إذا كان
+    التقييم وصفيّاً (descriptive) أو رقميّاً (numeric) أو مئويّاً (percentage) أو
+    منطقيّاً (boolean).
+  </div>
+
+  <table class="data">
+    <thead>
+      <tr>
+        <th style="width:38px">#</th>
+        <th>نوع التقييم</th>
+        <th>target_type</th>
+        <th>الوصف</th>
+        <th>evaluation_mode</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center">1</td>
+        <td><b>تقييم موظف</b><br><small style="color:var(--muted)">Employee Evaluation</small></td>
+        <td><span class="code">employee</span></td>
+        <td>تقييم فرد لموظف قائم في النظام دون ارتباط بدورة أو ورشة. وهو النوع الأكثر شيوعاً في تقييمات الأداء السنوية.</td>
+        <td>
+          <span class="pill info">descriptive</span>
+          <span class="pill info">numeric</span>
+          <span class="pill info">percentage</span>
+          <span class="pill info">boolean</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="center">2</td>
+        <td><b>تقييم موظف في دورة</b><br><small style="color:var(--muted)">Employee in Course</small></td>
+        <td><span class="code">employee_in_course</span></td>
+        <td>تقييم موظف مرتبط بدورة تدريبية محددة. يستلزم وجود دورة مسجلة مسبقاً (الخيار أ) أو يُنشئ دورة جديدة من داخل الملف (الخيار ب).</td>
+        <td>
+          <span class="pill info">descriptive</span>
+          <span class="pill info">numeric</span>
+          <span class="pill info">percentage</span>
+          <span class="pill info">boolean</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="center">3</td>
+        <td><b>تقييم موظف في ورشة</b><br><small style="color:var(--muted)">Employee in Workshop</small></td>
+        <td><span class="code">employee_in_workshop</span></td>
+        <td>تقييم موظف مرتبط بورشة عمل. يماثل منطقياً تقييم الموظف في دورة، لكنه يستهدف جدول الورش، وهو عادةً أقصر مدة وأكثر تخصصاً.</td>
+        <td>
+          <span class="pill info">descriptive</span>
+          <span class="pill info">numeric</span>
+          <span class="pill info">percentage</span>
+          <span class="pill info">boolean</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="center">4</td>
+        <td><b>تقييم دورة</b><br><small style="color:var(--muted)">Course Evaluation</small></td>
+        <td><span class="code">course</span></td>
+        <td>تقييم للدورة التدريبية ذاتها ككيان (محتواها، مدربها، تنظيمها) من قِبل المقيّم، دون تقييم الموظفين فيها.</td>
+        <td>
+          <span class="pill info">descriptive</span>
+          <span class="pill info">numeric</span>
+          <span class="pill info">percentage</span>
+          <span class="pill info">boolean</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="center">5</td>
+        <td><b>تقييم ورشة</b><br><small style="color:var(--muted)">Workshop Evaluation</small></td>
+        <td><span class="code">workshop</span></td>
+        <td>تقييم لورشة عمل ككيان مستقل، يماثل تقييم الدورة لكنه يستهدف جدول الورش.</td>
+        <td>
+          <span class="pill info">descriptive</span>
+          <span class="pill info">numeric</span>
+          <span class="pill info">percentage</span>
+          <span class="pill info">boolean</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="center">6</td>
+        <td><b>تقييم وحدة</b><br><small style="color:var(--muted)">Unit / Entity Evaluation</small></td>
+        <td><span class="code">unit</span></td>
+        <td>تقييم وحدة إدارية (فرع، قسم، إدارة، فريق) أو كيان مؤسسي لفترة محددة. يتميّز بأن الكيان المستهدَف نوع مفتوح (entity_type) يحدده المستخدم.</td>
+        <td>
+          <span class="pill info">descriptive</span>
+          <span class="pill info">numeric</span>
+          <span class="pill info">percentage</span>
+          <span class="pill info">boolean</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">
+    <div class="ttl"><span class="ic">i</span> ملاحظة على evaluation_mode</div>
+    على الرغم من أن جميع الأنواع تدعم الأوضاع الأربعة (descriptive / numeric /
+    percentage / boolean)، إلا أن المعالجة الفعلية للقيمة تختلف. فالنمط الوصفي
+    يستقبل نصاً مفتوحاً قد يُقصَّ إذا تجاوز <code style="font-family:Courier New;background:#eef4f1;padding:1px 4px;border-radius:3px">max_chars</code>،
+    والنمط الرقمي يستقبل عدداً مع تحقق من
+    <code style="font-family:Courier New;background:#eef4f1;padding:1px 4px;border-radius:3px">max_value</code>،
+    والنمط المئوي يستقبل عدداً بين 0 و100، والنمط المنطقي يستقبل إجابة ثنائية
+    (نعم/لا).
+  </div>
+</section>
+
+<!-- ============ SECTION 3: تحليل كل نوع ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 03</span>
+    <h2>تحليل كل نوع</h2>
+    <div class="en">PER-TYPE DETAILED ANALYSIS</div>
+  </div>
+
+  <div class="lead">
+    يقدّم هذا القسم تحليلاً تفصيلياً لكل نوع من الأنواع الستة، يشمل: قائمة الأعمدة
+    المطلوبة لكل صف، والحقول الإلزامية مقابل الاختيارية، وجميع السيناريوهات
+    المحتملة (الموظف موجود/غير موجود، الدورة موجودة/غير موجودة، إنشاء موظف جديد... إلخ)،
+    ورسائل الأخطاء المُصدَّرة لكل سيناريو، وآلية المعالجة الموصى بها.
+  </div>
+
+  <!-- 3.1 employee -->
+  <div class="type-card">
+    <div class="tc-head">
+      <div class="ico">E1</div>
+      <h4>تقييم موظف</h4>
+      <span class="tt">target_type = employee</span>
+    </div>
+    <div class="tc-body">
+      <p>النوع الأساسي والأكثر استخداماً. يربط سجل التقييم مباشرة بجدول الموظفين
+      دون أي كيان وسيط. يستقبل قائمة من المعايير مع تقدير لكل معيار وملاحظات.</p>
+
+      <div class="mini-h">الأعمدة لكل صف</div>
+      <div class="cols-list">
+        <div class="col"><span class="nm">emp_code</span><span class="lb">كود الموظف</span><span class="tg r">إجباري*</span></div>
+        <div class="col"><span class="nm">full_name</span><span class="lb">الاسم الكامل</span><span class="tg r">إجباري*</span></div>
+        <div class="col"><span class="nm">branch</span><span class="lb">الفرع</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">dept</span><span class="lb">القسم</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">position</span><span class="lb">المسمى الوظيفي</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">[criteria]</span><span class="lb">أعمدة المعايير</span><span class="tg r">حسب القالب</span></div>
+        <div class="col"><span class="nm">[notes]</span><span class="lb">أعمدة الملاحظات</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">[grade]</span><span class="lb">التقدير النهائي</span><span class="tg o">حسب الوضع</span></div>
+        <div class="col"><span class="nm">evaluator_name</span><span class="lb">اسم المقيّم</span><span class="tg o">افتراضي</span></div>
+        <div class="col"><span class="nm">evaluator_title</span><span class="lb">صفة المقيّم</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">eval_date</span><span class="lb">تاريخ التقييم</span><span class="tg o">افتراضي</span></div>
+      </div>
+      <p style="font-size:9.5pt;color:var(--muted)">* يُكتفى بأحدهما (emp_code أو full_name) مع تفضيل emp_code.</p>
+
+      <div class="mini-h">السيناريوهات المحتملة</div>
+      <ul>
+        <li>الموظف موجود بالكود → ربط مباشر.</li>
+        <li>الموظف موجود بالاسم (مطابقة وحيدة) → ربط بعد تأكيد التطابق.</li>
+        <li>الموظف موجود بالاسم (مطابقات متعددة) → خطأ: استخدم الكود.</li>
+        <li>الكود موجود لكن الاسم مختلف → اعتماد الكود أساساً مع تحديث الاسم.</li>
+        <li>لا كود ولا اسم → خطأ: يجب إدخال أحدهما.</li>
+        <li>موظف جديد مع فرع وقسم صحيحين → إنشاء كامل.</li>
+        <li>موظف جديد بدون فرع/قسم → إنشاء ناقص + تحذير.</li>
+      </ul>
+
+      <div class="callout warn">
+        <div class="ttl"><span class="ic">!</span> آلية المعالجة</div>
+        عند إنشاء موظف جديد، يُكتفى بالحقول الأساسية (emp_code، full_name) ثم يُترك
+        الفرع والقسم والمسمى الوظيفي فارغة إذا لم تُقدَّم. يُصدِر النظام تحذيراً
+        في التقرير يطلب استكمال بيانات الموظف لاحقاً من شاشة إدارة الموظفين.
+      </div>
+    </div>
+  </div>
+
+  <!-- 3.2 employee_in_course -->
+  <div class="type-card">
+    <div class="tc-head">
+      <div class="ico">E2</div>
+      <h4>تقييم موظف في دورة</h4>
+      <span class="tt">target_type = employee_in_course</span>
+    </div>
+    <div class="tc-body">
+      <p>يُقيِّم موظفاً ضمن سياق دورة تدريبية. يدعم خيارين: الخيار (أ) قالب مختصر
+      يعتمد على دورة موجودة سابقاً، والخيار (ب) قالب موسع يُنشئ الدورة من نفس الملف.</p>
+
+      <div class="mini-h">الأعمدة لكل صف — الخيار (أ) قالب مختصر</div>
+      <div class="cols-list">
+        <div class="col"><span class="nm">emp_code</span><span class="lb">كود الموظف</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">full_name</span><span class="lb">الاسم الكامل</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">[course_id]</span><span class="lb">مضمّن في القالب</span><span class="tg o">داخلي</span></div>
+        <div class="col"><span class="nm">[criteria]</span><span class="lb">المعايير</span><span class="tg r">حسب القالب</span></div>
+        <div class="col"><span class="nm">[notes]</span><span class="lb">الملاحظات</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">[grade]</span><span class="lb">التقدير</span><span class="tg o">حسب الوضع</span></div>
+      </div>
+
+      <div class="mini-h">الأعمدة لكل صف — الخيار (ب) قالب موسع</div>
+      <div class="cols-list">
+        <div class="col"><span class="nm">course_title</span><span class="lb">عنوان الدورة</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">course_branch</span><span class="lb">فرع الدورة</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">course_dept</span><span class="lb">قسم الدورة</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">start_date</span><span class="lb">تاريخ البداية</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">end_date</span><span class="lb">تاريخ النهاية</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">trainer</span><span class="lb">المدرب</span><span class="tg o">اختياري</span></div>
+      </div>
+
+      <div class="mini-h">السيناريوهات المحتملة</div>
+      <ul>
+        <li>الدورة موجودة + الموظف مسجّل → ربط ومزامنة.</li>
+        <li>الدورة موجودة + الموظف غير مسجّل → تسجيل تلقائي ثم ربط.</li>
+        <li>الدورة موجودة + الموظف غير موجود → إنشاء موظف ثم تسجيل ثم ربط.</li>
+        <li>الدورة غير موجودة + بيانات مكتملة → إنشاء دورة ثم تسجيل ثم ربط.</li>
+        <li>الدورة غير موجودة + بيانات ناقصة → خطأ.</li>
+        <li>عدة دورات بنفس العنوان → خطأ: يجب التمييز.</li>
+        <li>عدة موظفين على دورة جديدة → إنشاء الدورة مرة واحدة ثم تسجيل الجميع.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3.3 employee_in_workshop -->
+  <div class="type-card">
+    <div class="tc-head">
+      <div class="ico">E3</div>
+      <h4>تقييم موظف في ورشة</h4>
+      <span class="tt">target_type = employee_in_workshop</span>
+    </div>
+    <div class="tc-body">
+      <p>يتماثل منطقياً مع تقييم الموظف في دورة، لكنه يستهدف جدول الورش. والورشة
+      تختلف عن الدورة في كونها عادةً أقصر مدة وأكثر تخصصاً، وقد تُعقد في إطار قسم
+      محدد دون تسجيل رسمي في نظام التدريب.</p>
+      <p>الأعمدة والسيناريوهات مماثلة لقسم 3.2 مع استبدال "course" بـ "workshop".
+      والخياران (أ) و(ب) متاحان أيضاً.</p>
+      <div class="callout info">
+        <div class="ttl"><span class="ic">i</span> ملاحظة فنية</div>
+        من الناحية التنفيذية يُفصل منطق الورشة عن الدورة في جدولين مستقلين لتفادي
+        التداخل في العلاقات، لكن الكود المُعالِج للاستيراد يُشاركهما معظم الدوال.
+      </div>
+    </div>
+  </div>
+
+  <!-- 3.4 course -->
+  <div class="type-card">
+    <div class="tc-head">
+      <div class="ico">E4</div>
+      <h4>تقييم دورة</h4>
+      <span class="tt">target_type = course</span>
+    </div>
+    <div class="tc-body">
+      <p>يقيّم الدورة ككيان (محتوى، مدرب، تنظيم) دون تقييم الموظفين فيها. كل صف
+      يمثل دورة واحدة، ولا حاجة لأعمدة الموظف.</p>
+
+      <div class="mini-h">الأعمدة لكل صف</div>
+      <div class="cols-list">
+        <div class="col"><span class="nm">title</span><span class="lb">عنوان الدورة</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">branch</span><span class="lb">الفرع</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">dept</span><span class="lb">القسم</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">start_date</span><span class="lb">تاريخ البداية</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">end_date</span><span class="lb">تاريخ النهاية</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">trainer</span><span class="lb">المدرب</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">[criteria]</span><span class="lb">المعايير</span><span class="tg r">حسب القالب</span></div>
+        <div class="col"><span class="nm">[notes]</span><span class="lb">الملاحظات</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">evaluator_name</span><span class="lb">المقيّم</span><span class="tg o">افتراضي</span></div>
+      </div>
+
+      <div class="mini-h">السيناريوهات المحتملة</div>
+      <ul>
+        <li>الدورة موجودة (تطابق العنوان + التواريخ) → تحديث التقييم.</li>
+        <li>الدورة موجودة بعنوان مختلف → إنشاء سجل تقييم مرتبط بدورة موجودة.</li>
+        <li>الدورة غير موجودة + البيانات كاملة → إنشاء الدورة ثم ربط التقييم.</li>
+        <li>عدة دورات بنفس العنوان → خطأ: حدّد التواريخ للتمييز.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3.5 workshop -->
+  <div class="type-card">
+    <div class="tc-head">
+      <div class="ico">E5</div>
+      <h4>تقييم ورشة</h4>
+      <span class="tt">target_type = workshop</span>
+    </div>
+    <div class="tc-body">
+      <p>يتماثل مع تقييم الدورة، لكنه يستهدف جدول الورش. الأعمدة والسيناريوهات
+      مماثلة لقسم 3.4 مع استبدال "course" بـ "workshop".</p>
+    </div>
+  </div>
+
+  <!-- 3.6 unit -->
+  <div class="type-card">
+    <div class="tc-head">
+      <div class="ico">E6</div>
+      <h4>تقييم وحدة</h4>
+      <span class="tt">target_type = unit</span>
+    </div>
+    <div class="tc-body">
+      <p>تقييم وحدة إدارية أو كيان مؤسسي لفترة محددة. يتميّز بأن الكيان المستهدَف
+      نوع مفتوح <code style="font-family:Courier New;background:#eef4f1;padding:1px 4px;border-radius:3px">entity_type</code>
+      يحدده المستخدم (فرع، قسم، إدارة، فريق، مشروع).</p>
+
+      <div class="mini-h">الأعمدة لكل صف</div>
+      <div class="cols-list">
+        <div class="col"><span class="nm">entity_type</span><span class="lb">نوع الكيان</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">entity_name</span><span class="lb">اسم الكيان</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">period</span><span class="lb">الفترة (شهر/ربع/سنة)</span><span class="tg r">إجباري</span></div>
+        <div class="col"><span class="nm">[criteria]</span><span class="lb">المعايير</span><span class="tg r">حسب القالب</span></div>
+        <div class="col"><span class="nm">[notes]</span><span class="lb">الملاحظات</span><span class="tg o">اختياري</span></div>
+        <div class="col"><span class="nm">[grade]</span><span class="lb">التقدير</span><span class="tg o">حسب الوضع</span></div>
+        <div class="col"><span class="nm">evaluator_name</span><span class="lb">المقيّم</span><span class="tg o">افتراضي</span></div>
+      </div>
+
+      <div class="mini-h">السيناريوهات المحتملة</div>
+      <ul>
+        <li>الكيان موجود في النظام → ربط مباشر.</li>
+        <li>الكيان غير موجود + entity_type معروف → إنشاء سجل تقييم بكيان مؤقت.</li>
+        <li>entity_type فارغ → خطأ: يجب تحديد النوع.</li>
+        <li>period فارغ → خطأ: يجب تحديد الفترة.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 4: سيناريوهات الموظف ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 04</span>
+    <h2>سيناريوهات الموظف</h2>
+    <div class="en">EMPLOYEE SCENARIOS · 21 CASES</div>
+  </div>
+
+  <div class="lead">
+    يعرض هذا القسم واحداً وعشرين سيناريو متكاملاً يتعلق بمعالجة بيانات الموظف عند
+    الاستيراد، مرتبة ترقيمياً ومرجعياً بحيث يمكن الإشارة إليها بدقة في المراسلات
+    والاختبارات. ولكل سيناريو: الحالة، الإجراء المتّخذ، الرسالة المُصدَّرة،
+    والوسم (طبيعي/تحذير/خطأ).
+  </div>
+
+  <table class="data scn">
+    <thead>
+      <tr>
+        <th style="width:42px">#</th>
+        <th>الحالة</th>
+        <th>الإجراء المتّخذ</th>
+        <th>الرسالة المُصدَّرة</th>
+        <th>الوسم</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="scn-id">S-E-01</td>
+        <td>الموظف موجود بالكود (emp_code يطابق سجل في قاعدة البيانات)</td>
+        <td>ربط سجل التقييم بالموظف مباشرة دون إنشاء جديد</td>
+        <td>تم ربط التقييم بالموظف [كود] — [اسم]</td>
+        <td><span class="pill ok">ربط</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-02</td>
+        <td>الموظف موجود بالاسم (تطابق وحيد بعد تطبيع النص)</td>
+        <td>ربط التقييم بالموظف بعد تأكيد التطابق الوحيد</td>
+        <td>تم العثور على الموظف بالاسم — الربط مكتمل</td>
+        <td><span class="pill ok">ربط</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-03</td>
+        <td>الموظف موجود بالاسم (تطابقات متعددة بنفس النص)</td>
+        <td>رفض الصف وعدم الربط — يُطلب تحديد الكود</td>
+        <td>تطابق متعدد للاسم. يرجى استخدام emp_code لتحديد الموظف بدقة.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-04</td>
+        <td>الكود موجود لكن الاسم المُدخل يختلف عن المسجّل</td>
+        <td>اعتماد الكود أساساً للربط وتحديث الاسم في سجل الموظف</td>
+        <td>تم الربط بالكود. سيتم تحديث الاسم من [المسجّل] إلى [الجديد].</td>
+        <td><span class="pill warn">تحديث</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-05</td>
+        <td>لا يوجد كود ولا اسم في الصف</td>
+        <td>رفض الصف جذرياً — لا يمكن معالجة الصف بدون مُعرّف</td>
+        <td>لا يمكن معالجة الصف: يجب إدخال emp_code أو full_name على الأقل.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-06</td>
+        <td>موظف جديد + فرع صحيح + قسم صحيح تحت الفرع</td>
+        <td>إنشاء موظف جديد ببيانات كاملة ثم ربط التقييم</td>
+        <td>تم إنشاء موظف جديد [كود] — [اسم] في [فرع/قسم]. الربط مكتمل.</td>
+        <td><span class="pill ok">إنشاء</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-07</td>
+        <td>موظف جديد + لا فرع ولا قسم</td>
+        <td>إنشاء موظف ببيانات ناقصة + تحذير بطلب الاستكمال لاحقاً</td>
+        <td>تم إنشاء موظف جديد ببيانات ناقصة. يرجى استكمال الفرع/القسم من شاشة الموظفين.</td>
+        <td><span class="pill warn">تحذير</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-08</td>
+        <td>الفرع مُدخل كنص لكنه غير موجود في النظام</td>
+        <td>رفض الصف — لا يمكن إنشاء فرع من ملف التقييم</td>
+        <td>الفرع "[الفرع]" غير موجود في النظام. يرجى إنشاء الفرع أولاً أو تركه فارغاً.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-09</td>
+        <td>القسم مُدخل لكنه غير موجود تحت الفرع المُدخل</td>
+        <td>رفض الصف — لا يمكن إنشاء قسم من ملف التقييم</td>
+        <td>القسم "[القسم]" غير موجود تحت الفرع "[الفرع]". تحقق من الربط أو تركه فارغاً.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-10</td>
+        <td>المسمى الوظيفي (position) غير موجود في قائمة المسميات</td>
+        <td>ترك المسمى فارغاً في سجل الموظف + تحذير بعدم الاعتماد</td>
+        <td>المسمى "[المسمى]" غير معروف في النظام. تم تركه فارغاً — يرجى تحديثه لاحقاً.</td>
+        <td><span class="pill warn">تحذير</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-11</td>
+        <td>قيمة percentage &gt; 100 أو &lt; 0</td>
+        <td>رفض القيمة — التقييم المئوي يجب أن يكون بين 0 و100</td>
+        <td>قيمة النسبة [القيمة] خارج النطاق المسموح (0–100). صحّح القيمة.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-12</td>
+        <td>قيمة numeric &gt; max_value المعتمد للمعيار</td>
+        <td>رفض القيمة — تجاوز الحد الأقصى المسموح</td>
+        <td>القيمة [القيمة] تتجاوز الحد الأقصى [max_value] لهذا المعيار.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-13</td>
+        <td>قيمة boolean غير صالحة (ليست نعم/لا/1/0/true/false)</td>
+        <td>قبول القيم المسموحة فقط — رفض ما سواها</td>
+        <td>القيمة المنطقية "[القيمة]" غير معروفة. القيم المقبولة: نعم، لا، 1، 0، true، false.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-14</td>
+        <td>قيمة grade ليست ضمن الخيارات المعتمدة للمعيار</td>
+        <td>رفض القيمة — التقدير يجب أن يكون ضمن قائمة الخيارات</td>
+        <td>التقدير "[القيمة]" ليس ضمن الخيارات المسموحة: [قائمة الخيارات].</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-15</td>
+        <td>قيمة textarea تتجاوز max_chars</td>
+        <td>اقتطاع النص إلى الحد الأقصى + تحذير بحدوث اقتطاع</td>
+        <td>تم اقتطاع النص إلى [max_chars] حرفاً. النص الأصلي أطول بـ [N] حرفاً.</td>
+        <td><span class="pill warn">اقتطاع</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-16</td>
+        <td>عمود الملاحظات (notes) فارغ لكن allow_notes = 1</td>
+        <td>قبول الصف — الملاحظات اختيارية حتى لو سُمح بها</td>
+        <td>لا ملاحظات لهذا الصف — مقبول (الملاحظات اختيارية).</td>
+        <td><span class="pill ok">مقبول</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-17</td>
+        <td>التقدير (grade) فارغ في وضع descriptive</td>
+        <td>رفض الصف — التقدير إجباري في الوضع الوصفي</td>
+        <td>التقدير مطلوب في الوضع الوصفي. لا يمكن تركه فارغاً.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-18</td>
+        <td>التقدير (grade) فارغ في وضع numeric</td>
+        <td>قبول الصف — التقدير يُحسَب آليّاً من مجموع المعايير</td>
+        <td>تم ترك التقدير فارغاً — سيُحسَب آليّاً من المعايير الرقمية.</td>
+        <td><span class="pill ok">محسوب</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-19</td>
+        <td>اسم المقيّم (evaluator_name) فارغ</td>
+        <td>استخدام المستخدم الحالي (المستورِد) كاسم للمقيّم</td>
+        <td>لم يُحدَّد المقيّم — تم اعتماد المستخدم الحالي [اسم المستخدم].</td>
+        <td><span class="pill info">افتراضي</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-20</td>
+        <td>التاريخ (eval_date) فارغ أو غير صالح</td>
+        <td>استخدام تاريخ اليوم كتاريخ افتراضي للتقييم</td>
+        <td>تاريخ التقييم غير صالح — تم اعتماد تاريخ اليوم [YYYY-MM-DD].</td>
+        <td><span class="pill info">افتراضي</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-E-21</td>
+        <td>أي خلية تبدأ بـ = أو + أو @</td>
+        <td>حماية من حقن الصيغ — رفض القيمة وتنظيفها</td>
+        <td>تم رفض الخلية: تبدأ بمحرف حساس (=, +, @) — حماية من حقن الصيغ.</td>
+        <td><span class="pill err">خطأ أمني</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <div class="ttl"><span class="ic">✓</span> ملخص الإجراءات المقبولة</div>
+    من بين السيناريوهات الواحد والعشرين، يُنتج سبعة منها قبولاً مباشراً (S-E-01،
+    02، 06، 16، 18) أو قبولاً مع تحذير (S-E-04، 07، 10، 15، 19، 20)، بينما يُنتج
+    الباقي رفضاً جذرياً للصف مع رسالة خطأ واضحة توجّه المستخدم إلى الإصلاح.
+  </div>
+</section>
+
+<!-- ============ SECTION 5: سيناريوهات الدورة والورشة ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 05</span>
+    <h2>سيناريوهات الدورة والورشة</h2>
+    <div class="en">COURSE / WORKSHOP SCENARIOS · 7 CASES</div>
+  </div>
+
+  <div class="lead">
+    يعرض هذا القسم سبعة سيناريوهات تتعلق بمعالجة بيانات الدورة (أو الورشة) عند
+    الاستيراد، خاصةً في تقييمات "موظف في دورة". والمنطق نفسه ينطبق على الورش
+    باستبدال course بـ workshop.
+  </div>
+
+  <table class="data scn">
+    <thead>
+      <tr>
+        <th style="width:42px">#</th>
+        <th>الحالة</th>
+        <th>الإجراء المتّخذ</th>
+        <th>الرسالة المُصدَّرة</th>
+        <th>الوسم</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="scn-id">S-C-01</td>
+        <td>الدورة موجودة + الموظف مسجّل فيها مسبقاً</td>
+        <td>ربط التقييم بالموظف داخل الدورة + مزامنة البيانات</td>
+        <td>تم ربط التقييم بالموظف [كود] في الدورة [course_id]. البيانات متزامنة.</td>
+        <td><span class="pill ok">ربط + مزامنة</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-C-02</td>
+        <td>الدورة موجودة + الموظف غير مسجّل فيها</td>
+        <td>تسجيل الموظف في الدورة آليّاً ثم ربط التقييم</td>
+        <td>تم تسجيل الموظف [كود] في الدورة [course_id] تلقائياً — الربط مكتمل.</td>
+        <td><span class="pill ok">تسجيل + ربط</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-C-03</td>
+        <td>الدورة موجودة + الموظف غير موجود في النظام</td>
+        <td>إنشاء الموظف + تسجيله في الدورة + ربط التقييم</td>
+        <td>تم إنشاء موظف [كود] وتسجيله في الدورة [course_id] — الربط مكتمل.</td>
+        <td><span class="pill ok">إنشاء + تسجيل + ربط</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-C-04</td>
+        <td>الدورة غير موجودة + البيانات مكتملة (عنوان، تواريخ، فرع)</td>
+        <td>إنشاء الدورة + تسجيل الموظف فيها + ربط التقييم</td>
+        <td>تم إنشاء دورة جديدة [course_id] وتسجيل الموظف — الربط مكتمل.</td>
+        <td><span class="pill ok">إنشاء دورة + ربط</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-C-05</td>
+        <td>الدورة غير موجودة + البيانات ناقصة (لا تواريخ أو لا عنوان)</td>
+        <td>رفض الصف — لا يمكن إنشاء دورة بدون الحقول الإلزامية</td>
+        <td>لا يمكن إنشاء الدورة: البيانات ناقصة ([الحقول المفقودة]). يرجى استكمالها.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-C-06</td>
+        <td>عدة دورات بنفس العنوان في النظام</td>
+        <td>رفض الصف — يُطلب تمييز الدورة بإضافة التواريخ أو course_id</td>
+        <td>تطابق متعدد للدورة "[العنوان]". يرجى تحديد start_date/end_date أو course_id للتمييز.</td>
+        <td><span class="pill err">خطأ</span></td>
+      </tr>
+      <tr>
+        <td class="scn-id">S-C-07</td>
+        <td>عدة موظفين في نفس الملف على دورة جديدة</td>
+        <td>إنشاء الدورة مرة واحدة فقط + تسجيل جميع الموظفين فيها + ربط كل تقييم</td>
+        <td>تم إنشاء الدورة [course_id] مرة واحدة وتسجيل [N] موظفاً — جميع التقييمات مرتبطة.</td>
+        <td><span class="pill ok">إنشاء + تسجيل جماعي</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <div class="ttl"><span class="ic">!</span> تنبيه على S-C-04 و S-C-07</div>
+    هذان السيناريوهان يقترحان إمكانية إنشاء دورة جديدة من داخل ملف الاستيراد،
+    وهذا قرار معلّق يحتاج إلى موافقة كبير المستشارين (انظر القسم 11، السؤال DQ-1).
+    إن لم تُمنح الموافقة، يُعطّل الخيار (ب) ويُطلب من المستخدم تسجيل الدورة مسبقاً.
+  </div>
+</section>
+
+<!-- ============ SECTION 6: خيارا الدورة ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 06</span>
+    <h2>خيارا الدورة</h2>
+    <div class="en">COURSE TEMPLATE OPTIONS · A vs B</div>
+  </div>
+
+  <div class="lead">
+    عند تقييم موظف في دورة، يُتاح للمستخدم قالبان مختلفان: <b>القالب المختصر (الخيار أ)</b>
+    الذي يفترض وجود دورة مسجّلة مسبقاً، و<b>القالب الموسع (الخيار ب)</b> الذي يسمح
+    بإنشاء الدورة من نفس ملف الاستيراد. يعرض هذا القسم مقارنة مفصّلة بينهما
+    وتوصية بالاعتماد المزدوج.
+  </div>
+
+  <div class="reco-grid">
+    <div class="reco opt-a">
+      <div class="rh">
+        <span>الخيار (أ) — القالب المختصر</span>
+        <span class="tag">OPTION A</span>
+      </div>
+      <div class="rb">
+        <p style="margin-bottom:8px">قالب مبسّط يفترض أن الدورة مسجّلة مسبقاً في النظام،
+        ويُضمَّن مُعرّف الدورة (course_id) في ترويسة الملف عند التنزيل. كل صف يحتوي
+        على بيانات الموظف والمعايير فقط دون أعمدة الدورة.</p>
+        <ul>
+          <li><b>مناسب عند:</b> تقييم دورة قائمة تم تنفيذها فعلاً.</li>
+          <li><b>المزايا:</b> ملف أصغر، ملء أسرع، احتمال خطأ أقل.</li>
+          <li><b>القيود:</b> لا يمكن إنشاء دورة جديدة من الملف.</li>
+          <li><b>الأعمدة:</b> emp_code, full_name, [criteria], [notes], evaluator_name, eval_date.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="reco opt-b">
+      <div class="rh">
+        <span>الخيار (ب) — القالب الموسع</span>
+        <span class="tag">OPTION B</span>
+      </div>
+      <div class="rb">
+        <p style="margin-bottom:8px">قالب موسع يضيف أعمدة الدورة إلى كل صف، بحيث يمكن
+        إنشاء دورة جديدة من داخل الملف. تتكرر أعمدة الدورة في كل صف، لكن النظام
+        يتعامل معها بأن يُنشئ الدورة مرة واحدة فقط (S-C-07).</p>
+        <ul>
+          <li><b>مناسب عند:</b> دورة جديدة لم تُسجَّل بعد في النظام.</li>
+          <li><b>المزايا:</b> مرونة عالية، إنشاء دورة وموظفين وتقييمات في عملية واحدة.</li>
+          <li><b>القيود:</b> ملف أكبر، خطر تكرار/تعارض بيانات الدورة.</li>
+          <li><b>الأعمدة الإضافية:</b> course_title, course_branch, course_dept, start_date, end_date, trainer.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-h"><div class="bar"></div><h3>التوصية النهائية</h3></div>
+  <p>
+    يُوصى بـ <b>اعتماد كلا الخيارين</b> في واجهة التنزيل، مع توفير مُبدّل (toggle) أو
+    مُرشّح (filter) يسمح للمستخدم باختيار القالب المناسب لحالته. لا يُفرض خيار
+    واحد على الجميع، لأن طبيعة العمل تختلف من وحدة إلى أخرى: فبعض الوحدات تُقيّم
+    دورات قائمة بانتظام (تحتاج الخيار أ)، وأخرى تُنشئ دورات جديدة ثم تُقيّمها في
+    نفس العملية (تحتاج الخيار ب).
+  </p>
+
+  <div class="callout info">
+    <div class="ttl"><span class="ic">i</span> تصميم واجهة التنزيل</div>
+    في صفحة التنزيل، يُعرض للمستخدم نافذتان متجاورتان:
+    <ul style="margin-top:6px">
+      <li><b>تقييم دورة قائمة</b> — يحتاج اختيار الدورة من قائمة منسدلة → يُنزَّل الخيار (أ).</li>
+      <li><b>تقييم دورة جديدة</b> — لا حاجة لاختيار مسبق → يُنزَّل الخيار (ب).</li>
+    </ul>
+    هذا التصميم يلغي الحاجة إلى شرح تقني معقد، ويترك للمستخدم القرار البصري المباشر.
+  </div>
+
+  <div class="callout warn">
+    <div class="ttl"><span class="ic">!</span> اعتماد القرار</div>
+    اعتماد كلا الخيارين معاً <b>معلّق</b> على موافقة كبير المستشارين على السماح
+    بإنشاء الدورات من ملفات Excel (السؤال DQ-1 في القسم 11). إن لم تُمنح الموافقة،
+    يُحذَف الخيار (ب) نهائياً ويُكتَفى بالخيار (أ).
+  </div>
+</section>
+
+<!-- ============ SECTION 7: هيكل قالب Excel لكل نوع ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 07</span>
+    <h2>هيكل قالب Excel لكل نوع</h2>
+    <div class="en">EXCEL TEMPLATE STRUCTURE</div>
+  </div>
+
+  <div class="lead">
+    يعرض هذا القسم ترتيب أعمدة كل قالب Excel جاهزاً للتنفيذ. الترتيب من اليمين إلى
+    اليسار في الملف (مطابقاً للاتجاه العربي)، وتُبدأ الأعمدة من العمود A في Excel
+    بصرف النظر عن اتجاه العرض. الحقول بين قوسين معقوفين <code style="font-family:Courier New;background:#eef4f1;padding:1px 4px;border-radius:3px">[...]</code>
+    هي أعمدة متغيرة تعتمد على قائمة معايير التقييم المختارة.
+  </div>
+
+  <!-- 7.1 employee -->
+  <div class="mini-h">7.1 — تقييم موظف (target_type = employee)</div>
+  <div class="code-blk">
+<span class="k">A</span> <span class="s">emp_code</span>           <span class="c">// كود الموظف (إجباري*)</span>
+<span class="k">B</span> <span class="s">full_name</span>          <span class="c">// الاسم الكامل (إجباري*)</span>
+<span class="k">C</span> <span class="s">branch</span>             <span class="c">// الفرع (اختياري)</span>
+<span class="k">D</span> <span class="s">dept</span>               <span class="c">// القسم (اختياري)</span>
+<span class="k">E</span> <span class="s">position</span>           <span class="c">// المسمى الوظيفي (اختياري)</span>
+<span class="k">F..N</span> <span class="v">[criteria_1 ... criteria_N]</span>   <span class="c">// أعمدة المعايير (حسب القالب)</span>
+<span class="k">N+1..</span> <span class="v">[notes_1 ... notes_M]</span>           <span class="c">// أعمدة الملاحظات (اختياري)</span>
+<span class="k">P</span> <span class="v">[grade]</span>            <span class="c">// التقدير النهائي (حسب الوضع)</span>
+<span class="k">Q</span> <span class="s">evaluator_name</span>     <span class="c">// اسم المقيّم (افتراضي: المستخدم الحالي)</span>
+<span class="k">R</span> <span class="s">evaluator_title</span>    <span class="c">// صفة المقيّم (اختياري)</span>
+<span class="k">S</span> <span class="s">eval_date</span>           <span class="c">// تاريخ التقييم (افتراضي: اليوم)</span>
+  </div>
+
+  <!-- 7.2 employee_in_course A -->
+  <div class="mini-h">7.2 — تقييم موظف في دورة · الخيار (أ) قالب مختصر</div>
+  <div class="code-blk">
+<span class="c">// مُعرّف الدورة مضمّن في ترويسة الملف (course_id = ######)</span>
+<span class="k">A</span> <span class="s">emp_code</span>           <span class="c">// كود الموظف (إجباري)</span>
+<span class="k">B</span> <span class="s">full_name</span>          <span class="c">// الاسم الكامل (إجباري)</span>
+<span class="k">C..K</span> <span class="v">[criteria_1 ... criteria_N]</span>     <span class="c">// أعمدة المعايير</span>
+<span class="k">L..</span> <span class="v">[notes_1 ... notes_M]</span>            <span class="c">// أعمدة الملاحظات (اختياري)</span>
+<span class="k">M</span> <span class="v">[grade]</span>            <span class="c">// التقدير النهائي (حسب الوضع)</span>
+<span class="k">N</span> <span class="s">evaluator_name</span>     <span class="c">// المقيّم</span>
+<span class="k">O</span> <span class="s">eval_date</span>           <span class="c">// التاريخ</span>
+  </div>
+
+  <!-- 7.3 employee_in_course B -->
+  <div class="mini-h">7.3 — تقييم موظف في دورة · الخيار (ب) قالب موسع</div>
+  <div class="code-blk">
+<span class="k">A</span> <span class="s">emp_code</span>           <span class="c">// كود الموظف</span>
+<span class="k">B</span> <span class="s">full_name</span>          <span class="c">// الاسم الكامل</span>
+<span class="k">C</span> <span class="s">course_title</span>       <span class="c">// عنوان الدورة (مطلوب — يتكرر في كل صف لنفس الدورة)</span>
+<span class="k">D</span> <span class="s">course_branch</span>      <span class="c">// فرع الدورة (اختياري)</span>
+<span class="k">E</span> <span class="s">course_dept</span>        <span class="c">// قسم الدورة (اختياري)</span>
+<span class="k">F</span> <span class="s">start_date</span>         <span class="c">// تاريخ بداية الدورة (إجباري)</span>
+<span class="k">G</span> <span class="s">end_date</span>           <span class="c">// تاريخ نهاية الدورة (إجباري)</span>
+<span class="k">H</span> <span class="s">trainer</span>            <span class="c">// المدرب (اختياري)</span>
+<span class="k">I..Q</span> <span class="v">[criteria_1 ... criteria_N]</span>     <span class="c">// أعمدة المعايير</span>
+<span class="k">R..</span> <span class="v">[notes_1 ... notes_M]</span>            <span class="c">// أعمدة الملاحظات</span>
+<span class="k">S</span> <span class="v">[grade]</span>            <span class="c">// التقدير</span>
+<span class="k">T</span> <span class="s">evaluator_name</span>     <span class="c">// المقيّم</span>
+<span class="k">U</span> <span class="s">eval_date</span>           <span class="c">// التاريخ</span>
+  </div>
+
+  <!-- 7.4 course -->
+  <div class="mini-h">7.4 — تقييم دورة (target_type = course)</div>
+  <div class="code-blk">
+<span class="k">A</span> <span class="s">title</span>              <span class="c">// عنوان الدورة (إجباري)</span>
+<span class="k">B</span> <span class="s">branch</span>             <span class="c">// الفرع (اختياري)</span>
+<span class="k">C</span> <span class="s">dept</span>               <span class="c">// القسم (اختياري)</span>
+<span class="k">D</span> <span class="s">start_date</span>         <span class="c">// تاريخ البداية (إجباري)</span>
+<span class="k">E</span> <span class="s">end_date</span>           <span class="c">// تاريخ النهاية (إجباري)</span>
+<span class="k">F</span> <span class="s">trainer</span>            <span class="c">// المدرب (اختياري)</span>
+<span class="k">G..O</span> <span class="v">[criteria_1 ... criteria_N]</span>     <span class="c">// المعايير</span>
+<span class="k">P..</span> <span class="v">[notes_1 ... notes_M]</span>            <span class="c">// الملاحظات</span>
+<span class="k">Q</span> <span class="s">evaluator_name</span>     <span class="c">// المقيّم</span>
+  </div>
+
+  <!-- 7.5 workshop -->
+  <div class="mini-h">7.5 — تقييم ورشة (target_type = workshop)</div>
+  <div class="code-blk">
+<span class="c">// مماثل لـ 7.4 مع استبدال جدول الدورة بجدول الورشة</span>
+<span class="k">A</span> <span class="s">title</span>              <span class="c">// عنوان الورشة</span>
+<span class="k">B</span> <span class="s">branch</span>             <span class="c">// الفرع</span>
+<span class="k">C</span> <span class="s">dept</span>               <span class="c">// القسم</span>
+<span class="k">D</span> <span class="s">start_date</span>         <span class="c">// البداية</span>
+<span class="k">E</span> <span class="s">end_date</span>           <span class="c">// النهاية</span>
+<span class="k">F</span> <span class="s">trainer</span>            <span class="c">// المدرب</span>
+<span class="k">G..O</span> <span class="v">[criteria]</span>       <span class="c">// المعايير</span>
+<span class="k">Q</span> <span class="s">evaluator_name</span>     <span class="c">// المقيّم</span>
+  </div>
+
+  <!-- 7.6 unit -->
+  <div class="mini-h">7.6 — تقييم وحدة (target_type = unit)</div>
+  <div class="code-blk">
+<span class="k">A</span> <span class="s">entity_type</span>        <span class="c">// نوع الكيان: branch / dept / team / project / management (إجباري)</span>
+<span class="k">B</span> <span class="s">entity_name</span>        <span class="c">// اسم الكيان المستهدَف (إجباري)</span>
+<span class="k">C</span> <span class="s">period</span>             <span class="c">// الفترة الزمنية: 2026-Q3 / 2026-11 / 2026 (إجباري)</span>
+<span class="k">D..L</span> <span class="v">[criteria_1 ... criteria_N]</span>     <span class="c">// المعايير</span>
+<span class="k">M..</span> <span class="v">[notes_1 ... notes_M]</span>            <span class="c">// الملاحظات</span>
+<span class="k">N</span> <span class="v">[grade]</span>            <span class="c">// التقدير</span>
+<span class="k">O</span> <span class="s">evaluator_name</span>     <span class="c">// المقيّم</span>
+  </div>
+
+  <div class="callout info">
+    <div class="ttl"><span class="ic">i</span> ملاحظة على ترويسة الملف</div>
+    تُوضَع في الصف الأول من كل قالب ترويسة ثابتة بأسماء الأعمدة الإنجليزية (المعروضة
+    أعلاه) لتسهيل قراءتها آليّاً. أما الصف الثاني فيُوضَع فيه وسم عربي مختصر يصف
+    كل عمود، وقد يُلغى هذا الصف إذا رأى كبير المستشارين أنه يُربك المستخدم النهائي.
+  </div>
+</section>
+
+<!-- ============ SECTION 8: قواعد التحقق الشاملة ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 08</span>
+    <h2>قواعد التحقق الشاملة</h2>
+    <div class="en">VALIDATION RULES · CATEGORIZED</div>
+  </div>
+
+  <div class="lead">
+    تُوزَّع قواعد التحقق على خمس فئات رئيسية: الموظف، الدورة، الدرجات، التقدير،
+    والأمن. ولكل قاعدة مُعرّف فريد (VR-XX) يُستخدَم في الاختبارات والمراسلات.
+    تُنفَّذ جميع القواعد في مرحلة المعاينة (Preview) قبل الاعتماد النهائي.
+  </div>
+
+  <!-- 8.1 employee -->
+  <div class="sub-h"><div class="bar"></div><h3>8.1 — فئة الموظف <span class="badge">VR-E</span></h3></div>
+  <table class="data">
+    <thead><tr><th style="width:60px">المُعرّف</th><th>القاعدة</th><th>الإجراء عند الإخفاق</th></tr></thead>
+    <tbody>
+      <tr><td class="center code">VR-E-01</td><td>يجب وجود emp_code أو full_name على الأقل</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-E-02</td><td>emp_code إن وُجد يجب أن يكون نصاً غير فارغ بدون مسافات طرفية</td><td>اقتطاع ثم قبول</td></tr>
+      <tr><td class="center code">VR-E-03</td><td>تطابق emp_code مع قاعدة البيانات إن وُجد → ربط مباشر</td><td>ربط</td></tr>
+      <tr><td class="center code">VR-E-04</td><td>تطابق full_name بعد التطبيع إن لم يوجد كود</td><td>ربط إذا وحيد، خطأ إذا متعدد</td></tr>
+      <tr><td class="center code">VR-E-05</td><td>branch إن وُجد يجب أن يكون نصاً مطابقاً لقائمة الفروع</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-E-06</td><td>dept إن وُجد يجب أن يكون تابعاً للـ branch المُدخل</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-E-07</td><td>position إن وُجد وغير معروف → ترك فارغ + تحذير</td><td>تحذير</td></tr>
+      <tr><td class="center code">VR-E-08</td><td>إنشاء موظف جديد يستلزم emp_code فريد (لا تكرار داخل الملف أو مع DB)</td><td>رفض الصف</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 8.2 course -->
+  <div class="sub-h"><div class="bar"></div><h3>8.2 — فئة الدورة والورشة <span class="badge">VR-C</span></h3></div>
+  <table class="data">
+    <thead><tr><th style="width:60px">المُعرّف</th><th>القاعدة</th><th>الإجراء عند الإخفاق</th></tr></thead>
+    <tbody>
+      <tr><td class="center code">VR-C-01</td><td>course_id إن وُجد (الخيار أ) يجب أن يطابق دورة قائمة</td><td>رفض الملف</td></tr>
+      <tr><td class="center code">VR-C-02</td><td>course_title (الخيار ب) إجباري ولا يجوز أن يكون فارغاً</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-C-03</td><td>start_date و end_date إجباريان في الخيار (ب)</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-C-04</td><td>start_date &lt; end_date (ترتيب زمني صحيح)</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-C-05</td><td>تطابق title + start_date + end_date مع دورة قائمة → ربط</td><td>ربط</td></tr>
+      <tr><td class="center code">VR-C-06</td><td>عدة دورات بنفس العنوان في DB بدون تمييز بالتواريخ → خطأ</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-C-07</td><td>تكرار عنوان الدورة داخل الملف → إنشاء الدورة مرة واحدة فقط</td><td>دمج + ربط</td></tr>
+      <tr><td class="center code">VR-C-08</td><td>course_branch / course_dept إن وُجدا يخضعان لنفس قواعد VR-E-05/06</td><td>رفض الصف</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 8.3 scores -->
+  <div class="sub-h"><div class="bar"></div><h3>8.3 — فئة الدرجات <span class="badge">VR-S</span></h3></div>
+  <table class="data">
+    <thead><tr><th style="width:60px">المُعرّف</th><th>القاعدة</th><th>الإجراء عند الإخفاق</th></tr></thead>
+    <tbody>
+      <tr><td class="center code">VR-S-01</td><td>percentage ∈ [0, 100]</td><td>رفض القيمة</td></tr>
+      <tr><td class="center code">VR-S-02</td><td>numeric ≤ max_value المعتمد للمعيار</td><td>رفض القيمة</td></tr>
+      <tr><td class="center code">VR-S-03</td><td>boolean ∈ {نعم، لا، 1، 0، true، false} (غير حساس لحالة الأحرف)</td><td>رفض القيمة</td></tr>
+      <tr><td class="center code">VR-S-04</td><td>textarea ≤ max_chars (اقتطاع + تحذير)</td><td>اقتطاع + تحذير</td></tr>
+      <tr><td class="center code">VR-S-05</td><td>أعمدة الملاحظات اختيارية حتى لو allow_notes = 1</td><td>قبول</td></tr>
+      <tr><td class="center code">VR-S-06</td><td>الحقول الرقمية يجب أن تكون أرقاماً صالحة (لا نص ولا رموز)</td><td>رفض القيمة</td></tr>
+      <tr><td class="center code">VR-S-07</td><td>القيم الفارغة في المعايير الإجبارية → رفض الصف</td><td>رفض الصف</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 8.4 grade -->
+  <div class="sub-h"><div class="bar"></div><h3>8.4 — فئة التقدير <span class="badge">VR-G</span></h3></div>
+  <table class="data">
+    <thead><tr><th style="width:60px">المُعرّف</th><th>القاعدة</th><th>الإجراء عند الإخفاق</th></tr></thead>
+    <tbody>
+      <tr><td class="center code">VR-G-01</td><td>grade في وضع descriptive إجباري</td><td>رفض الصف</td></tr>
+      <tr><td class="center code">VR-G-02</td><td>grade في وضع numeric اختياري (يُحسَب آليّاً)</td><td>قبول</td></tr>
+      <tr><td class="center code">VR-G-03</td><td>grade إن وُجد يجب أن يكون ضمن قائمة الخيارات المعتمدة</td><td>رفض القيمة</td></tr>
+      <tr><td class="center code">VR-G-04</td><td>grade في وضع percentage يُحسَب من مجموع المعايير</td><td>حساب آلي</td></tr>
+      <tr><td class="center code">VR-G-05</td><td>grade في وضع boolean يُحسَب من تطابق غالبية المعايير</td><td>حساب آلي</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 8.5 security -->
+  <div class="sub-h"><div class="bar"></div><h3>8.5 — فئة الأمن والحماية <span class="badge">VR-X</span></h3></div>
+  <table class="data">
+    <thead><tr><th style="width:60px">المُعرّف</th><th>القاعدة</th><th>الإجراء عند الإخفاق</th></tr></thead>
+    <tbody>
+      <tr><td class="center code">VR-X-01</td><td>أي خلية تبدأ بـ = أو + أو @ → رفض (حماية من حقن الصيغ)</td><td>رفض القيمة</td></tr>
+      <tr><td class="center code">VR-X-02</td><td>تنظيف النصوص من محارف التحكم (CR, LF, NULL)</td><td>تنظيف صامت</td></tr>
+      <tr><td class="center code">VR-X-03</td><td>التحقق من امتداد الملف (.xlsx فقط — يُناقَس .xls في DQ-5)</td><td>رفض الملف</td></tr>
+      <tr><td class="center code">VR-X-04</td><td>حجم الملف ≤ الحد الأقصى (20MB معتمد — DQ-4)</td><td>رفض الملف</td></tr>
+      <tr><td class="center code">VR-X-05</td><td>التحقق من MIME type لا يكفي — يجب التحقق من البنية الداخلية للملف</td><td>رفض الملف</td></tr>
+      <tr><td class="center code">VR-X-06</td><td>عدد الصفوف ≤ حد أقصى (2000 صف معتمد لكل ملف — متوافق مع حد التصدير)</td><td>رفض الملف</td></tr>
+      <tr><td class="center code">VR-X-07</td><td>تسجيل كل عملية استيراد في سجل تدقيق (audit log) مع المستخدم والوقت</td><td>تسجيل إلزامي</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <div class="ttl"><span class="ic">✓</span> ترتيب تطبيق القواعد</div>
+    تُطبَّق القواعد بالترتيب التالي: الأمن (VR-X) أولاً على مستوى الملف، ثم الموظف
+    (VR-E) والدورة (VR-C) على مستوى الصف، ثم الدرجات (VR-S) على مستوى الخلية،
+    وأخيراً التقدير (VR-G) على مستوى الصف بعد التحقق من المعايير. هذا الترتيب
+    يضمن رفض الملفات الخبيثة قبل أي معالجة.
+  </div>
+</section>
+
+<!-- ============ SECTION 9: تدفق الاستيراد الكامل ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 09</span>
+    <h2>تدفق الاستيراد الكامل</h2>
+    <div class="en">FULL IMPORT FLOW · 7 STEPS</div>
+  </div>
+
+  <div class="lead">
+    يتألف الاستيراد من سبع خطوات متتابعة، تبدأ باختيار نوع التقييم وتنتهي بإصدار
+    تقرير النتائج. كل خطوة مُلزَمة بسجل واضح في الواجهة، ولا يمكن تخطّي أي خطوة.
+    تُنفَّذ المعاينة والاعتماد في معاملتين منفصلتين لتفادي الالتزام بأخطاء غير مقصودة.
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="fn">1</div>
+      <div class="fc">
+        <h5>اختيار نوع التقييم</h5>
+        <p>يبدأ المستخدم باختيار نوع التقييم من قائمة (الأنواع الستة). تحدد هذه الخطوة
+        باقي مسار القالب والتحقق.</p>
+        <div class="acts"><span>select target_type</span><span>navigate to download</span></div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="fn">2</div>
+      <div class="fc">
+        <h5>تنزيل القالب</h5>
+        <p>يُنزّل النظام قالب Excel فارغ مُخصَّص للنوع المختار، يتضمّن أعمدة المعايير
+        المُعتمَدة للنوع، وترويسة ثابتة بأسماء الأعمدة. في حالة "موظف في دورة"
+        يختار المستخدم الخيار (أ) أو (ب).</p>
+        <div class="acts"><span>render template</span><span>course_id embedded (if A)</span><span>.xlsx download</span></div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="fn">3</div>
+      <div class="fc">
+        <h5>تعبئة الملف</h5>
+        <p>يملأ المقيّم الملف offline باستخدام Microsoft Excel أو أي برنامج متوافق.
+        يُنصَح بالحفظ بعد كل صف لإجراءات الأمان.</p>
+        <div class="acts"><span>user-side</span><span>offline fill</span><span>save .xlsx</span></div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="fn">4</div>
+      <div class="fc">
+        <h5>رفع الملف</h5>
+        <p>يُرفَع الملف إلى الخادم. يجتاز النظام اختبارات الأمن الأولية: الامتداد،
+        الحجم، البنية، الحد الأقصى للصفوف (VR-X-01 إلى VR-X-06).</p>
+        <div class="acts"><span>upload</span><span>VR-X rules</span><span>audit log</span></div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="fn">5</div>
+      <div class="fc">
+        <h5>المعاينة والتحقق (Preview / Validate)</h5>
+        <p>تُعالَج جميع الصفوف دون حفظ، وتُعرَض النتيجة في جدول مع وسم لكل صف:
+        مقبول (أخضر)، تحذير (أصفر)، خطأ (أحمر). تُعرَض الرسائل التفصيلية لكل صف.
+        يمكن للمستخدم تصحيح الملف وإعادة الرفع، أو تجاوز الصفوف الخاطئة.</p>
+        <div class="acts"><span>VR-E / VR-C / VR-S / VR-G</span><span>preview table</span><span>per-row status</span></div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="fn">6</div>
+      <div class="fc">
+        <h5>الاعتماد والحفظ (Commit)</h5>
+        <p>عند موافقة المستخدم على المعاينة، تُنفَّذ عملية الاعتماد في معاملة قاعدة
+        بيانات واحدة (transaction). تُنشأ السجلات، تُربط التقييمات، تُسجَّل الموظفون/
+        الدورات الجديدة. إن فشلت أي عملية تراجعية، يُلغى الإجراء كاملاً (atomic).</p>
+        <div class="acts"><span>DB transaction</span><span>atomic</span><span>rollback on error</span></div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="fn">7</div>
+      <div class="fc">
+        <h5>إصدار التقرير</h5>
+        <p>تُعرَض صفحة تقرير نهائية تتضمن: عدد الصفوف المقبولة، المقبولة بتحذير،
+        المرفوضة، الموظفون الجدد، الدورات الجديدة. يمكن تنزيل التقرير PDF أو
+        تصدير سجلات الأخطاء Excel لإعادة المعالجة.</p>
+        <div class="acts"><span>summary stats</span><span>export PDF</span><span>export errors XLSX</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="ttl"><span class="ic">i</span> ضمان الذرية (Atomicity)</div>
+    الخطوة 6 (الاعتماد) تُنفَّذ في معاملة واحدة. إن فشل أي صف في الاعتماد بعد
+    المعاينة (وهو أمر نادر لأن المعاينة تكشف الأخطاء)، يتراجع النظام عن جميع
+    التغييرات في تلك المعاملة. هذا يضمن عدم بقاء سجلات موظفين بدون تقييمات أو
+    تقييمات بدون موظفين.
+  </div>
+</section>
+
+<!-- ============ SECTION 10: التوصيات ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 10</span>
+    <h2>التوصيات</h2>
+    <div class="en">RECOMMENDATIONS</div>
+  </div>
+
+  <div class="lead">
+    تستند هذه التوصيات إلى ثلاث مبادئ أساسية: <b>تبسيط التجربة على المستخدم</b>،
+    <b>ضمان دقة البيانات</b>، و<b>المرونة في تلبية الاحتياجات المتنوعة للوحدات</b>.
+    تُقدَّم هذه المبادئ كقرارات تصميمية مُلزِمة لفريق التطوير.
+  </div>
+
+  <div class="sub-h"><div class="bar"></div><h3>المبدأ الأول: التبسيط على المستخدم</h3></div>
+  <ul class="check">
+    <li>تقليل الأعمدة الإجبارية إلى الحد الأدنى: emp_code أو full_name فقط في تقييم الموظف.</li>
+    <li>توفير قوالب جاهزة لكل نوع مع ترويسة عربية + إنجليزية لكل عمود.</li>
+    <li>اعتماد القيم الافتراضية: المقيّم = المستخدم الحالي، التاريخ = اليوم، grade في numeric = محسوب آليّاً.</li>
+    <li>إصدار رسائل خطأ واضحة بالعربية مع ذكر اسم العمود وقيمة الخلية المُسببة للخطأ.</li>
+    <li>توفير زر "تنزيل الأخطاء XLSX" يُعيد الصفوف الخاطئة فقط مع شرح الخطأ، لتسهيل الإصلاح وإعادة الرفع.</li>
+    <li>السماح بإعادة رفع الملف بعد الإصلاح دون إعادة اختيار النوع (يُحفَظ السياق).</li>
+  </ul>
+
+  <div class="sub-h"><div class="bar"></div><h3>المبدأ الثاني: ضمانات الدقة</h3></div>
+  <ul class="check">
+    <li>تنفيذ جميع قواعد التحقق (VR-E إلى VR-X) في مرحلة المعاينة قبل الاعتماد.</li>
+    <li>الاعتماد في معاملة قاعدة بيانات واحدة (atomic transaction) لتفادي السجلات الناقصة.</li>
+    <li>تسجيل كل عملية استيراد في سجل تدقيق كامل (audit log) يتضمن: المستخدم، الوقت، النوع، عدد الصفوف، النتيجة.</li>
+    <li>إجراء اختبارات دورية على قواعد التحقق بصفوف اختبار قياسية لضمان عدم انكسارها بعد التحديثات.</li>
+    <li>حماية كاملة من حقن الصيغ (VR-X-01) — لا يقبل النظام أي خلية تبدأ بـ = أو + أو @.</li>
+    <li>تنظيف النصوص من محارف التحكم (CR, LF, NULL) قبل الحفظ لتفادي إخفاء بيانات داخل النصوص.</li>
+  </ul>
+
+  <div class="sub-h"><div class="bar"></div><h3>المبدأ الثالث: المرونة</h3></div>
+  <ul class="check">
+    <li>دعم كلا الخيارين (أ) و(ب) في تقييم "موظف في دورة" وفق احتياج الوحدة.</li>
+    <li>دعم جميع أنواع التقييم الستة من نفس واجهة الاستيراد دون فروع منفصلة.</li>
+    <li>قبول القيم المنطقية بصيغ متعددة (نعم/لا/1/0/true/false) لتفادي أخطاء الإدخال البسيطة.</li>
+    <li>السماح بإنشاء موظفين جدد من الملف مع تحذيرات واضحة (لا يُرفض الملف كاملاً).</li>
+    <li>السماح بترك حقول اختيارية فارغة (ملاحظات، صفة المقيّم) دون رفض الصف.</li>
+    <li>إمكانية تكرار الاستيراد على نفس النوع بملفات متعددة دون قيود على عدد العمليات.</li>
+  </ul>
+
+  <div class="callout ok">
+    <div class="ttl"><span class="ic">✓</span> التزام التصميم</div>
+    يلتزم فريق التطوير بهذه المبادئ الثلاثة كقرارات تصميمية مُلزِمة. أي ميزة جديدة
+    تُضاف لاحقاً يجب أن تمرّ عبر فلتر هذه المبادئ: هل تُبسّط على المستخدم؟ هل تحافظ
+    على الدقة؟ هل تزيد المرونة دون إرباك؟
+  </div>
+</section>
+
+<!-- ============ SECTION 11: الأسئلة المطلوبة من كبير المستشارين ============ -->
+<section class="section">
+  <div class="sec-head">
+    <span class="tag">SECTION · 11</span>
+    <h2>الأسئلة المطلوبة من كبير المستشارين</h2>
+    <div class="en">DECISIONS REQUIRED FROM CHIEF CONSULTANT</div>
+  </div>
+
+  <div class="lead">
+    تبقى ستة قرارات معلّقة يحتاج كبير المستشارين إلى حسمها قبل بدء التطوير النهائي.
+    لكل سؤال خيارات معروضة، مع توصية فنية واضحة (مُوسَمة بـ"التوصية") تعكس تقييم
+    فريق التطوير. القرار النهائي يُحتَم بكبير المستشارين.
+  </div>
+
+  <div class="q-card">
+    <div>
+      <span class="qnum">1</span>
+      <span class="qt">DQ-1: هل نسمح بإنشاء الدورات من ملف Excel (الخيار ب) أم نلزم بالتسجيل المسبق؟</span>
+    </div>
+    <div class="qd">
+      يطرح هذا السؤال جوهر اعتماد الخيار (ب). إن سُمِح، فإن القالب الموسع يُفعَّل
+      ويُتاح للمستخدمين. إن لم يُسمَح، يُحذَف الخيار (ب) ويُكتَفى بالخيار (أ) مع
+      إلزام المستخدم بتسجيل الدورة في النظام مسبقاً.
+    </div>
+    <div class="qopts">
+      <div class="opt rec"><span class="o-ic">✓</span><span class="o-t"><b>التوصية:</b> اعتماد الخيار (ب) مع تحقق صارم من حقول الدورة الإلزامية. المرونة تخدم الوحدات التي تُنشئ دورات جديدة باستمرار.</span></div>
+      <div class="opt"><span class="o-ic">B</span><span class="o-t"><b>بديل:</b> رفض الخيار (ب) وإلزام التسجيل المسبق — أبسط إدارياً لكنه يُبطئ العمليات الميدانية.</span></div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div>
+      <span class="qnum">2</span>
+      <span class="qt">DQ-2: هل نُنشئ الأقسام تحت الفروع آليّاً إن لم تكن موجودة؟</span>
+    </div>
+    <div class="qd">
+      حالياً قاعدة VR-E-06 ترفض الصف إذا لم يكن القسم تابعاً للفرع. بعض الوحدات
+      ترغب بإنشاء القسم آليّاً عند الحاجة. هذا قد يُولّد أقساماً مكررة بأسماء
+      مختلفة أو إملاء خاطئ.
+    </div>
+    <div class="qopts">
+      <div class="opt rec"><span class="o-ic">✓</span><span class="o-t"><b>التوصية:</b> عدم الإنشاء الآلي — يجب تسجيل الأقسام مسبقاً من شاشة الفروع/الأقسام لتفادي التشتت.</span></div>
+      <div class="opt"><span class="o-ic">B</span><span class="o-t"><b>بديل:</b> إنشاء آلي مع تحذير وتأكيد يدوي لاحقاً من مدير النظام.</span></div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div>
+      <span class="qnum">3</span>
+      <span class="qt">DQ-3: هل نُنشئ المسميات الوظيفية (positions) آليّاً إن لم تكن موجودة؟</span>
+    </div>
+    <div class="qd">
+      قاعدة VR-E-07 تترك المسمى فارغاً مع تحذير إن لم يكن معروفاً. بعض الوحدات
+      ترغب بإنشاء المسمى آليّاً عند الحاجة. هذا أقل خطورة من الأقسام لكنه قد يُولّد
+      تكراراً (مثل: "مهندس برمجيات" و"مهندس برمجيات أول").
+    </div>
+    <div class="qopts">
+      <div class="opt rec"><span class="o-ic">✓</span><span class="o-t"><b>التوصية:</b> عدم الإنشاء الآلي — المسمى يُترَك فارغاً مع تحذير، ويُحدَّث لاحقاً يدويّاً.</span></div>
+      <div class="opt"><span class="o-ic">B</span><span class="o-t"><b>بديل:</b> إنشاء آلي للمسميات الجديدة بعد تطبيع النص (trim + lowercase) للتفادي.</span></div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div>
+      <span class="qnum">4</span>
+      <span class="qt">DQ-4: ما الحد الأقصى لحجم الملف المرفوع؟</span>
+    </div>
+    <div class="qd">
+      يؤثر الحجم الأقصى مباشرة على تجربة المستخدم وأداء الخادم. اعتمدنا 20MB لأنه
+      يتّسع لـ 2000 موظف بكامل القوالب (15–18 عمودًا) وقوائمها المنسدلة وملاحظاتها
+      النصية مع هامش أمان كافٍ، دون التأثير الملحوظ على الأداء بفضل المعالجة على دفعات.
+      ملف 10MB كان ضيقًا لـ 2000 صف بالتنسيق الكامل والقوائم المنسدلة المتكررة لكل صف.
+    </div>
+    <div class="qopts">
+      <div class="opt rec"><span class="o-ic">✓</span><span class="o-t"><b>القرار المعتمد:</b> 20MB كحد أقصى — يتّسع لـ 2000 موظف بكامل القوالب والقوائم المنسدلة والملاحظات، مع معالجة على دفعات لتفادي timeouts.</span></div>
+      <div class="opt"><span class="o-ic">B</span><span class="o-t"><b>بديل سابق:</b> 10MB (~5000 صف بأعمدة قليلة) — ضيق لقوالب 2000 صف بالتنسيق الكامل.</span></div>
+      <div class="opt"><span class="o-ic">C</span><span class="o-t"><b>بديل:</b> 5MB — يفرض تقسيماً يدويّاً على الملفات الكبيرة.</span></div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div>
+      <span class="qnum">5</span>
+      <span class="qt">DQ-5: هل ندعم صيغة .xls القديمة أم نكتفي بـ .xlsx؟</span>
+    </div>
+    <div class="qd">
+      صيغة .xls (Excel 97-2003) لا تزال تُستخدم في بعض الوحدات. دعمها يتطلب
+      مكتبات إضافية ويزيد سطح الهجوم الأمني. صيغة .xlsx هي المعيار الحديث وتُدعَم
+      آليّاً بأغلب المكتبات.
+    </div>
+    <div class="qopts">
+      <div class="opt rec"><span class="o-ic">✓</span><span class="o-t"><b>التوصية:</b> دعم .xlsx فقط — أبسط وأأمن. الوحدات التي تستخدم .xls تُوجَّه للحفظ بصيغة .xlsx.</span></div>
+      <div class="opt"><span class="o-ic">B</span><span class="o-t"><b>بديل:</b> دعم .xls و .xlsx معاً — يستلزم مكتبات إضافية واختبارات أمنية أشمل.</span></div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div>
+      <span class="qnum">6</span>
+      <span class="qt">DQ-6: لتقييم الوحدات، هل نسمح بفترات متعددة في نفس الملف؟</span>
+    </div>
+    <div class="qd">
+      قالب تقييم الوحدة (7.6) يتضمن عمود period إجباري. السؤال هل يُسمَح بتقييم
+      نفس الكيان لفترات مختلفة (مثلاً 2026-Q3 و 2026-Q4) في نفس الملف، أم يُلزَم
+      بفترة واحدة لكل ملف.
+    </div>
+    <div class="qopts">
+      <div class="opt rec"><span class="o-ic">✓</span><span class="o-t"><b>التوصية:</b> السماح بفترات متعددة في نفس الملف — مرونة أعلى دون تعقيد إضافي، شرط أن تكون الفترة في كل صف صالحة.</span></div>
+      <div class="opt"><span class="o-ic">B</span><span class="o-t"><b>بديل:</b> فترة واحدة لكل ملف (تُضمَّن في الترويسة) — أبسط لكنه يفرض رفع عدة ملفات.</span></div>
+    </div>
+  </div>
+
+  <div class="callout warn" style="margin-top:18px">
+    <div class="ttl"><span class="ic">!</span> توقيت القرارات</div>
+    يُفضَّل حسم هذه القرارات الستة قبل بدء التطوير النهائي لتفادي إعادة بناء
+    وحدات كاملة. القرارات DQ-1 و DQ-2 و DQ-3 تؤثر مباشرة على قواعد التحقق
+    (VR-E و VR-C)، بينما DQ-4 و DQ-5 تؤثر على إعدادات الخادم، و DQ-6 يؤثر على
+    بنية قالب تقييم الوحدة.
+  </div>
+
+  <div style="margin-top:24px;padding:16px 20px;background:linear-gradient(135deg,#0c2823,#0d5e52);color:#fff;border-radius:8px;text-align:center">
+    <div style="font-size:9pt;color:#c8943f;letter-spacing:4px;font-weight:700;margin-bottom:6px">END OF STUDY</div>
+    <div style="font-size:14pt;font-weight:800">نهاية الدراسة — CD-042</div>
+    <div style="font-size:10pt;color:#d8e8df;margin-top:4px">تم إعداد هذه الدراسة بواسطة وحدة تطوير الأنظمة · 2026-11-10</div>
+  </div>
+</section>
+
+</div>
+
+</body>
+</html>

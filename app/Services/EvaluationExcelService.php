@@ -17,9 +17,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use RuntimeException;
 final class EvaluationExcelService
 {
-    private const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    private const MAX_FILE_SIZE = 20 * 1024 * 1024;
     private const DEFAULT_MAX_ROWS = 100;
-    private const MAX_ROWS_LIMIT = 1000;
+    private const MAX_ROWS_LIMIT = 2000;
     private const MAX_ROWS = 100;
     private const SHEET_NAME = 'التقييمات';
     private const LOOKUP_SHEET = '__lookup';
@@ -70,16 +70,22 @@ final class EvaluationExcelService
             $fixedCount = 5;
             $instruction = 'كل صف = موظف واحد + تقييم واحد. الرقم الوظيفي أو الاسم الكامل أحدهما إلزامي. التاريخ YYYY-MM-DD أو DD-MM-YYYY وليس مستقبلاً. الأعمدة الصفراء للتحرير فقط. حتى ' . $maxRows . ' موظف.';
         }
-        // CD-042: Build expanded columns list — sections + notes columns (if allow_notes=1)
-        $expandedCols = []; // each: ['kind'=>'section'|'notes', 'section'=>array]
+        // Build grouped criteria (must happen before expanded columns)
+        $grouped = [];
+        foreach ($sections as $section) {
+            $cName = $section['criterion_name'];
+            if (!isset($grouped[$cName])) {
+                $grouped[$cName] = ['weight' => $section['criterion_weight'], 'sections' => []];
+            }
+            $grouped[$cName]['sections'][] = $section;
+        }
+        // CD-042.1 (forward-fix): adjacent criteria columns only (no interleaved notes columns).
+        // Per-criterion notes are intentionally NOT emitted; general notes live in the tail.
+        // A separate future CD will add end-to-end per-criterion notes if required.
+        $expandedCols = []; // each: ['kind'=>'section', 'section'=>array, 'criterion'=>string]
         foreach ($grouped as $cName => $group) {
             foreach ($group['sections'] as $section) {
                 $expandedCols[] = ['kind' => 'section', 'section' => $section, 'criterion' => $cName];
-                $secType = $section['evaluation_type'] ?? 'percentage';
-                $allowNotes = (int)($section['allow_notes'] ?? 0);
-                if ($allowNotes === 1 && !in_array($secType, ['textarea', 'overall_grade', 'text'], true)) {
-                    $expandedCols[] = ['kind' => 'notes', 'section' => $section, 'criterion' => $cName];
-                }
             }
         }
         $expandedCount = count($expandedCols);
@@ -111,14 +117,7 @@ final class EvaluationExcelService
         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(8)->getColor()->setRGB('555555');
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setWrapText(true);
         $sheet->getRowDimension(2)->setRowHeight(22);
-        $grouped = [];
-        foreach ($sections as $section) {
-            $cName = $section['criterion_name'];
-            if (!isset($grouped[$cName])) {
-                $grouped[$cName] = ['weight' => $section['criterion_weight'], 'sections' => []];
-            }
-            $grouped[$cName]['sections'][] = $section;
-        }
+        // grouped already built above (before expanded columns)
         // fixedHeaders already defined above
         foreach ($fixedHeaders as $idx => $header) {
             $col = $this->colLetter($idx + 1);
@@ -137,7 +136,7 @@ final class EvaluationExcelService
             $cName = $ec['criterion'];
             if ($prevCriterion !== null && $cName !== $prevCriterion) {
                 // Close previous criterion group
-                $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, $grouped[$prevCriterion]['weight']);
+                $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, (float) $grouped[$prevCriterion]['weight']);
                 $groupStartCol = $currentCol;
             }
             $col = $this->colLetter($currentCol);
@@ -160,7 +159,7 @@ final class EvaluationExcelService
         }
         // Close last criterion group
         if ($prevCriterion !== null) {
-            $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, $grouped[$prevCriterion]['weight']);
+            $this->writeCriterionHeader($sheet, $groupStartCol, $currentCol - 1, $prevCriterion, (float) $grouped[$prevCriterion]['weight']);
         }
         $secHeaderStart = $this->colLetter($fixedCount + 1);
         $secHeaderEnd = $this->colLetter($fixedCount + $expandedCount);
@@ -217,7 +216,7 @@ final class EvaluationExcelService
         }
         $sheet->getStyle($helperCol . $dataStartRow . ':' . $helperCol . $dataEndRow)->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         $this->buildLookupSheet($book);
-        if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop'], true)) {
+        if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop','skill'], true)) {
             $prefill = $this->getPrefillEmployees($branchId, $departmentId, $maxRows);
             $rowIdx = $dataStartRow;
             foreach ($prefill as $emp) {
@@ -326,7 +325,7 @@ final class EvaluationExcelService
     public function previewWorkbookPath(string $path, string $originalFilename, int $size, int $userId, int $evaluatorEmployeeId): array
     {
         if ($size <= 0 || $size > self::MAX_FILE_SIZE) {
-            throw new RuntimeException('حجم ملف الاستيراد يجب ألا يتجاوز 10 ميغابايت.');
+            throw new RuntimeException('حجم ملف الاستيراد يجب ألا يتجاوز 20 ميغابايت.');
         }
         if (strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) !== 'xlsx') {
             throw new RuntimeException('صيغة الملف المسموحة هي XLSX فقط.');
@@ -381,12 +380,12 @@ final class EvaluationExcelService
                     if (trim((string) $cell) !== '') { $isEmptyRow = false; break; }
                 }
                 if ($isEmptyRow) { $excelRowNumber++; continue; }
-                if (count($previewRows) >= self::MAX_ROWS_LIMIT) { break; }
+                if (count($previewRows) >= self::MAX_ROWS_LIMIT) { throw new RuntimeException('عدد صفوف البيانات يتجاوز الحد الأقصى (' . self::MAX_ROWS_LIMIT . ' صف).'); }
                 $targetType = $template['target_type'] ?? 'employee';
                 $empCode=''; $fullName=''; $nickname=''; $branchName=''; $departmentName='';
                 $courseId=''; $workshopId=''; $unitType=''; $unitCode=''; $period='';
                 $startDate=''; $endDate='';
-                if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop'], true)) {
+                if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop','skill'], true)) {
                     $empCode = trim((string) ($row[0] ?? ''));
                     $fullName = trim((string) ($row[1] ?? ''));
                     if (in_array($targetType, ['employee_in_course','employee_in_workshop'], true)) {
@@ -472,15 +471,16 @@ final class EvaluationExcelService
                 $rowInsert->execute(['batch_id'=>$batchId,'source_row'=>$excelRowNumber,'payload'=>json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'valid'=>$isValid?1:0,'status'=>$isValid?'valid':'invalid']);
                 $importRowId=(int)$pdo->lastInsertId();
                 foreach($errors as $error){ $errorInsert->execute(['batch_id'=>$batchId,'row_id'=>$importRowId,'source_row'=>$excelRowNumber,'code'=>$error['code'],'message'=>$error['message']]); }
-                $previewRows[]=['row'=>$excelRowNumber,'payload'=>$payload,'section_values'=>$sectionValues,'notes'=>$notes,'columns_with_errors'=>$colsWithErrors,'errors'=>array_column($errors,'message')];
+                $previewRows[]=['row'=>$excelRowNumber,'payload'=>$payload,'section_values'=>$sectionValues,'notes'=>$notes,'columns_with_errors'=>$colsWithErrors,'errors'=>array_column($errors,'message'),'is_new_employee'=>!empty($payload['_is_new_employee'])];
                 $isValid?$validCount++:$invalidCount++;
                 $excelRowNumber++;
             }
             if ($previewRows === []) { $pdo->rollBack(); throw new RuntimeException('لا يحتوي الملف على أي صفوف بيانات قابلة للاستيراد.'); }
-            $summary=['total'=>count($previewRows),'valid'=>$validCount,'invalid'=>$invalidCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType];
+            $newEmployeeCount = 0; foreach ($previewRows as $_pr) { if (!empty($_pr['is_new_employee'])) { $newEmployeeCount++; } }
+            $summary=['total'=>count($previewRows),'valid'=>$validCount,'invalid'=>$invalidCount,'new_employees'=>$newEmployeeCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType];
             $pdo->prepare('UPDATE evaluation_import_batches SET total_rows=:total, valid_rows=:valid, invalid_rows=:invalid, summary_json=:summary WHERE id=:id')->execute(['total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'summary'=>json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'id'=>$batchId]);
             $pdo->commit();
-            return ['batch_id'=>$batchId,'total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType,'rows'=>$previewRows];
+            return ['batch_id'=>$batchId,'total'=>$summary['total'],'valid'=>$validCount,'invalid'=>$invalidCount,'new_employees'=>$newEmployeeCount,'template_id'=>$templateId,'template_name'=>$template['template_name'],'target_type'=>$targetType,'rows'=>$previewRows];
         } catch (\Throwable $exception) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
             throw $exception;
@@ -518,7 +518,7 @@ final class EvaluationExcelService
                 $errors=$this->validateSingleRow($payload,$evaluatorEmployeeId,$recheckSeenCodes,$recheckSeenNames,$branchMap,$departmentMap,$sections);
                 $empCode=trim((string)($payload['emp_code']??''));
                 $fullName=trim((string)($payload['full_name']??''));
-                if(in_array($targetType,['employee','employee_in_course','employee_in_workshop'],true)){
+                if(in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)){
                     if($empCode!==''){
                         if(isset($recheckSeenCodes[$empCode])){ $errors[]=['code'=>'EMP_CODE_DUPLICATE','message'=>'رمز الموظف مكرر داخل الملف.']; }
                         else { $recheckSeenCodes[$empCode]=(int)$payload['excel_row']; }
@@ -890,7 +890,7 @@ final class EvaluationExcelService
         } else {
             if($empCode===''&&$fullName===''){ $errors[]=['code'=>'EMP_OR_NAME_REQUIRED','message'=>'يجب إدخال الرقم الوظيفي أو الاسم الكامل على الأقل في الصف '.($payload['excel_row']??'?').'.','column'=>'A']; }
         }
-        if(in_array($targetType,['employee','employee_in_course','employee_in_workshop'],true)){
+        if(in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)){
             if($empCode!==''&&preg_match('/^[=+@-]/',ltrim($empCode))){ $errors[]=['code'=>'FORMULA','message'=>'رمز الموظف لا يمكن أن يبدأ بصيغة Excel.','column'=>'A']; }
             if($fullName!==''&&preg_match('/^[=+@-]/',ltrim($fullName))){ $errors[]=['code'=>'FORMULA','message'=>'الاسم لا يمكن أن يبدأ بصيغة Excel.','column'=>'B']; }
             if($nickname!==''&&preg_match('/^[=+@-]/',ltrim($nickname))){ $errors[]=['code'=>'FORMULA','message'=>'الصفة لا يمكن أن تبدأ بصيغة Excel.','column'=>'C']; }
@@ -899,6 +899,7 @@ final class EvaluationExcelService
             if($empCode!==''){ $existingEmployee=$this->findEmployeeByCode($empCode); }
             elseif($fullName!==''){ $existingEmployee=$this->findEmployeeByName($fullName,$branchName,$departmentName); }
             if($existingEmployee===false||$existingEmployee===null){
+                $payload['_is_new_employee'] = true;
                 if($branchName!==''&&!isset($branchMap[$branchName])){ $errors[]=['code'=>'BRANCH_NOT_FOUND','message'=>'الفرع '.$branchName.' غير موجود في النظام.','column'=>'D']; }
                 if($departmentName!==''&&!isset($departmentMap[$departmentName])){ $errors[]=['code'=>'DEPARTMENT_NOT_FOUND','message'=>'القسم '.$departmentName.' غير موجود في النظام.','column'=>'E']; }
                 if($branchName!==''&&$departmentName!==''&&isset($branchMap[$branchName])&&isset($departmentMap[$departmentName])){
@@ -933,7 +934,7 @@ final class EvaluationExcelService
         if($evaluatorTitle!==''&&preg_match('/^[=+@-]/',ltrim($evaluatorTitle))){ $errors[]=['code'=>'FORMULA','message'=>'صفة المقيّم لا يمكن أن تبدأ بصيغة Excel.','column'=>$this->colLetter(6+count($sections)+3)]; }
         if($evaluatorName!==''&&mb_strlen($evaluatorName)>255){ $errors[]=['code'=>'EVALUATOR_NAME_TOO_LONG','message'=>'اسم المقيّم طويل جداً (255 حرف).','column'=>$this->colLetter(6+count($sections)+2)]; }
         if($evaluatorTitle!==''&&mb_strlen($evaluatorTitle)>255){ $errors[]=['code'=>'EVALUATOR_TITLE_TOO_LONG','message'=>'صفة المقيّم طويلة جداً (255 حرف).','column'=>$this->colLetter(6+count($sections)+3)]; }
-        $hasEntity=in_array($targetType,['employee','employee_in_course','employee_in_workshop'],true)?$empCode!==''||$fullName!=='':true;
+        $hasEntity=in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)?$empCode!==''||$fullName!=='':true;
         if($hasEntity){
             foreach($payload['section_values']??[] as $sectionId=>$value){
                 $trimmed=trim((string)$value);
@@ -1096,6 +1097,206 @@ final class EvaluationExcelService
         if($template===false){ throw new RuntimeException('القالب المطلوب غير موجود.'); }
         return $template;
     }
+    /**
+     * CD-042: describe a template's Excel structure for the visual preview panel.
+     * Generated by introspecting an in-memory buildTemplate() so the preview
+     * is guaranteed to match the downloaded file 100%.
+     */
+    public function describeTemplateStructure(int $templateId, int $evaluatorEmployeeId = 0): array
+    {
+        $book = $this->buildTemplate($templateId, $evaluatorEmployeeId, null, null, 2);
+        $sheet = $book->getActiveSheet();
+        $template = $this->getTemplateOrFail($templateId);
+        $sections = $this->getSectionsOrdered($templateId);
+        $targetType = $template['target_type'] ?? 'employee';
+
+        $colCount = (int) \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestColumn());
+        // helper column is the last one (colCount), data columns = colCount-1
+        $dataColCount = $colCount - 1;
+        $fixedCount = 5;
+        $tailCount = 4;
+        $sectionCount = $dataColCount - $fixedCount - $tailCount;
+        if ($sectionCount < 0) { $sectionCount = 0; }
+
+        // merges: range => [rowspan, colspan] keyed by start cell
+        $mergeMap = [];
+        foreach ($sheet->getMergeCells() as $range) {
+            $parts = explode(':', $range);
+            if (count($parts) !== 2) { continue; }
+            [$sCol, $sRow] = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::coordinateFromString($parts[0]);
+            [$eCol, $eRow] = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::coordinateFromString($parts[1]);
+            $si = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sCol);
+            $ei = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($eCol);
+            $mergeMap[$parts[0]] = ['rowspan' => ((int)$eRow - (int)$sRow + 1), 'colspan' => ($ei - $si + 1)];
+        }
+
+        $fixedLabels = [];
+        if ($targetType === 'course' || $targetType === 'workshop') {
+            $fixedLabels = ['عنوان ' . ($targetType === 'course' ? 'الدورة' : 'الورشة') . ' *', 'الفرع', 'القسم', 'تاريخ البداية', 'تاريخ النهاية'];
+        } elseif ($targetType === 'unit') {
+            $fixedLabels = ['نوع الوحدة *', 'رمز الوحدة *', 'الفترة *', 'الفرع', 'القسم'];
+        } elseif (in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true)) {
+            $fixedLabels = ['الرقم الوظيفي *', 'الاسم الكامل *', 'معرف السياق *', 'الفرع', 'القسم'];
+        } else {
+            $fixedLabels = ['الرقم الوظيفي *', 'الاسم الكامل *', 'الصفة أو الكنية', 'الفرع *', 'القسم *'];
+        }
+        $tailLabels = ['ملاحظة عامة', 'تاريخ التقييم *', 'مسؤول التقييم *', 'الصفة'];
+
+        $columns = [];
+        // fixed
+        for ($i = 1; $i <= $fixedCount; $i++) {
+            $letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $cell = $letter . '3';
+            $label = (string) ($sheet->getCell($cell)->getValue() ?? '');
+            if ($label === '') { $label = $fixedLabels[$i - 1] ?? ''; }
+            $merge = $mergeMap[$cell] ?? ['rowspan' => 1, 'colspan' => 1];
+            $columns[] = [
+                'letter' => $letter,
+                'label' => $label,
+                'group' => '',
+                'kind' => 'fixed',
+                'required' => (strpos($label, '*') !== false),
+                'rowspan' => $merge['rowspan'],
+                'colspan' => $merge['colspan'],
+                'hint' => (string) ($sheet->getCell($letter . '5')->getValue() ?? ''),
+                'dropdown' => (stripos($label, 'فرع') !== false || stripos($label, 'قسم') !== false),
+                'options' => [],
+            ];
+        }
+        // sections
+        $grouped = [];
+        foreach ($sections as $section) {
+            $cName = $section['criterion_name'];
+            if (!isset($grouped[$cName])) {
+                $grouped[$cName] = ['weight' => $section['criterion_weight'], 'sections' => []];
+            }
+            $grouped[$cName]['sections'][] = $section;
+        }
+        $secIdx = 0;
+        for ($i = $fixedCount + 1; $i <= $fixedCount + $sectionCount; $i++) {
+            $letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $cell4 = $letter . '4';
+            $label = (string) ($sheet->getCell($cell4)->getValue() ?? '');
+            $groupLabel = (string) ($sheet->getCell($letter . '3')->getValue() ?? '');
+            $merge4 = $mergeMap[$cell4] ?? ['rowspan' => 1, 'colspan' => 1];
+            // find section by index
+            $section = $sections[$secIdx] ?? null;
+            $secIdx++;
+            $options = [];
+            if (is_array($section)) {
+                $opts = json_decode((string)($section['evaluation_options'] ?? '[]'), true);
+                if (is_array($opts)) {
+                    foreach ($opts as $opt) {
+                        if (is_array($opt) && isset($opt['label'])) { $options[] = (string)$opt['label']; }
+                        elseif (is_string($opt)) { $options[] = $opt; }
+                    }
+                }
+            }
+            $columns[] = [
+                'letter' => $letter,
+                'label' => $label,
+                'group' => $section['criterion_name'] ?? '',
+                'kind' => 'section',
+                'required' => (strpos($label, '*') !== false),
+                'rowspan' => $merge4['rowspan'],
+                'colspan' => $merge4['colspan'],
+                'hint' => (string) ($sheet->getCell($letter . '5')->getValue() ?? ''),
+                'dropdown' => in_array(($section['evaluation_type'] ?? ''), ['grade', 'multiple_choice', 'boolean'], true),
+                'options' => $options,
+                'section_id' => $section ? (int)$section['id'] : null,
+                'section_type' => $section['evaluation_type'] ?? null,
+                'section_name' => $section['section_name'] ?? null,
+            ];
+        }
+        // tail
+        $tailStart = $fixedCount + $sectionCount + 1;
+        for ($j = 0; $j < $tailCount; $j++) {
+            $i = $tailStart + $j;
+            $letter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+            $cell = $letter . '3';
+            $label = (string) ($sheet->getCell($cell)->getValue() ?? '');
+            if ($label === '') { $label = $tailLabels[$j] ?? ''; }
+            $merge = $mergeMap[$cell] ?? ['rowspan' => 1, 'colspan' => 1];
+            $columns[] = [
+                'letter' => $letter,
+                'label' => $label,
+                'group' => '',
+                'kind' => 'tail',
+                'required' => (strpos($label, '*') !== false),
+                'rowspan' => $merge['rowspan'],
+                'colspan' => $merge['colspan'],
+                'hint' => (string) ($sheet->getCell($letter . '5')->getValue() ?? ''),
+                'dropdown' => false,
+                'options' => [],
+            ];
+        }
+
+        $sectionsOut = [];
+        foreach ($grouped as $cName => $group) {
+            $sectionsOut[] = [
+                'name' => $cName,
+                'weight' => (float) $group['weight'],
+                'count' => count($group['sections']),
+            ];
+        }
+
+        $branches = $this->getBranchNames();
+        $departments = $this->getDepartmentNames();
+
+        // sample rows (demo)
+        $sampleRows = [];
+        $demo = [];
+        foreach ($columns as $col) {
+            $letter = $col['letter'];
+            $val = '';
+            if ($col['kind'] === 'fixed') {
+                $lab = $col['label'];
+                if (stripos($lab, 'رقم') !== false) { $val = 'EMP-101'; }
+                elseif (stripos($lab, 'اسم') !== false && stripos($lab, 'مقي') === false) { $val = 'أحمد العتيبي'; }
+                elseif (stripos($lab, 'فرع') !== false) { $val = $branches[0] ?? 'الرياض'; }
+                elseif (stripos($lab, 'قسم') !== false) { $val = $departments[0] ?? 'تقنية المعلومات'; }
+                elseif (stripos($lab, 'صفة') !== false || stripos($lab, 'كنية') !== false) { $val = 'موظف'; }
+            } elseif ($col['kind'] === 'section') {
+                $t = $col['section_type'] ?? 'percentage';
+                if ($t === 'percentage') { $val = '85'; }
+                elseif ($t === 'numeric') { $val = '8'; }
+                elseif ($t === 'boolean') { $val = 'نعم'; }
+                elseif (in_array($t, ['grade', 'multiple_choice'], true)) { $val = $col['options'][0] ?? 'ممتاز'; }
+                elseif (in_array($t, ['textarea', 'text'], true)) { $val = 'نص نموذجي'; }
+                else { $val = ''; }
+            } elseif ($col['kind'] === 'tail') {
+                $lab = $col['label'];
+                if (stripos($lab, 'ملاحظة') !== false) { $val = 'أداء ممتاز'; }
+                elseif (stripos($lab, 'تاريخ') !== false) { $val = date('Y-m-d'); }
+                elseif (stripos($lab, 'مقي') !== false) { $val = 'عبدالله السبيعي'; }
+                elseif (stripos($lab, 'صفة') !== false) { $val = 'مدير قسم'; }
+            }
+            $demo[$letter] = $val;
+        }
+        $sampleRows[] = $demo;
+        // "new employee" variant
+        $demo2 = $demo;
+        if (isset($demo2['A'])) { $demo2['A'] = 'EMP-999'; }
+        if (isset($demo2['B'])) { $demo2['B'] = '＋ موظف جديد'; }
+        $sampleRows[] = $demo2;
+
+        return [
+            'target_type' => $targetType,
+            'template_name' => $template['template_name'],
+            'fixed_count' => $fixedCount,
+            'section_count' => $sectionCount,
+            'tail_count' => $tailCount,
+            'columns' => $columns,
+            'sections' => $sectionsOut,
+            'dropdowns' => [
+                'branches' => $branches,
+                'departments' => $departments,
+            ],
+            'sample_rows' => $sampleRows,
+        ];
+    }
+
+
     private function getSectionsOrdered(int $templateId): array
     {
         $query=$this->database->getPdo()->prepare('SELECT cs.*, c.criterion_name, c.criterion_weight, c.order_index AS criterion_order FROM criteria_sections cs JOIN criteria c ON c.id = cs.criterion_id WHERE c.template_id = :template_id ORDER BY c.order_index ASC, cs.order_index ASC, cs.id ASC');

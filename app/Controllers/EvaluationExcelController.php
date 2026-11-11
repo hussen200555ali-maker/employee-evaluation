@@ -25,6 +25,7 @@ final class EvaluationExcelController extends Controller
         $branches = (new Branch())->getAllWithDepartments();
         $evaluatorName = '';
         $evaluatorTitle = '';
+        $evaluatorEmployeeId = 0;
         $user = Auth::user();
         if ($user && !empty($user->employee_id)) {
             $empModel = new \App\Models\Employee();
@@ -32,6 +33,15 @@ final class EvaluationExcelController extends Controller
             if ($emp) {
                 $evaluatorName = $emp->full_name;
                 $evaluatorTitle = $emp->position_title ?? '';
+                $evaluatorEmployeeId = (int)$user->employee_id;
+            }
+        }
+        $templateStructures = [];
+        foreach ($templates as $tpl) {
+            try {
+                $templateStructures[(int)$tpl->id] = $this->excel->describeTemplateStructure((int)$tpl->id, $evaluatorEmployeeId);
+            } catch (\Throwable $e) {
+                error_log('describeTemplateStructure error: ' . $e->getMessage());
             }
         }
         $this->view('evaluations/excel_import', [
@@ -43,6 +53,7 @@ final class EvaluationExcelController extends Controller
             'evaluatorName'  => $evaluatorName,
             'evaluatorTitle' => $evaluatorTitle,
             'gradingScales'  => (new GradingScale())->getActive(),
+            'templateStructures' => $templateStructures,
         ]);
     }
     public function downloadTemplate($id = null): void
@@ -68,7 +79,7 @@ final class EvaluationExcelController extends Controller
             if ($branchId !== null && $branchId <= 0) $branchId = null;
             if ($departmentId !== null && $departmentId <= 0) $departmentId = null;
             $maxRows = isset($_GET['max_rows']) && $_GET['max_rows'] !== '' ? (int) $_GET['max_rows'] : 100;
-            $maxRows = max(1, min($maxRows, 1000));
+            $maxRows = max(1, min($maxRows, 2000));
             $book = $this->excel->buildTemplate($templateId, $employeeId, $branchId, $departmentId, $maxRows);
         } catch (RuntimeException $e) {
             Flash::set($e->getMessage(), 'danger');
@@ -199,7 +210,7 @@ final class EvaluationExcelController extends Controller
                 throw new RuntimeException('يرجى اختيار قالب التقييم.');
             }
             $maxRows = isset($_GET['max_rows']) && $_GET['max_rows'] !== '' ? (int) $_GET['max_rows'] : 100;
-            $maxRows = max(1, min($maxRows, 1000));
+            $maxRows = max(1, min($maxRows, 2000));
             $mode = $_GET['mode'] ?? 'prefill';
             $prefillIds = null;
             $pdo = \App\Core\Database::getInstance()->getPdo();
