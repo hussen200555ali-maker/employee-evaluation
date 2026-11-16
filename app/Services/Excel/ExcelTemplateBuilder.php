@@ -854,6 +854,8 @@ final class ExcelTemplateBuilder
             if (is_array($ev)) {
                 $evalId = (int) $ev['id'];
                 $values['evaluation_date'] = $this->formatDateForExcel((string) ($ev['evaluation_date'] ?? ''));
+                $values['evaluator_name'] = (string) ($ev['evaluator_name'] ?? '');
+                $values['evaluator_title'] = (string) ($ev['evaluator_title'] ?? '');
                 $values['notes'] = (string) ($ev['notes'] ?? '');
                 // overall grade label (descriptive course overall handled via overall_grade column)
                 $values['overall_grade'] = (string) ($ev['final_grade_label'] ?? '');
@@ -899,45 +901,33 @@ final class ExcelTemplateBuilder
         $in = implode(',', array_fill(0, count($employeeIds), '?'));
 
         $ctxFilter = '';
-        $params = [$templateId];
         if ($isProgram && $programId > 0) {
-            $ctxFilter = ' AND ev.context_id = ?';
+            $ctxFilter = ' AND e.context_id = ?';
         }
 
-        $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
-                       ev.context_id, ev.context_type,
+        // A1/Q2: deterministic latest-per-employee selection via window ranking (MariaDB 10.4 supports ROW_NUMBER)
+        $sql = 'SELECT x.id, x.evaluated_employee_id, x.evaluation_date, x.notes, x.final_grade_label, x.final_grade_value,
+                       x.evaluator_name, x.evaluator_title, x.context_id, x.context_type,
                        tp.title AS program_title, tb.name AS program_branch_name, td.name AS program_department_name,
                        tp.start_date AS program_start_date, tp.end_date AS program_end_date, tp.responsible_person AS program_responsible
-                FROM evaluations ev
-                LEFT JOIN training_programs tp ON tp.id = ev.context_id
+                FROM (
+                    SELECT e.id, e.evaluated_employee_id, e.evaluation_date, e.notes, e.final_grade_label, e.final_grade_value,
+                           e.evaluator_name, e.evaluator_title, e.context_id, e.context_type,
+                           ROW_NUMBER() OVER (PARTITION BY e.evaluated_employee_id ORDER BY e.evaluation_date DESC, e.id DESC) AS rn
+                    FROM evaluations e
+                    WHERE e.template_id = ?' . $ctxFilter . ' AND e.evaluated_employee_id IN (' . $in . ')
+                ) x
+                LEFT JOIN training_programs tp ON tp.id = x.context_id
                 LEFT JOIN branches tb ON tb.id = tp.executing_branch_id
                 LEFT JOIN departments td ON td.id = tp.executing_department_id
-                INNER JOIN (
-                    SELECT ev2.evaluated_employee_id, MAX(ev2.id) AS id
-                    FROM evaluations ev2
-                    INNER JOIN (
-                        SELECT evaluated_employee_id, MAX(evaluation_date) AS max_date
-                        FROM evaluations
-                        WHERE template_id = ?' . $ctxFilter . ' AND evaluated_employee_id IN (' . $in . ')
-                        GROUP BY evaluated_employee_id
-                    ) mx ON mx.evaluated_employee_id = ev2.evaluated_employee_id AND mx.max_date = ev2.evaluation_date
-                    WHERE ev2.template_id = ?' . $ctxFilter . ' AND ev2.evaluated_employee_id IN (' . $in . ')
-                    GROUP BY ev2.evaluated_employee_id
-                ) pick ON pick.id = ev.id
-                WHERE ev.template_id = ?' . $ctxFilter;
+                WHERE x.rn = 1';
 
-        // params: templateId, [ctx?], IN ids, templateId, [ctx?], IN ids, templateId, [ctx?]
-        $allParams = [$templateId];
-        if ($ctxFilter !== '') { $allParams[] = $programId; }
-        foreach ($employeeIds as $id) { $allParams[] = $id; }
-        $allParams[] = $templateId;
-        if ($ctxFilter !== '') { $allParams[] = $programId; }
-        foreach ($employeeIds as $id) { $allParams[] = $id; }
-        $allParams[] = $templateId;
-        if ($ctxFilter !== '') { $allParams[] = $programId; }
+        $params = [$templateId];
+        if ($ctxFilter !== '') { $params[] = $programId; }
+        foreach ($employeeIds as $id) { $params[] = $id; }
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($allParams);
+        $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $map = [];
         foreach ($rows as $r) {
