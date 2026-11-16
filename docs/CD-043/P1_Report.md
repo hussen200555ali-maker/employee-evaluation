@@ -66,16 +66,17 @@
 
 ```
 ACTIVE_EXCEL_ROUTES (10):
-  GET  evaluations/excel/import
-  GET  evaluations/excel/template
-  GET  evaluations/excel/template/:id
-  GET  evaluations/excel/training-template
-  POST evaluations/excel/preview
-  POST evaluations/excel/commit/:id
-  GET  api/training-templates
-  GET  api/training-list
-  GET  api/training-programs/:id
-  GET  api/training-programs/list/:type
+  GET  evaluations/excel/import              [evaluations.fill]
+  GET  evaluations/excel/export              [evaluations.export]
+  GET  evaluations/excel/export/download     [evaluations.export]
+  GET  evaluations/excel/template            [evaluations.fill]
+  GET  evaluations/excel/template/:id        [evaluations.fill]
+  POST evaluations/excel/preview             [evaluations.fill]
+  POST evaluations/excel/commit/:id          [evaluations.fill]
+  GET  evaluations/excel/training-template   [evaluations.fill]
+  GET  api/training-templates                [session only]
+  GET  api/training-list                    [session only]
+  (api/training-programs/:id and api/training-programs/list/:type are TrainingProgram/API routes consumed by the Excel screens)
 ARCHIVED_ROUTES_PRESENT (0)
 ```
 
@@ -116,3 +117,28 @@ ARCHIVED_ROUTES_PRESENT (0)
 **التالي (P2 — 8 أيام):** باني القالب وشاشة التصدير (`ExcelTemplateBuilder`، فصل واجهة التصدير عن الاستيراد، إزالة كلمة سر الورقة والعمود المساعد).
 
 **لا يبدأ P2 قبل اعتماد C1 رسمياً.**
+## 8. معايرة قاعدة الاختبار (C1 follow-up)
+
+**السبب:** قاعدة الاختبار `employee_evaluation_excel_test` كانت متأخرة (37 جدولاً و6 جداول ببنية مختلفة عن UAT).
+
+**الآلية (قبل/بعد):**
+
+| البند | قبل | بعد |
+|---|---|---|
+| عدد الجداول | 37 | 46 |
+| فروقات DDL مع UAT | 6 جداول | 0 |
+| بيانات employees | 45 | 212 |
+| برامج تدريبية | 0 | 5/8 |
+| target_type قديم | موجود | 0 |
+
+**الآلية:** إعادة بناء قاعدة الاختبار من لقطة UAT (mysqldump) ثم تطبيق M1/M2/M4/M3. النسخة القديمة محفوظة في `employee_evaluation_excel_test_old` + `backups/CD-043/employee_evaluation_excel_test_pre_cd043.sql`.
+
+**إعادة الإنتاج:** `tests/run_isolated.php` يثبّت `DB_NAME=employee_evaluation_excel_test` قبل تحميل bootstrap. لا تُشغَّل اختبارات CD-043 على UAT.
+
+## 9. مشغّل الاختبارات المعزول (`tests/run_isolated.php`)
+
+- **الغرض:** منع كتابة بيانات اختبار في UAT.
+- **آلية العمل:** يعرّف ثوابت DB_* قبل تحميل bootstrap/config، ثم يتضمن `tests/runner.php`.
+- **قائمة الاختبارات المعزولة:** ExcelWorkflowSmoke, ExcelTemplateExportSmoke, CD042Duplicate, RouterTest.
+- **تحذير:** لا تُعدَّل DB_NAME — ستفشل فحوصات M3 فوراً.
+- **الاستخدام:** `php tests/run_isolated.php` (الكل) أو `php tests/run_isolated.php ExcelWorkflowSmoke`.

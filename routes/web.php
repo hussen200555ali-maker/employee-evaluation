@@ -156,6 +156,8 @@ $router->get('api/evaluations/exists', 'App\Controllers\ApiController@evaluation
 
 // CD-043: إعادة تفعيل مسارات Excel (كانت معطّلة منذ CD-037)
 $router->get('evaluations/excel/import', 'App\Controllers\EvaluationExcelController@importForm');
+$router->get('evaluations/excel/export', 'App\Controllers\EvaluationExcelController@exportForm');
+$router->get('evaluations/excel/export/download', 'App\Controllers\EvaluationExcelController@downloadExport');
 $router->get('evaluations/excel/template', 'App\Controllers\EvaluationExcelController@downloadTemplate');
 $router->get('evaluations/excel/template/:id', 'App\Controllers\EvaluationExcelController@downloadTemplate');
 $router->post('evaluations/excel/preview', 'App\Controllers\EvaluationExcelController@preview');

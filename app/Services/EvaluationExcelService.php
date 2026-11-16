@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace App\Services;
 use App\Core\Database;
+use App\Services\Excel\ExcelTemplateBuilder;
 use PDO;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -25,11 +26,36 @@ final class EvaluationExcelService
     private const LOOKUP_SHEET = '__lookup';
     private const SHEET_PASSWORD = 'local-evaluation-single';
     private Database $database;
+    private ExcelTemplateBuilder $builder;
     public function __construct(?Database $database = null)
     {
         $this->database = $database ?? Database::getInstance();
+        $this->builder = new ExcelTemplateBuilder($this->database);
     }
-    public function buildTemplate(int $templateId, int $evaluatorEmployeeId, ?int $branchId = null, ?int $departmentId = null, int $maxRows = 100, ?string $mode = null, ?array $prefillIds = null): Spreadsheet
+
+    /**
+     * CD-043: بناء قالب Excel عبر ExcelTemplateBuilder (مصدر الحقيقة الوحيد).
+     * الخيارات المدعومة: mode=prefill|empty، program_id، program_title،
+     * executing_branch_id، executing_department_id، prefill_ids.
+     */
+    public function buildTemplate(int $templateId, int $evaluatorEmployeeId, ?int $branchId = null, ?int $departmentId = null, int $maxRows = 100, array $options = []): Spreadsheet
+    {
+        return $this->builder->build($templateId, $evaluatorEmployeeId, $branchId, $departmentId, $maxRows, $options);
+    }
+
+    /** حدود التصدير من settings (50–2000 و50MB). */
+    public function exportLimits(): array
+    {
+        return $this->builder->limits();
+    }
+
+    /** تخطيط القالب — يستخدمه المستورد لقراءة ملف التصدير دون افتراضات ثابتة. */
+    public function templateLayout(int $templateId, ?int $branchId = null, ?int $departmentId = null, array $options = []): array
+    {
+        return $this->builder->layout($templateId, $branchId, $departmentId, $options);
+    }
+
+    private function buildTemplateLegacy(int $templateId, int $evaluatorEmployeeId, ?int $branchId = null, ?int $departmentId = null, int $maxRows = 100, ?string $mode = null, ?array $prefillIds = null): Spreadsheet
     {
         $maxRows = max(1, min($maxRows, self::MAX_ROWS_LIMIT));
         if ($maxRows > self::DEFAULT_MAX_ROWS && $maxRows <= self::MAX_ROWS_LIMIT) {
@@ -369,11 +395,11 @@ final class EvaluationExcelService
             $invalidCount = 0;
             $seenEmpCodes = [];
             $seenNames = [];
-            // جميع الأنواع لها 5 أعمدة ثابتة بعد إلغاء عمود الحالة من الدورات/الورش
-            $fixedColCount = 5;
-            $tailStartColIndex = $fixedColCount + count($sections);
-            $dataRows = array_slice($allRows, 5);
-            $excelRowNumber = 6;
+            // CD-043: القراءة من تخطيط الباني (صف البيانات يبدأ من 5، والأعمدة ليست ثابتة بين الأنواع).
+            $layout = $this->builder->layout($templateId);
+            $dataStartRow = (int) $layout['data_start_row'];
+            $dataRows = array_slice($allRows, $dataStartRow - 1);
+            $excelRowNumber = $dataStartRow;
             foreach ($dataRows as $row) {
                 $isEmptyRow = true;
                 foreach ($row as $cell) {
@@ -382,53 +408,64 @@ final class EvaluationExcelService
                 if ($isEmptyRow) { $excelRowNumber++; continue; }
                 if (count($previewRows) >= self::MAX_ROWS_LIMIT) { throw new RuntimeException('عدد صفوف البيانات يتجاوز الحد الأقصى (' . self::MAX_ROWS_LIMIT . ' صف).'); }
                 $targetType = $template['target_type'] ?? 'employee';
-                $empCode=''; $fullName=''; $nickname=''; $branchName=''; $departmentName='';
-                $courseId=''; $workshopId=''; $unitType=''; $unitCode=''; $period='';
-                $startDate=''; $endDate='';
-                if (in_array($targetType, ['employee','employee_in_course','employee_in_workshop','skill'], true)) {
-                    $empCode = trim((string) ($row[0] ?? ''));
-                    $fullName = trim((string) ($row[1] ?? ''));
-                    if (in_array($targetType, ['employee_in_course','employee_in_workshop'], true)) {
-                        $contextId = trim((string) ($row[2] ?? ''));
-                        $branchName = trim((string) ($row[3] ?? ''));
-                        $departmentName = trim((string) ($row[4] ?? ''));
-                        if ($targetType==='employee_in_course') $courseId=$contextId; else $workshopId=$contextId;
-                    } else {
-                        $nickname = trim((string) ($row[2] ?? ''));
-                        $branchName = trim((string) ($row[3] ?? ''));
-                        $departmentName = trim((string) ($row[4] ?? ''));
-                    }
-                } elseif ($targetType==='course') {
-                    $fullName = trim((string) ($row[0] ?? ''));
-                    $branchName = trim((string) ($row[1] ?? ''));
-                    $departmentName = trim((string) ($row[2] ?? ''));
-                    $startDate = trim((string) ($row[3] ?? ''));
-                    $endDate = trim((string) ($row[4] ?? ''));
-                } elseif ($targetType==='workshop') {
-                    $fullName = trim((string) ($row[0] ?? ''));
-                    $branchName = trim((string) ($row[1] ?? ''));
-                    $departmentName = trim((string) ($row[2] ?? ''));
-                    $startDate = trim((string) ($row[3] ?? ''));
-                    $endDate = trim((string) ($row[4] ?? ''));
-                } elseif ($targetType==='unit') {
-                    $unitType = trim((string) ($row[0] ?? ''));
-                    $unitCode = trim((string) ($row[1] ?? ''));
-                    $period = trim((string) ($row[2] ?? ''));
-                    $branchName = trim((string) ($row[3] ?? ''));
-                    $departmentName = trim((string) ($row[4] ?? ''));
+
+                $fixed = [];
+                foreach ($layout['fixed_columns'] as $column) {
+                    $fixed[(string) $column['key']] = trim((string) ($row[$column['index']] ?? ''));
                 }
+                $empCode = (string) ($fixed['employee_code'] ?? '');
+                $fullName = (string) ($fixed['employee_name'] ?? '');
+                $branchName = (string) ($fixed['employee_branch'] ?? '');
+                $departmentName = (string) ($fixed['employee_department'] ?? '');
+                $nickname = '';
+
                 $sectionValues = [];
-                foreach ($sections as $idx => $section) {
-                    $colIdx = $fixedColCount + $idx;
-                    $sectionValues[$section['id']] = trim((string) ($row[$colIdx] ?? ''));
+                $sectionNotes = [];
+                foreach ($layout['criteria_columns'] as $column) {
+                    $value = trim((string) ($row[$column['index']] ?? ''));
+                    $sectionId = (int) $column['section_id'];
+                    if ($column['kind'] === 'section') {
+                        $sectionValues[$sectionId] = $value;
+                    } elseif ($value !== '') {
+                        $sectionNotes[$sectionId] = $value;
+                    }
                 }
-                $notes = trim((string) ($row[$tailStartColIndex] ?? ''));
-                $rawDateCell = $row[$tailStartColIndex + 1] ?? '';
-                $evaluatorName = trim((string) ($row[$tailStartColIndex + 2] ?? ''));
-                $evaluatorTitle = trim((string) ($row[$tailStartColIndex + 3] ?? ''));
+
+                $overallLabel = '';
+                if (is_array($layout['overall_column'])) {
+                    $overallLabel = trim((string) ($row[$layout['overall_column']['index']] ?? ''));
+                    $overallSectionId = (int) ($layout['overall_grade_section_id'] ?? 0);
+                    if ($overallSectionId > 0) {
+                        $sectionValues[$overallSectionId] = $overallLabel;
+                    }
+                }
+
+                $tail = [];
+                foreach ($layout['tail_columns'] as $column) {
+                    $tail[(string) $column['key']] = trim((string) ($row[$column['index']] ?? ''));
+                }
+                $notes = (string) ($tail['notes'] ?? '');
+                $evaluatorName = (string) ($tail['evaluator_name'] ?? '');
+                $evaluatorTitle = (string) ($tail['evaluator_title'] ?? '');
+                $rawDateCell = $tail['evaluation_date'] ?? '';
                 if (is_numeric($rawDateCell) && $rawDateCell !== '' && $rawDateCell !== null) {
                     try { $dateRaw = Date::excelToDateTimeObject((float) $rawDateCell)->format('Y-m-d'); } catch (\Throwable $e) { $dateRaw = trim((string) $rawDateCell); }
                 } else { $dateRaw = trim((string) $rawDateCell); }
+
+                $programTitle = (string) ($fixed['program_title'] ?? '');
+                $programBranch = (string) ($fixed['program_branch'] ?? '');
+                $programDepartment = (string) ($fixed['program_department'] ?? '');
+                $programStart = $this->normalizeDateCell((string) ($fixed['program_start'] ?? ''));
+                $programEnd = $this->normalizeDateCell((string) ($fixed['program_end'] ?? ''));
+                $programResponsible = (string) ($fixed['program_responsible'] ?? '');
+                $contextId = 0;
+                if (in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true)) {
+                    $contextId = $this->findProgramId(
+                        $targetType === 'employee_in_workshop' ? 'workshop' : 'course',
+                        $programTitle, $programBranch, $programDepartment, $programStart, $programEnd
+                    );
+                }
+
                 $payload = [
                     'template_id' => $templateId,
                     'target_type' => $targetType,
@@ -438,14 +475,22 @@ final class EvaluationExcelService
                     'nickname' => $nickname,
                     'branch_name' => $branchName,
                     'department_name' => $departmentName,
-                    'course_id' => $courseId,
-                    'workshop_id' => $workshopId,
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
-                    'unit_type' => $unitType,
-                    'unit_code' => $unitCode,
-                    'period' => $period,
+                    'course_id' => $targetType === 'employee_in_course' ? (string) $contextId : '',
+                    'workshop_id' => $targetType === 'employee_in_workshop' ? (string) $contextId : '',
+                    'program_title' => $programTitle,
+                    'program_branch_name' => $programBranch,
+                    'program_department_name' => $programDepartment,
+                    'program_start_date' => $programStart,
+                    'program_end_date' => $programEnd,
+                    'program_responsible' => $programResponsible,
+                    'start_date' => $programStart,
+                    'end_date' => $programEnd,
+                    'unit_type' => '',
+                    'unit_code' => '',
+                    'period' => '',
                     'section_values' => $sectionValues,
+                    'section_notes' => $sectionNotes,
+                    'overall_grade_label' => $overallLabel,
                     'notes' => $notes,
                     'evaluation_date' => $dateRaw,
                     'evaluator_name' => $evaluatorName,
@@ -654,10 +699,23 @@ final class EvaluationExcelService
                         $createdEmployees++;
                     } else { $employeeId=(int)$employee['id']; }
                     $contextType=null; $contextId=null;
-                    if($targetType==='employee_in_course'){
-                        $contextType='course'; $contextId=(int)($payload['_context_id']??$payload['course_id']??0);
-                    } elseif($targetType==='employee_in_workshop'){
-                        $contextType='workshop'; $contextId=(int)($payload['_context_id']??$payload['workshop_id']??0);
+                    if(in_array($targetType,['employee_in_course','employee_in_workshop'],true)){
+                        $contextType=$targetType==='employee_in_course'?'course':'workshop';
+                        $contextId=(int)($payload['_context_id']??0);
+                        if($contextId<=0){
+                            // CD-043 §11.1: لا برنامج مطابق → إنشاء نسخة جديدة داخل الالتزام نفسه.
+                            $pTitle=trim((string)($payload['program_title']??''));
+                            $pBranch=trim((string)($payload['program_branch_name']??''));
+                            $pDept=trim((string)($payload['program_department_name']??''));
+                            $pStart=trim((string)($payload['program_start_date']??($payload['start_date']??'')));
+                            $pEnd=trim((string)($payload['program_end_date']??($payload['end_date']??'')));
+                            $pResp=trim((string)($payload['program_responsible']??''));
+                            if($pTitle===''||$pBranch===''||$pStart===''||$pEnd===''||$pResp===''){
+                                throw new RuntimeException('بيانات البرنامج غير مكتملة في الصف '.($payload['excel_row']??'?').'.');
+                            }
+                            $contextId=$this->findOrCreateProgram($contextType,$pTitle,$pBranch,$pDept,$pStart,$pEnd,$pResp,$userId,$branchMap,$departmentMap);
+                            $payload['_context_id']=$contextId;
+                        }
                     }
                     // CD-042: فحص التكرار بنفس مفتاح القيد الفريد uq_eval_once
                     // (الموظف + القالب + التاريخ + السياق) — وليس بالمُقيِّم.
@@ -707,13 +765,17 @@ final class EvaluationExcelService
                     if($section===null) continue;
                     $trimmedValue=trim((string)$value);
                     if($trimmedValue==='') continue;
-                    $answerInsert->execute(['evaluation_id'=>$evaluationId,'section_id'=>$sectionIdInt,'raw_value'=>$trimmedValue,'notes'=>null,'normalized_score'=>$this->normalize($section,$trimmedValue)]);
+                    $answerNotes=trim((string)($payload['section_notes'][$sectionIdInt]??''));
+                    $answerInsert->execute(['evaluation_id'=>$evaluationId,'section_id'=>$sectionIdInt,'raw_value'=>$trimmedValue,'notes'=>$answerNotes!==''?$answerNotes:null,'normalized_score'=>$this->normalize($section,$trimmedValue)]);
                 }
                 $final=$this->calculateFinalScore($evaluationId,$templateId);
-                if($targetType==='unit'){
-                    $pdo->prepare('UPDATE evaluations SET final_score=:score, status="completed", updated_at=NOW() WHERE id=:id')->execute(['score'=>$final,'id'=>$evaluationId]);
-                } else {
-                    $pdo->prepare('UPDATE evaluations SET final_score=:score, status="completed", updated_at=NOW() WHERE id=:id')->execute(['score'=>$final,'id'=>$evaluationId]);
+                $pdo->prepare('UPDATE evaluations SET final_score=:score, status="completed", updated_at=NOW() WHERE id=:id')->execute(['score'=>$final,'id'=>$evaluationId]);
+                // CD-043 ضمانة 1: النتيجة النهائية للدورة الوصفية = التقدير العام.
+                $overallLabel=trim((string)($payload['overall_grade_label']??''));
+                if($overallLabel!=='' && $targetType==='employee_in_course' && (string)($template['evaluation_mode']??'')==='descriptive'){
+                    $gradeValue=$this->lookupGradeValue($overallLabel,$sections);
+                    $pdo->prepare('UPDATE evaluations SET final_grade_label=:label, final_grade_value=:val, updated_at=NOW() WHERE id=:id')
+                        ->execute(['label'=>$overallLabel,'val'=>$gradeValue,'id'=>$evaluationId]);
                 }
                 $pdo->prepare('INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, ip_address) VALUES (:user_id, "EVALUATION_EXCEL_IMPORTED", "evaluations", :evaluation_id, :details, :ip)')->execute(['user_id'=>$userId,'evaluation_id'=>$evaluationId,'details'=>json_encode(['batch_id'=>$batchId,'target_type'=>$targetType,'emp_code'=>$empCode,'evaluation_date'=>$evaluationDate],JSON_UNESCAPED_UNICODE),'ip'=>$_SERVER['REMOTE_ADDR']??null]);
                 $committedEvaluations++;
@@ -877,16 +939,43 @@ final class EvaluationExcelService
             if($branchName!=='' && !isset($branchMap[$branchName])){ $errors[]=['code'=>'BRANCH_NOT_FOUND','message'=>'الفرع '.$branchName.' غير موجود.','column'=>'D']; }
             if($departmentName!=='' && !isset($departmentMap[$departmentName])){ $errors[]=['code'=>'DEPARTMENT_NOT_FOUND','message'=>'القسم '.$departmentName.' غير موجود.','column'=>'E']; }
         } elseif(in_array($targetType,['employee_in_course','employee_in_workshop'],true)){
-            $ctxCol=$targetType==='employee_in_course'?'course_id':'workshop_id';
-            $ctxId=trim((string)($payload[$ctxCol]??''));
-            if($ctxId===''||!ctype_digit($ctxId)){
-                $errors[]=['code'=>'COURSE_NOT_FOUND','message'=>'معرف السياق ('.($targetType==='employee_in_course'?'الدورة':'الورشة').') مطلوب.','column'=>'C'];
-            } else {
-                $exists=$targetType==='employee_in_course'?$this->findCourseById((int)$ctxId):$this->findWorkshopById((int)$ctxId);
-                if(!$exists) $errors[]=['code'=>'COURSE_NOT_FOUND','message'=>'السياق غير موجود: '.$ctxId,'column'=>'C'];
-                else $payload['_context_id']=(int)$ctxId;
+            $ctxLabel=$targetType==='employee_in_course'?'الدورة':'الورشة';
+            $programTitle=trim((string)($payload['program_title']??''));
+            $programBranch=trim((string)($payload['program_branch_name']??''));
+            $programDepartment=trim((string)($payload['program_department_name']??''));
+            $programStart=trim((string)($payload['program_start_date']??''));
+            $programEnd=trim((string)($payload['program_end_date']??''));
+            $programResponsible=trim((string)($payload['program_responsible']??''));
+            if($programTitle===''){ $errors[]=['code'=>'PROGRAM_TITLE_REQUIRED','message'=>'اسم '.$ctxLabel.' مطلوب.','column'=>'A']; }
+            if($programBranch===''){ $errors[]=['code'=>'PROGRAM_BRANCH_REQUIRED','message'=>'الفرع المنفذ مطلوب.','column'=>'B']; }
+            elseif(!isset($branchMap[$programBranch])){ $errors[]=['code'=>'PROGRAM_BRANCH_NOT_FOUND','message'=>'الفرع المنفذ '.$programBranch.' غير موجود.','column'=>'B']; }
+            if($programDepartment===''){ $errors[]=['code'=>'PROGRAM_DEPARTMENT_REQUIRED','message'=>'القسم المنفذ مطلوب.','column'=>'C']; }
+            elseif(!isset($departmentMap[$programDepartment])){ $errors[]=['code'=>'PROGRAM_DEPARTMENT_NOT_FOUND','message'=>'القسم المنفذ '.$programDepartment.' غير موجود.','column'=>'C']; }
+            if($programStart===''||$this->parseFlexibleDate($programStart)===null){ $errors[]=['code'=>'PROGRAM_DATE_INVALID','message'=>'تاريخ بدء '.$ctxLabel.' مطلوب بصيغة YYYY-MM-DD أو DD-MM-YYYY.','column'=>'D']; }
+            if($programEnd===''||$this->parseFlexibleDate($programEnd)===null){ $errors[]=['code'=>'PROGRAM_DATE_INVALID','message'=>'تاريخ انتهاء '.$ctxLabel.' مطلوب بصيغة YYYY-MM-DD أو DD-MM-YYYY.','column'=>'E']; }
+            $startNorm=$this->parseFlexibleDate($programStart);
+            $endNorm=$this->parseFlexibleDate($programEnd);
+            if($startNorm!==null&&$endNorm!==null&&$startNorm>=$endNorm){ $errors[]=['code'=>'PROGRAM_DATE_RANGE','message'=>'تاريخ بدء '.$ctxLabel.' يجب أن يسبق تاريخ الانتهاء.','column'=>'E']; }
+            if($programResponsible===''){ $errors[]=['code'=>'PROGRAM_RESPONSIBLE_REQUIRED','message'=>'اسم مسؤول '.$ctxLabel.' مطلوب.','column'=>'F']; }
+            if($programBranch!==''&&$programDepartment!==''&&isset($branchMap[$programBranch])&&isset($departmentMap[$programDepartment])){
+                $programDeptBranchId=$this->getDepartmentBranchId($programDepartment);
+                if($programDeptBranchId!==null&&$programDeptBranchId!==(int)$branchMap[$programBranch]){
+                    $errors[]=['code'=>'PROGRAM_DEPARTMENT_BRANCH_MISMATCH','message'=>'القسم المنفذ '.$programDepartment.' لا يتبع الفرع المنفذ '.$programBranch.'.','column'=>'C'];
+                }
             }
-            if($empCode===''&&$fullName===''){ $errors[]=['code'=>'EMP_OR_NAME_REQUIRED','message'=>'الرقم الوظيفي أو الاسم مطلوب.','column'=>'A']; }
+            foreach(['program_title'=>$programTitle,'program_responsible'=>$programResponsible,'program_branch_name'=>$programBranch,'program_department_name'=>$programDepartment] as $field=>$value){
+                if($value!==''&&preg_match('/^[=+@-]/',ltrim($value))){ $errors[]=['code'=>'FORMULA','message'=>'قيمة '.$field.' لا يمكن أن تبدأ بصيغة Excel.','column'=>'A']; }
+            }
+            if($empCode===''&&$fullName===''){ $errors[]=['code'=>'EMP_OR_NAME_REQUIRED','message'=>'الرقم الوظيفي أو الاسم مطلوب.','column'=>'G']; }
+            if($errors===[]){
+                $payload['program_start_date']=(string)$startNorm;
+                $payload['program_end_date']=(string)$endNorm;
+                $existingProgramId=$this->findProgramId(
+                    $targetType==='employee_in_workshop'?'workshop':'course',
+                    $programTitle,$programBranch,$programDepartment,(string)$startNorm,(string)$endNorm
+                );
+                if($existingProgramId>0){ $payload['_context_id']=$existingProgramId; }
+            }
         } else {
             if($empCode===''&&$fullName===''){ $errors[]=['code'=>'EMP_OR_NAME_REQUIRED','message'=>'يجب إدخال الرقم الوظيفي أو الاسم الكامل على الأقل في الصف '.($payload['excel_row']??'?').'.','column'=>'A']; }
         }
@@ -974,6 +1063,73 @@ final class EvaluationExcelService
         $q->execute(['id'=>$id]);
         return $q->fetch(PDO::FETCH_ASSOC) ?: null;
     }
+    /**
+     * CD-043: تحويل خلية تاريخ (نص أو رقم Excel التسلسلي) إلى Y-m-d.
+     */
+    private function normalizeDateCell(string $value): string
+    {
+        $value=trim($value);
+        if($value===''){ return ''; }
+        if(is_numeric($value) && (float)$value>0){
+            try { return Date::excelToDateTimeObject((float)$value)->format('Y-m-d'); } catch(\Throwable $e) { /* fall through */ }
+        }
+        $parsed=$this->parseFlexibleDate($value);
+        return $parsed ?? '';
+    }
+
+    /**
+     * CD-043 §11.3: مفتاح مطابقة البرنامج = العنوان + الفرع المنفذ + القسم المنفذ + تاريخ البدء + تاريخ الانتهاء.
+     */
+    private function findProgramId(string $type, string $title, string $branchName, string $departmentName, string $startDate, string $endDate): int
+    {
+        $title=trim($title);
+        if($title===''){ return 0; }
+        $sql='SELECT tp.id FROM training_programs tp
+              JOIN branches b ON b.id=tp.executing_branch_id
+              LEFT JOIN departments d ON d.id=tp.executing_department_id
+              WHERE tp.type=:type AND TRIM(tp.title)=TRIM(:title) AND b.name=:branch
+                AND tp.start_date=:sd AND tp.end_date=:ed';
+        $params=['type'=>$type,'title'=>$title,'branch'=>$branchName,'sd'=>$startDate,'ed'=>$endDate];
+        if($departmentName===''){ $sql.=' AND tp.executing_department_id IS NULL'; }
+        else { $sql.=' AND d.name=:dept'; $params['dept']=$departmentName; }
+        $sql.=' ORDER BY tp.id ASC LIMIT 1';
+        $q=$this->database->getPdo()->prepare($sql);
+        $q->execute($params);
+        $row=$q->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['id'] : 0;
+    }
+
+    /**
+     * CD-043 §11.1: إنشاء نسخة برنامج (Instance) عند عدم وجود مطابقة.
+     * لا يُضاف برنامج جديد إلى الكتالوج — الكتالوج يُدار من واجهته المخصصة.
+     */
+    private function findOrCreateProgram(string $type, string $title, string $branchName, string $departmentName, string $startDate, string $endDate, string $responsible, int $userId, array $branchMap, array $departmentMap): int
+    {
+        $existing=$this->findProgramId($type,$title,$branchName,$departmentName,$startDate,$endDate);
+        if($existing>0){ return $existing; }
+        $branchId=(int)($branchMap[$branchName]??0);
+        $deptId=$departmentName!==''?(int)($departmentMap[$departmentName]??0):null;
+        if($branchId<=0){ throw new RuntimeException('الفرع المنفذ غير موجود: '.$branchName); }
+        $pdo=$this->database->getPdo();
+        $catalogId=null;
+        try {
+            $catQ=$pdo->prepare('SELECT id FROM training_catalogs WHERE TRIM(name)=TRIM(:title) AND (type=:type OR type="both") ORDER BY id ASC LIMIT 1');
+            $catQ->execute(['title'=>$title,'type'=>$type]);
+            $cat=$catQ->fetch(PDO::FETCH_ASSOC);
+            if($cat){ $catalogId=(int)$cat['id']; }
+        } catch(\Throwable $e) { $catalogId=null; }
+        $status=$endDate!=='' && $endDate<=date('Y-m-d') ? 'completed' : 'scheduled';
+        $ins=$pdo->prepare('INSERT INTO training_programs (type, catalog_id, title, executing_branch_id, executing_department_id, start_date, end_date, responsible_person, status, created_by) VALUES (:type,:catalog,:title,:bid,:did,:sd,:ed,:responsible,:status,:uid)');
+        $ins->execute([
+            'type'=>$type,'catalog'=>$catalogId,'title'=>trim($title),'bid'=>$branchId,'did'=>$deptId,
+            'sd'=>$startDate,'ed'=>$endDate,'responsible'=>$responsible,'status'=>$status,'uid'=>$userId>0?$userId:null,
+        ]);
+        $programId=(int)$pdo->lastInsertId();
+        $pdo->prepare('INSERT INTO audit_logs (user_id,action,entity_type,entity_id,details,ip_address) VALUES (:uid,"PROGRAM_CREATED_BY_IMPORT","training_programs",:eid,:details,:ip)')
+            ->execute(['uid'=>$userId,'eid'=>$programId,'details'=>json_encode(['type'=>$type,'title'=>$title,'branch_id'=>$branchId,'department_id'=>$deptId,'start_date'=>$startDate,'end_date'=>$endDate],JSON_UNESCAPED_UNICODE),'ip'=>$_SERVER['REMOTE_ADDR']??null]);
+        return $programId;
+    }
+
     private function findOrCreateCourseByName(string $title, ?int $branchId, ?int $deptId, string $status, string $startDate, string $endDate, int $userId): int {
         $pdo=$this->database->getPdo();
         $q=$pdo->prepare('SELECT tc.id FROM training_courses tc JOIN course_catalog cc ON tc.catalog_id=cc.id WHERE TRIM(LOWER(cc.title))=TRIM(LOWER(:title))' . ($branchId!==null?' AND tc.branch_id=:bid':'') . ' LIMIT 1');
@@ -1029,6 +1185,19 @@ final class EvaluationExcelService
     }
     private function isValueValid(array $section, string $value): bool
     {
+        if(($section['evaluation_type']??'')==='overall_grade'){
+            $options=json_decode((string)($section['evaluation_options']??'[]'),true);
+            $scaleName=is_array($options)?($options['scale_name']??null):null;
+            try {
+                $sql='SELECT 1 FROM grading_scales WHERE grade_label=:label AND is_active=1';
+                $params=['label'=>$value];
+                if($scaleName!==null&&$scaleName!==''){ $sql.=' AND scale_name=:scale'; $params['scale']=$scaleName; }
+                $sql.=' LIMIT 1';
+                $q=$this->database->getPdo()->prepare($sql);
+                $q->execute($params);
+                return $q->fetch()!==false;
+            } catch(\Throwable $e) { return false; }
+        }
         if($section['evaluation_type']==='text'){ return mb_strlen($value)<=4000; }
         if(in_array($section['evaluation_type'],['grade','multiple_choice'],true)){
             $options=json_decode((string)($section['evaluation_options']??'[]'),true);
@@ -1050,6 +1219,9 @@ final class EvaluationExcelService
     }
     private function normalize(array $section, string $value): float
     {
+        if(($section['evaluation_type']??'')==='overall_grade'){
+            return $this->lookupGradeValue($value,[$section]);
+        }
         if($section['evaluation_type']==='text'){ return 0.0; }
         if($section['evaluation_type']==='boolean'){ return in_array(mb_strtolower($value),['1','true','نعم'],true)?100.0:0.0; }
         if(in_array($section['evaluation_type'],['grade','multiple_choice'],true)){
@@ -1072,6 +1244,28 @@ final class EvaluationExcelService
             return $max>$min?round((($number-$min)/($max-$min))*100,4):0.0;
         }
         return round($number,4);
+    }
+    /**
+     * CD-043: قيمة التقدير الرقمية من grading_scales (تُستخدم للتحقق والتخزين).
+     */
+    private function lookupGradeValue(string $label, array $sections): float
+    {
+        $scaleName=null;
+        foreach($sections as $section){
+            if(($section['evaluation_type']??'')!=='overall_grade'){ continue; }
+            $options=json_decode((string)($section['evaluation_options']??'[]'),true);
+            if(is_array($options)&&!empty($options['scale_name'])){ $scaleName=(string)$options['scale_name']; break; }
+        }
+        try {
+            $sql='SELECT numeric_value FROM grading_scales WHERE grade_label=:label AND is_active=1';
+            $params=['label'=>$label];
+            if($scaleName!==null&&$scaleName!==''){ $sql.=' AND scale_name=:scale'; $params['scale']=$scaleName; }
+            $sql.=' ORDER BY sort_order ASC, id ASC LIMIT 1';
+            $q=$this->database->getPdo()->prepare($sql);
+            $q->execute($params);
+            $row=$q->fetch(PDO::FETCH_ASSOC);
+            return $row ? round((float)$row['numeric_value'],2) : 0.0;
+        } catch(\Throwable $e) { return 0.0; }
     }
     private function calculateFinalScore(int $evaluationId, int $templateId): float
     {
@@ -1098,13 +1292,20 @@ final class EvaluationExcelService
         return $template;
     }
     /**
-     * CD-042: describe a template's Excel structure for the visual preview panel.
-     * Generated by introspecting an in-memory buildTemplate() so the preview
-     * is guaranteed to match the downloaded file 100%.
+     * CD-043: وصف هيكل القالب للمعاينة — من نفس باني التصدير.
      */
     public function describeTemplateStructure(int $templateId, int $evaluatorEmployeeId = 0): array
     {
-        $book = $this->buildTemplate($templateId, $evaluatorEmployeeId, null, null, 2);
+        return $this->builder->describe($templateId, $evaluatorEmployeeId);
+    }
+
+    /**
+     * CD-042 legacy: kept as a reference during the CD-043 transition.
+     * Not called by the application; scheduled for removal in P5.
+     */
+    private function describeTemplateStructureLegacy(int $templateId, int $evaluatorEmployeeId = 0): array
+    {
+        $book = $this->buildTemplateLegacy($templateId, $evaluatorEmployeeId, null, null, 2);
         $sheet = $book->getActiveSheet();
         $template = $this->getTemplateOrFail($templateId);
         $sections = $this->getSectionsOrdered($templateId);

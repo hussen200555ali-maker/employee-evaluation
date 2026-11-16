@@ -1,9 +1,8 @@
 <?php
 declare(strict_types=1);
 
-/* Excel acceptance smoke test — all 4 target types.
+/* CD-043 P2: Excel workflow smoke test — 4 target types + descriptive course.
  * Run against the isolated employee_evaluation_excel_test database.
- * Tests: employee, course, unit (branch), employee_in_course
  */
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
@@ -14,6 +13,7 @@ define('DB_CHARSET', 'utf8mb4');
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use App\Services\EvaluationExcelService;
+use App\Services\Excel\ExcelTemplateBuilder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -21,66 +21,87 @@ function assertTrue(bool $condition, string $message): void { if (!$condition) {
 
 $pdo = new PDO('mysql:host=localhost;dbname=employee_evaluation_excel_test;charset=utf8mb4', 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-/* ── Common seed ────────────────────────────────────────────────────── */
 $hash = password_hash('test1234', PASSWORD_DEFAULT);
 $pdo->prepare("INSERT IGNORE INTO users (id, username, email, password_hash, status) VALUES (2, 'testuser', 'test@test.com', :hash, 'active')")->execute(['hash' => $hash]);
 $userId = 2;
 
-/* Branch + Department */
-$pdo->exec("INSERT IGNORE INTO branches (id, name) VALUES (1, 'فرع اختبار عام')");
-$pdo->exec("INSERT IGNORE INTO departments (id, name, branch_id) VALUES (1, 'قسم اختبار عام', 1)");
-
-/* Evaluator employee */
+// evaluator employee
 $token = (string) time();
 $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')->execute(['code' => 'EVAL-' . $token, 'name' => 'مقيّم اختبار Excel']);
 $evaluatorEmployeeId = (int) $pdo->lastInsertId();
 
 $service = new EvaluationExcelService();
+$builder = new ExcelTemplateBuilder();
 $directory = __DIR__ . '/tmp-excel';
 if (!is_dir($directory)) { mkdir($directory, 0775, true); }
 
 $passCount = 0;
 $failures = [];
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TEST 1 — EMPLOYEE (الموظف الفردي)
-   ═══════════════════════════════════════════════════════════════════════ */
-try {
-    $t1 = $token . '_emp';
+function colLetterFor(array $layout, string $key): string
+{
+    foreach ($layout['columns'] as $c) {
+        if (($c['key'] ?? '') === $key) { return $c['letter']; }
+    }
+    throw new RuntimeException('Column not found: ' . $key);
+}
 
-    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
-        ->execute(['code' => 'EMP-' . $t1, 'name' => 'موظف اختبار']);
-    $empId = (int) $pdo->lastInsertId();
+function sectionColumnLetter(array $layout, int $sectionId, string $kind = 'section'): string
+{
+    foreach ($layout['columns'] as $c) {
+        if (($c['section_id'] ?? null) === $sectionId && $c['kind'] === $kind) { return $c['letter']; }
+    }
+    throw new RuntimeException('Section column not found: ' . $sectionId);
+}
 
-    $pdo->prepare('INSERT INTO form_templates (template_name, target_type, is_active, version) VALUES (:name, "employee", 1, 1)')
-        ->execute(['name' => 'قالب موظف ' . $t1]);
-    $tplId = (int) $pdo->lastInsertId();
+function makeTemplate(PDO $pdo, string $name, string $type, string $mode = 'numeric'): int
+{
+    $pdo->prepare('INSERT INTO form_templates (template_name, target_type, evaluation_mode, is_active, version) VALUES (:name, :type, :mode, 1, 1)')
+        ->execute(['name' => $name, 'type' => $type, 'mode' => $mode]);
+    return (int) $pdo->lastInsertId();
+}
 
+function addSection(PDO $pdo, int $tplId, string $sectionName, string $evalType, array $options = [], int $min = 0, int $max = 100): int
+{
     $pdo->prepare('INSERT INTO criteria (template_id, criterion_name, criterion_weight, order_index) VALUES (:tid, "معيار", 100, 1)')
         ->execute(['tid' => $tplId]);
     $critId = (int) $pdo->lastInsertId();
+    $pdo->prepare('INSERT INTO criteria_sections (criterion_id, section_name, evaluation_type, evaluation_options, min_value, max_value, section_weight, order_index, allow_notes) VALUES (:cid, :sn, :et, :opts, :mn, :mx, 100, 1, 0)')
+        ->execute(['cid' => $critId, 'sn' => $sectionName, 'et' => $evalType, 'opts' => json_encode($options, JSON_UNESCAPED_UNICODE), 'mn' => $min, 'mx' => $max]);
+    return (int) $pdo->lastInsertId();
+}
 
-    $pdo->prepare('INSERT INTO criteria_sections (criterion_id, section_name, evaluation_type, min_value, max_value, section_weight, order_index) VALUES (:cid, "بند", "percentage", 0, 100, 100, 1)')
-        ->execute(['cid' => $critId]);
-    $secId = (int) $pdo->lastInsertId();
+/* ═══════════════════════════════════════════════════════════════════════
+   TEST 1 — EMPLOYEE (فردي) عددی
+   ═══════════════════════════════════════════════════════════════════════ */
+try {
+    $t = $token . '_emp';
+    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
+        ->execute(['code' => 'EMP-' . $t, 'name' => 'موظف اختبار']);
+    $empId = (int) $pdo->lastInsertId();
 
-    $path = $directory . '/emp-' . $t1 . '.xlsx';
+    $tplId = makeTemplate($pdo, 'قالب موظف ' . $t, 'employee', 'numeric');
+    $secId = addSection($pdo, $tplId, 'بند', 'percentage');
+
+    $layout = $builder->layout($tplId);
+    $path = $directory . '/emp-' . $t . '.xlsx';
     $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
     $ws = $wb->getSheetByName('التقييمات');
-    $ws->setCellValue('A6', 'EMP-' . $t1);
-    $ws->setCellValue('B6', 'موظف اختبار');
-    $ws->setCellValue('F6', '88');
-    $ws->setCellValue('H6', date('Y-m-d'));
-    $ws->setCellValue('I6', 'مقيّم اختبار');
+    $r = 5;
+    $ws->setCellValue(colLetterFor($layout, 'employee_name') . $r, 'موظف اختبار');
+    $ws->setCellValue(colLetterFor($layout, 'employee_code') . $r, 'EMP-' . $t);
+    $ws->setCellValue(sectionColumnLetter($layout, $secId, 'section') . $r, '88');
+    $ws->setCellValue(colLetterFor($layout, 'evaluator_name') . $r, 'مقيّم اختبار Excel');
+    $ws->setCellValue(colLetterFor($layout, 'evaluation_date') . $r, date('Y-m-d'));
     (new Xlsx($wb))->save($path);
 
     $preview = $service->previewWorkbookPath($path, 'emp.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
-    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T1: معاينة فاشلة');
+    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T1: معاينة فاشلة — ' . json_encode($preview['rows'][0]['errors'] ?? []));
 
     $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
     assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T1: التزام فاشل');
 
-    $eval = $pdo->query('SELECT id FROM evaluations WHERE template_id=' . $tplId . ' AND employee_code="EMP-' . $t1 . '" ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+    $eval = $pdo->query('SELECT id FROM evaluations WHERE template_id=' . $tplId . ' AND employee_code="EMP-' . $t . '" ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
     assertTrue($eval !== false, 'T1: لم يُنشأ تقييم');
 
     $ans = $pdo->query('SELECT raw_value, normalized_score FROM evaluation_answers WHERE evaluation_id=' . $eval['id'] . ' AND section_id=' . $secId)->fetch(PDO::FETCH_ASSOC);
@@ -94,199 +115,207 @@ try {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TEST 2 — COURSE (الدورة ككيان)
+   TEST 2 — EMPLOYEE_IN_COURSE (numeric, program header)
    ═══════════════════════════════════════════════════════════════════════ */
 try {
-    $t2 = $token . '_crs';
+    $t = $token . '_eic';
+    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
+        ->execute(['code' => 'EMP-' . $t, 'name' => 'موظف اختبار دورة']);
+    $empId = (int) $pdo->lastInsertId();
 
-    $pdo->prepare('INSERT INTO course_catalog (title, created_by) VALUES (:title, :uid)')
-        ->execute(['title' => 'دورة اختبار ' . $t2, 'uid' => $userId]);
-    $catalogId = (int) $pdo->lastInsertId();
+    $tplId = makeTemplate($pdo, 'قالب موظف في دورة ' . $t, 'employee_in_course', 'numeric');
+    $secId = addSection($pdo, $tplId, 'بند', 'percentage');
 
-    $pdo->prepare('INSERT INTO training_courses (catalog_id, branch_id, start_date, end_date, status, created_by) VALUES (:cat, 1, "2026-01-01", "2026-12-31", "ongoing", :uid)')
-        ->execute(['cat' => $catalogId, 'uid' => $userId]);
-    $courseId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO form_templates (template_name, target_type, is_active, version) VALUES (:name, "course", 1, 1)')
-        ->execute(['name' => 'قالب دورة ' . $t2]);
-    $tplId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO criteria (template_id, criterion_name, criterion_weight, order_index) VALUES (:tid, "معيار", 100, 1)')
-        ->execute(['tid' => $tplId]);
-    $critId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO criteria_sections (criterion_id, section_name, evaluation_type, min_value, max_value, section_weight, order_index) VALUES (:cid, "بند", "percentage", 0, 100, 100, 1)')
-        ->execute(['cid' => $critId]);
-    $secId = (int) $pdo->lastInsertId();
-
-    $path = $directory . '/crs-' . $t2 . '.xlsx';
+    $layout = $builder->layout($tplId);
+    $path = $directory . '/eic-' . $t . '.xlsx';
     $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
     $ws = $wb->getSheetByName('التقييمات');
-    for ($r = 6; $r <= 105; $r++) { for ($c = 'A'; $c <= 'K'; $c++) { $ws->setCellValue($c . $r, null); } }
-    $ws->setCellValue('A6', 'دورة اختبار ' . $t2);
-    $ws->setCellValue('B6', 'فرع اختبار عام');
-    $ws->setCellValue('C6', '');
-    $ws->setCellValue('D6', '2026-01-01');
-    $ws->setCellValue('E6', '2026-12-31');
-    $ws->setCellValue('F6', '75');
-    $ws->setCellValue('G6', '');
-    $ws->setCellValue('H6', date('Y-m-d'));
-    $ws->setCellValue('I6', 'مقيّم اختبار');
-    $ws->setCellValue('J6', 'مشرف');
+    $r = 5;
+    $ws->setCellValue(colLetterFor($layout, 'program_title') . $r, 'دورة اختبار سياق ' . $t);
+    $ws->setCellValue(colLetterFor($layout, 'program_branch') . $r, 'الفرع الرئيسي - الرياض');
+    $ws->setCellValue(colLetterFor($layout, 'program_department') . $r, 'الإدارة العليا');
+    $ws->setCellValue(colLetterFor($layout, 'program_start') . $r, '2026-01-01');
+    $ws->setCellValue(colLetterFor($layout, 'program_end') . $r, '2026-12-31');
+    $ws->setCellValue(colLetterFor($layout, 'program_responsible') . $r, 'مسؤول اختبار');
+    $ws->setCellValue(colLetterFor($layout, 'employee_name') . $r, 'موظف اختبار دورة');
+    $ws->setCellValue(colLetterFor($layout, 'employee_code') . $r, 'EMP-' . $t);
+    $ws->setCellValue(sectionColumnLetter($layout, $secId, 'section') . $r, '92');
+    $ws->setCellValue(colLetterFor($layout, 'evaluator_name') . $r, 'مقيّم اختبار Excel');
+    $ws->setCellValue(colLetterFor($layout, 'evaluation_date') . $r, date('Y-m-d'));
     (new Xlsx($wb))->save($path);
 
-    $preview = $service->previewWorkbookPath($path, 'crs.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
-    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T2: معاينة فاشلة — errors: ' . json_encode($preview['rows'][0]['errors'] ?? []));
+    $preview = $service->previewWorkbookPath($path, 'eic.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
+    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T2: معاينة فاشلة — ' . json_encode($preview['rows'][0]['errors'] ?? []));
 
     $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
     assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T2: التزام فاشل');
 
-    $eval = $pdo->query('SELECT id, entity_type, entity_id, final_score FROM evaluations WHERE template_id=' . $tplId . ' AND entity_type="course" ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+    $eval = $pdo->query('SELECT id, context_type, context_id, final_score FROM evaluations WHERE template_id=' . $tplId . ' AND evaluated_employee_id=' . $empId . ' ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
     assertTrue($eval !== false, 'T2: لم يُنشأ تقييم');
-    assertTrue($eval['entity_type'] === 'course', 'T2: entity_type خاطئ: ' . ($eval['entity_type'] ?? 'null'));
-    assertTrue((float) $eval['final_score'] === 75.0, 'T2: final_score خاطئ');
+    assertTrue($eval['context_type'] === 'course', 'T2: context_type يجب أن يكون course');
+    assertTrue((int) $eval['context_id'] > 0, 'T2: context_id خاطئ');
+    assertTrue((float) $eval['final_score'] === 92.0, 'T2: final_score خاطئ');
 
-    $ans = $pdo->query('SELECT raw_value, normalized_score FROM evaluation_answers WHERE evaluation_id=' . $eval['id'] . ' AND section_id=' . $secId)->fetch(PDO::FETCH_ASSOC);
-    assertTrue($ans !== false && (string) $ans['raw_value'] === '75' && (float) $ans['normalized_score'] === 75.0, 'T2: الدرجة غير صحيحة');
+    $prog = $pdo->query('SELECT id, type, title, executing_branch_id, executing_department_id FROM training_programs WHERE id=' . (int)$eval['context_id'])->fetch(PDO::FETCH_ASSOC);
+    assertTrue($prog !== false && $prog['type'] === 'course', 'T2: program type خاطئ');
+    assertTrue(trim((string)$prog['title']) === 'دورة اختبار سياق ' . $t, 'T2: program title خاطئ');
 
-    echo "  [PASS] TEST 2 — course\n";
+    echo "  [PASS] TEST 2 — employee_in_course (numeric)\n";
     $passCount++;
 } catch (\Throwable $e) {
-    echo "  [FAIL] TEST 2 — course: " . $e->getMessage() . "\n";
-    $failures[] = 'course: ' . $e->getMessage();
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TEST 3 — UNIT (الوحدة الدورية — فرع)
-   ═══════════════════════════════════════════════════════════════════════ */
-try {
-    $t3 = $token . '_unit';
-
-    $pdo->exec("INSERT IGNORE INTO branches (id, name) VALUES (2, 'فرع اختبار وحدة')");
-    $branchId = 2;
-
-    $pdo->prepare('INSERT INTO form_templates (template_name, target_type, is_active, version) VALUES (:name, "unit", 1, 1)')
-        ->execute(['name' => 'قالب وحدة ' . $t3]);
-    $tplId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO criteria (template_id, criterion_name, criterion_weight, order_index) VALUES (:tid, "معيار", 100, 1)')
-        ->execute(['tid' => $tplId]);
-    $critId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO criteria_sections (criterion_id, section_name, evaluation_type, min_value, max_value, section_weight, order_index) VALUES (:cid, "بند", "percentage", 0, 100, 100, 1)')
-        ->execute(['cid' => $critId]);
-    $secId = (int) $pdo->lastInsertId();
-
-    $path = $directory . '/unit-' . $t3 . '.xlsx';
-    $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
-    $ws = $wb->getSheetByName('التقييمات');
-    $ws->setCellValue('A6', 'branch');
-    $ws->setCellValue('B6', 'فرع اختبار وحدة');
-    $ws->setCellValue('C6', '2026-01');
-    $ws->setCellValue('F6', '60');
-    $ws->setCellValue('H6', date('Y-m-d'));
-    $ws->setCellValue('I6', 'مقيّم اختبار');
-    (new Xlsx($wb))->save($path);
-
-    $preview = $service->previewWorkbookPath($path, 'unit.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
-    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T3: معاينة فاشلة');
-
-    $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
-    assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T3: التزام فاشل');
-
-    $eval = $pdo->query('SELECT id, entity_type, status, final_score FROM evaluations WHERE template_id=' . $tplId . ' AND entity_id=' . $branchId . ' ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
-    assertTrue($eval !== false, 'T3: لم يُنشأ تقييم');
-    assertTrue($eval['entity_type'] === 'branch', 'T3: entity_type خاطئ: ' . ($eval['entity_type'] ?? 'null'));
-    assertTrue($eval['status'] === 'completed', 'T3: الحالة يجب أن تكون completed (استيراد): ' . ($eval['status'] ?? 'null'));
-    assertTrue((float) $eval['final_score'] === 60.0, 'T3: final_score خắcئ');
-
-    $ans = $pdo->query('SELECT raw_value, normalized_score FROM evaluation_answers WHERE evaluation_id=' . $eval['id'] . ' AND section_id=' . $secId)->fetch(PDO::FETCH_ASSOC);
-    assertTrue($ans !== false && (string) $ans['raw_value'] === '60' && (float) $ans['normalized_score'] === 60.0, 'T3: الدرجة غير صحيحة');
-
-    echo "  [PASS] TEST 3 — unit (branch)\n";
-    $passCount++;
-} catch (\Throwable $e) {
-    echo "  [FAIL] TEST 3 — unit (branch): " . $e->getMessage() . "\n";
-    $failures[] = 'unit: ' . $e->getMessage();
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TEST 4 — EMPLOYEE_IN_COURSE (موظف داخل دورة)
-   ═══════════════════════════════════════════════════════════════════════ */
-try {
-    $t4 = $token . '_eic';
-
-    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
-        ->execute(['code' => 'EMP-' . $t4, 'name' => 'موظف اختبار دورة']);
-    $empId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO course_catalog (title, created_by) VALUES (:title, :uid)')
-        ->execute(['title' => 'دورة اختبار سياق ' . $t4, 'uid' => $userId]);
-    $catalogId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO training_courses (catalog_id, branch_id, start_date, end_date, status, created_by) VALUES (:cat, 1, "2026-01-01", "2026-12-31", "ongoing", :uid)')
-        ->execute(['cat' => $catalogId, 'uid' => $userId]);
-    $courseId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO form_templates (template_name, target_type, is_active, version) VALUES (:name, "employee_in_course", 1, 1)')
-        ->execute(['name' => 'قالب موظف في دورة ' . $t4]);
-    $tplId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO criteria (template_id, criterion_name, criterion_weight, order_index) VALUES (:tid, "معيار", 100, 1)')
-        ->execute(['tid' => $tplId]);
-    $critId = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO criteria_sections (criterion_id, section_name, evaluation_type, min_value, max_value, section_weight, order_index) VALUES (:cid, "بند", "percentage", 0, 100, 100, 1)')
-        ->execute(['cid' => $critId]);
-    $secId = (int) $pdo->lastInsertId();
-
-    $path = $directory . '/eic-' . $t4 . '.xlsx';
-    $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
-    $ws = $wb->getSheetByName('التقييمات');
-    $ws->setCellValue('A6', 'EMP-' . $t4);
-    $ws->setCellValue('B6', 'موظف اختبار دورة');
-    $ws->setCellValue('C6', (string) $courseId);
-    $ws->setCellValue('F6', '92');
-    $ws->setCellValue('H6', date('Y-m-d'));
-    $ws->setCellValue('I6', 'مقيّم اختبار');
-    (new Xlsx($wb))->save($path);
-
-    $preview = $service->previewWorkbookPath($path, 'eic.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
-    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T4: معاينة فاشلة');
-
-    $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
-    assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T4: التزام فاشل');
-
-    $eval = $pdo->query('SELECT id, entity_type, context_type, context_id, final_score FROM evaluations WHERE template_id=' . $tplId . ' AND evaluated_employee_id=' . $empId . ' ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
-    assertTrue($eval !== false, 'T4: لم يُنشأ تقييم');
-    assertTrue($eval['entity_type'] === 'employee', 'T4: entity_type يجب أن يكون employee: ' . ($eval['entity_type'] ?? 'null'));
-    assertTrue($eval['context_type'] === 'course', 'T4: context_type يجب أن يكون course: ' . ($eval['context_type'] ?? 'null'));
-    assertTrue((int) $eval['context_id'] === $courseId, 'T4: context_id خاطئ');
-    assertTrue((float) $eval['final_score'] === 92.0, 'T4: final_score خاطئ');
-
-    $ans = $pdo->query('SELECT raw_value, normalized_score FROM evaluation_answers WHERE evaluation_id=' . $eval['id'] . ' AND section_id=' . $secId)->fetch(PDO::FETCH_ASSOC);
-    assertTrue($ans !== false && (string) $ans['raw_value'] === '92' && (float) $ans['normalized_score'] === 92.0, 'T4: الدرجة غير صحيحة');
-
-    echo "  [PASS] TEST 4 — employee_in_course\n";
-    $passCount++;
-} catch (\Throwable $e) {
-    echo "  [FAIL] TEST 4 — employee_in_course: " . $e->getMessage() . "\n";
+    echo "  [FAIL] TEST 2 — employee_in_course: " . $e->getMessage() . "\n";
     $failures[] = 'employee_in_course: ' . $e->getMessage();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SUMMARY
+   TEST 3 — EMPLOYEE_IN_WORKSHOP (numeric, program header)
    ═══════════════════════════════════════════════════════════════════════ */
+try {
+    $t = $token . '_eiw';
+    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
+        ->execute(['code' => 'EMP-' . $t, 'name' => 'موظف اختبار ورشة']);
+    $empId = (int) $pdo->lastInsertId();
+
+    $tplId = makeTemplate($pdo, 'قالب موظف في ورشة ' . $t, 'employee_in_workshop', 'numeric');
+    $secId = addSection($pdo, $tplId, 'بند', 'percentage');
+
+    $layout = $builder->layout($tplId);
+    $path = $directory . '/eiw-' . $t . '.xlsx';
+    $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
+    $ws = $wb->getSheetByName('التقييمات');
+    $r = 5;
+    $ws->setCellValue(colLetterFor($layout, 'program_title') . $r, 'ورشة اختبار سياق ' . $t);
+    $ws->setCellValue(colLetterFor($layout, 'program_branch') . $r, 'الفرع الرئيسي - الرياض');
+    $ws->setCellValue(colLetterFor($layout, 'program_department') . $r, 'الإدارة العليا');
+    $ws->setCellValue(colLetterFor($layout, 'program_start') . $r, '2026-02-01');
+    $ws->setCellValue(colLetterFor($layout, 'program_end') . $r, '2026-03-01');
+    $ws->setCellValue(colLetterFor($layout, 'program_responsible') . $r, 'مسؤول ورشة');
+    $ws->setCellValue(colLetterFor($layout, 'employee_name') . $r, 'موظف اختبار ورشة');
+    $ws->setCellValue(colLetterFor($layout, 'employee_code') . $r, 'EMP-' . $t);
+    $ws->setCellValue(sectionColumnLetter($layout, $secId, 'section') . $r, '77');
+    $ws->setCellValue(colLetterFor($layout, 'evaluator_name') . $r, 'مقيّم اختبار Excel');
+    $ws->setCellValue(colLetterFor($layout, 'evaluation_date') . $r, date('Y-m-d'));
+    (new Xlsx($wb))->save($path);
+
+    $preview = $service->previewWorkbookPath($path, 'eiw.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
+    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T3: معاينة فاشلة — ' . json_encode($preview['rows'][0]['errors'] ?? []));
+
+    $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
+    assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T3: التزام فاشل');
+
+    $eval = $pdo->query('SELECT id, context_type, context_id, final_score FROM evaluations WHERE template_id=' . $tplId . ' AND evaluated_employee_id=' . $empId . ' ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+    assertTrue($eval !== false, 'T3: لم يُنشأ تقييم');
+    assertTrue($eval['context_type'] === 'workshop', 'T3: context_type يجب أن يكون workshop');
+    assertTrue((int) $eval['context_id'] > 0, 'T3: context_id خاطئ');
+    assertTrue((float) $eval['final_score'] === 77.0, 'T3: final_score خاطئ');
+
+    echo "  [PASS] TEST 3 — employee_in_workshop (numeric)\n";
+    $passCount++;
+} catch (\Throwable $e) {
+    echo "  [FAIL] TEST 3 — employee_in_workshop: " . $e->getMessage() . "\n";
+    $failures[] = 'employee_in_workshop: ' . $e->getMessage();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEST 4 — SKILL (مهاري)
+   ═══════════════════════════════════════════════════════════════════════ */
+try {
+    $t = $token . '_skl';
+    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
+        ->execute(['code' => 'EMP-' . $t, 'name' => 'موظف اختبار مهارة']);
+
+    $tplId = makeTemplate($pdo, 'قالب مهارة ' . $t, 'skill', 'numeric');
+    $secId = addSection($pdo, $tplId, 'بند', 'percentage');
+
+    $layout = $builder->layout($tplId);
+    $path = $directory . '/skl-' . $t . '.xlsx';
+    $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
+    $ws = $wb->getSheetByName('التقييمات');
+    $r = 5;
+    $ws->setCellValue(colLetterFor($layout, 'employee_name') . $r, 'موظف اختبار مهارة');
+    $ws->setCellValue(colLetterFor($layout, 'employee_code') . $r, 'EMP-' . $t);
+    $ws->setCellValue(sectionColumnLetter($layout, $secId, 'section') . $r, '65');
+    $ws->setCellValue(colLetterFor($layout, 'evaluator_name') . $r, 'مقيّم اختبار Excel');
+    $ws->setCellValue(colLetterFor($layout, 'evaluation_date') . $r, date('Y-m-d'));
+    (new Xlsx($wb))->save($path);
+
+    $preview = $service->previewWorkbookPath($path, 'skl.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
+    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T4: معاينة فاشلة — ' . json_encode($preview['rows'][0]['errors'] ?? []));
+
+    $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
+    assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T4: التزام فاشل');
+
+    echo "  [PASS] TEST 4 — skill\n";
+    $passCount++;
+} catch (\Throwable $e) {
+    echo "  [FAIL] TEST 4 — skill: " . $e->getMessage() . "\n";
+    $failures[] = 'skill: ' . $e->getMessage();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEST 5 — EMPLOYEE_IN_COURSE (descriptive, overall grade guarantee 1)
+   ═══════════════════════════════════════════════════════════════════════ */
+try {
+    $t = $token . '_desc';
+    $pdo->prepare('INSERT INTO employees (emp_code, full_name, is_active) VALUES (:code, :name, 1)')
+        ->execute(['code' => 'EMP-' . $t, 'name' => 'موظف اختبار وصفي']);
+    $empId = (int) $pdo->lastInsertId();
+
+    $tplId = makeTemplate($pdo, 'قالب وصفي ' . $t, 'employee_in_course', 'descriptive');
+    $secId = addSection($pdo, $tplId, 'بند', 'percentage');
+    // overall grade section
+    $pdo->prepare('INSERT INTO criteria (template_id, criterion_name, criterion_weight, order_index) VALUES (:tid, "تقييم الاستفادة", 0, 2)')
+        ->execute(['tid' => $tplId]);
+    $critId2 = (int) $pdo->lastInsertId();
+    $pdo->prepare('INSERT INTO criteria_sections (criterion_id, section_name, evaluation_type, evaluation_options, min_value, max_value, section_weight, order_index, allow_notes) VALUES (:cid, "التقدير العام", "overall_grade", :opts, 0, 100, 0, 1, 0)')
+        ->execute(['cid' => $critId2, 'opts' => json_encode(['scale_name' => 'السلم الخماسي'], JSON_UNESCAPED_UNICODE)]);
+
+    $layout = $builder->layout($tplId);
+    assertTrue($layout['has_overall_grade'] === true, 'T5: has_overall_grade should be true');
+    $path = $directory . '/desc-' . $t . '.xlsx';
+    $wb = $service->buildTemplate($tplId, $evaluatorEmployeeId);
+    $ws = $wb->getSheetByName('التقييمات');
+    $r = 5;
+    $ws->setCellValue(colLetterFor($layout, 'program_title') . $r, 'دورة وصفية ' . $t);
+    $ws->setCellValue(colLetterFor($layout, 'program_branch') . $r, 'الفرع الرئيسي - الرياض');
+    $ws->setCellValue(colLetterFor($layout, 'program_department') . $r, 'الإدارة العليا');
+    $ws->setCellValue(colLetterFor($layout, 'program_start') . $r, '2026-01-01');
+    $ws->setCellValue(colLetterFor($layout, 'program_end') . $r, '2026-12-31');
+    $ws->setCellValue(colLetterFor($layout, 'program_responsible') . $r, 'مسؤول وصفي');
+    $ws->setCellValue(colLetterFor($layout, 'employee_name') . $r, 'موظف اختبار وصفي');
+    $ws->setCellValue(colLetterFor($layout, 'employee_code') . $r, 'EMP-' . $t);
+    $ws->setCellValue(sectionColumnLetter($layout, $secId, 'section') . $r, '90');
+    $ws->setCellValue(colLetterFor($layout, 'overall_grade') . $r, 'ممتاز');
+    $ws->setCellValue(colLetterFor($layout, 'evaluator_name') . $r, 'مقيّم اختبار Excel');
+    $ws->setCellValue(colLetterFor($layout, 'evaluation_date') . $r, date('Y-m-d'));
+    (new Xlsx($wb))->save($path);
+
+    $preview = $service->previewWorkbookPath($path, 'desc.xlsx', filesize($path), $userId, $evaluatorEmployeeId);
+    assertTrue($preview['valid'] === 1 && $preview['invalid'] === 0, 'T5: معاينة فاشلة — ' . json_encode($preview['rows'][0]['errors'] ?? []));
+
+    $commit = $service->commitBatch($preview['batch_id'], $userId, $evaluatorEmployeeId);
+    assertTrue($commit['committed_rows'] === 1 && $commit['committed_evaluations'] === 1, 'T5: التزام فاشل');
+
+    $eval = $pdo->query('SELECT id, final_score, final_grade_label, final_grade_value FROM evaluations WHERE template_id=' . $tplId . ' AND evaluated_employee_id=' . $empId . ' ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+    assertTrue($eval !== false, 'T5: لم يُنشأ تقييم');
+    assertTrue((string)$eval['final_grade_label'] === 'ممتاز', 'T5: final_grade_label خاطئ: ' . ($eval['final_grade_label'] ?? 'null'));
+    assertTrue((float)$eval['final_grade_value'] === 5.0, 'T5: final_grade_value خاطئ: ' . ($eval['final_grade_value'] ?? 'null'));
+
+    echo "  [PASS] TEST 5 — employee_in_course (descriptive, overall grade)\n";
+    $passCount++;
+} catch (\Throwable $e) {
+    echo "  [FAIL] TEST 5 — descriptive: " . $e->getMessage() . "\n";
+    $failures[] = 'descriptive: ' . $e->getMessage();
+}
+
 echo "\n";
 echo "══════════════════════════════════════════\n";
-echo "  RESULTS: $passCount / 4 PASSED\n";
+echo "  RESULTS: $passCount / 5 PASSED\n";
 echo "══════════════════════════════════════════\n";
-if ($passCount === 4) {
-    echo "  ALL TESTS PASSED — Phase 3.5 Import/Export verified.\n";
+if ($passCount === 5) {
+    echo "  ALL TESTS PASSED — CD-043 P2 workflow verified.\n";
 } else {
     echo "  FAILURES:\n";
-    foreach ($failures as $f) {
-        echo "    - $f\n";
-    }
+    foreach ($failures as $f) { echo "    - $f\n"; }
     exit(1);
 }

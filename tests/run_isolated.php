@@ -7,9 +7,18 @@
  * هذا الغلاف يثبّت الثوابت على `employee_evaluation_excel_test` قبل تحميل
  * bootstrap، دون تعديل أي إعداد إنتاجي.
  *
+ * الاختبارات المعزولة (لا تعتمد على بيانات UAT):
+ *   - ExcelWorkflowSmoke        (5 سيناريوهات: employee / course / workshop / skill / descriptive)
+ *   - ExcelTemplateExportSmoke  (بنية القوالب المصدَّرة: 2 أوراق، قوائم، ترتيب، صلاحيات)
+ *   - CD042Duplicate            (تكرار Import)
+ *   - RouterTest                (مسارات Excel)
+ *
+ * تحذير UAT: لا تُعدَّل DB_NAME إلى UAT — ستفشل فحوصات M3 (target_type ∈ 4 قيم)
+ * فوراً، وقد تُلوّث بيانات الإنتاج. قاعدة UAT تُستخدم فقط للعرض/النشر.
+ *
  * الاستخدام:
  *   php tests/run_isolated.php                # كل الاختبارات
- *   php tests/run_isolated.php CD042Duplicate # تصفية بالاسم
+ *   php tests/run_isolated.php ExcelWorkflowSmoke # تصفية بالاسم
  *
  * شيفرة الخروج: 0 عند النجاح الكامل، 1 عند وجود فشل أو خطأ.
  */
