@@ -83,9 +83,8 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         foreach (['BranchList', 'GradeList', 'SkillLevelList', 'ProgramList'] as $nr) {
             assertTrue(in_array($nr, $names, true), "T{$tplId}: missing named range {$nr}");
         }
-        // Dept_<ordinal> ranges exist (at least one)
-        $deptRanges = array_filter($names, static fn($n) => strpos($n, 'Dept_') === 0);
-        assertTrue(count($deptRanges) >= 1, "T{$tplId}: missing Dept_ named ranges");
+        // DepartmentList named range exists
+        assertTrue(in_array('DepartmentList', $names, true), "T{$tplId}: missing named range DepartmentList");
 
         // Lists sheet: no technical IDs in headers
         $listHeaders = [];
@@ -117,14 +116,13 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         $dvCollection = $main->getDataValidationCollection();
         assertTrue(count($dvCollection) > 0, "T{$tplId}: no data validations");
 
-        // department dropdown formula uses INDIRECT
-        $indirectFound = false;
+        // department dropdown uses DepartmentList (single list per user requirement)
+        $deptListFound = false;
         foreach ($dvCollection as $dv) {
             $f = (string) $dv->getFormula1();
-            if (stripos($f, 'INDIRECT') !== false) { $indirectFound = true; break; }
+            if (stripos($f, 'DepartmentList') !== false) { $deptListFound = true; break; }
         }
-        // only program/employee/skill templates with dept column have indirect; all have dept column
-        assertTrue($indirectFound, "T{$tplId}: INDIRECT department dropdown not found");
+        assertTrue($deptListFound, "T{$tplId}: DepartmentList dropdown not found");
 
         $book->disconnectWorksheets();
         echo "  [PASS] template {$tplId} ({$expectedType}) structural checks\n";

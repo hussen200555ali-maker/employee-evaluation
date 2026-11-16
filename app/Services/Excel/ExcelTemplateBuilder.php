@@ -787,7 +787,7 @@ final class ExcelTemplateBuilder
                     break;
                 case 'program_department':
                     if ($hasBranches) {
-                        $this->addIndirectDepartmentValidation($sheet, $range, $this->colLetter($layout, 'program_branch'), $start);
+                        $this->addListValidation($sheet, $range, 'DepartmentList', 'القسم المنفذ', 'اختر قسماً من القائمة.');
                     }
                     break;
                 case 'program_start':
@@ -801,7 +801,7 @@ final class ExcelTemplateBuilder
                     break;
                 case 'employee_department':
                     if ($hasBranches) {
-                        $this->addIndirectDepartmentValidation($sheet, $range, $this->colLetter($layout, 'employee_branch'), $start);
+                        $this->addListValidation($sheet, $range, 'DepartmentList', 'القسم', 'اختر قسماً من القائمة.');
                     }
                     break;
                 case 'evaluation_date':
@@ -991,44 +991,30 @@ final class ExcelTemplateBuilder
         $sheet->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
         $sheet->setRightToLeft(true);
 
-        // الأعمدة الأربعة الأولى: مصادر عامة (أسماء فقط، بلا معرّفات).
-        $this->writeListColumn($sheet, 'A', 'الفروع', array_map(static fn(array $b): string => (string) $b['name'], $branches));
-        $this->writeListColumn($sheet, 'B', 'سلم التقديرات', $gradeLabels);
-        $this->writeListColumn($sheet, 'C', 'مستويات المهارة', self::SKILL_LEVELS);
-        $this->writeListColumn($sheet, 'D', 'البرامج', $programTitles);
-
-        $this->addNamedRange($book, 'BranchList', $sheet, 'A', max(2, count($branches) + 1));
-        $this->addNamedRange($book, 'GradeList', $sheet, 'B', max(2, count($gradeLabels) + 1));
-        $this->addNamedRange($book, 'SkillLevelList', $sheet, 'C', max(2, count(self::SKILL_LEVELS) + 1));
-        $this->addNamedRange($book, 'ProgramList', $sheet, 'D', max(2, count($programTitles) + 1));
-
-        // عمود لكل فرع بأقسامه — اسم الفرع في الترويسة، والاسم النطاق Dept_<الترتيب> فقط.
-        $colIndex = 5; // E
-        $ordinal = 1;
-        foreach ($branches as $branch) {
-            $letter = Coordinate::stringFromColumnIndex($colIndex);
-            $branchName = (string) $branch['name'];
-            $depts = $departmentsByBranch[$branchName] ?? [];
-            $sheet->setCellValue($letter . '1', $branchName);
-            $row = 2;
-            foreach ($depts as $dept) {
-                $sheet->setCellValue($letter . $row, $dept);
-                $row++;
-            }
-            if ($depts === []) {
-                $sheet->setCellValue($letter . '2', '');
-                $row = 3;
-            }
-            $book->addNamedRange(new NamedRange('Dept_' . $ordinal, $sheet, $letter . '2:' . $letter . max(2, $row - 1)));
-            $colIndex++;
-            $ordinal++;
+        $branchNames = array_map(static fn(array $b): string => (string) $b["name"], $branches);
+        $allDepartments = [];
+        foreach ($departmentsByBranch as $depts) {
+            foreach ($depts as $d) { $allDepartments[$d] = true; }
         }
+        $allDepartments = array_keys($allDepartments);
+        if ($allDepartments === []) { $allDepartments = [""]; }
 
-        $sheet->getStyle('A1:' . Coordinate::stringFromColumnIndex(max(5, $colIndex - 1)) . '1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:' . Coordinate::stringFromColumnIndex(max(5, $colIndex - 1)) . '1')->getFill()
-            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D1E7DD');
+        $this->writeListColumn($sheet, "A", "الفروع", $branchNames);
+        $this->writeListColumn($sheet, "B", "الأقسام", $allDepartments);
+        $this->writeListColumn($sheet, "C", "البرامج", $programTitles);
+        $this->writeListColumn($sheet, "D", "سلم التقديرات", $gradeLabels);
+        $this->writeListColumn($sheet, "E", "مستويات المهارة", self::SKILL_LEVELS);
+
+        $this->addNamedRange($book, "BranchList", $sheet, "A", max(2, count($branchNames) + 1));
+        $this->addNamedRange($book, "DepartmentList", $sheet, "B", max(2, count($allDepartments) + 1));
+        $this->addNamedRange($book, "ProgramList", $sheet, "C", max(2, count($programTitles) + 1));
+        $this->addNamedRange($book, "GradeList", $sheet, "D", max(2, count($gradeLabels) + 1));
+        $this->addNamedRange($book, "SkillLevelList", $sheet, "E", max(2, count(self::SKILL_LEVELS) + 1));
+
+        $sheet->getStyle("A1:E1")->getFont()->setBold(true);
+        $sheet->getStyle("A1:E1")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB("D1E7DD");
         $sheet->getProtection()->setSheet(true);
-        $sheet->getProtection()->setHashValue('');
+        $sheet->getProtection()->setHashValue("");
     }
 
     private function writeListColumn(Worksheet $sheet, string $col, string $header, array $values): void
