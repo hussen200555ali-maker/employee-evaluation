@@ -353,7 +353,7 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
         var cls = isNew ? 'new' : 'd';
         if (isImportantCol(c)) cls += ' num';
         var t = c.section_type;
-        if (c.kind === 'fixed' && (c.key.indexOf('branch')!==-1 || c.key.indexOf('department')!==-1)) cls += ' dd';
+        if (c.kind === 'fixed' && ((c.key||'').indexOf('branch')!==-1 || (c.key||'').indexOf('department')!==-1)) cls += ' dd';
         if (c.kind === 'section' && (t === 'boolean' || t === 'grade' || t === 'multiple_choice')) cls += ' dd';
         html += '<td class="' + cls + '">' + esc(v) + '</td>';
       });
