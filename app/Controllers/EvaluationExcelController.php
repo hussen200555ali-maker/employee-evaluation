@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers;
 use App\Core\Auth;
+use App\Core\Audit;
 use App\Core\Controller;
 use App\Core\Flash;
 use App\Models\Branch;
@@ -229,7 +230,10 @@ final class EvaluationExcelController extends Controller
                     $prefillIds = array_values($prefillIds);
                 }
             }
-            $book = $this->excel->buildTemplate($templateId, $employeeId, null, null, $maxRows, $mode, $prefillIds);
+            $book = $this->excel->buildTemplate($templateId, $employeeId, null, null, $maxRows, [
+                'mode' => $mode,
+                'prefill_ids' => $prefillIds,
+            ]);
         } catch (RuntimeException $e) {
             Flash::set($e->getMessage(), 'danger');
             $this->redirect('/training/courses');
@@ -262,6 +266,149 @@ final class EvaluationExcelController extends Controller
                 $items = (new TrainingProgram())->all($targetType === 'workshop' ? 'workshop' : 'course');
         echo json_encode($items);
         exit;
+    }
+
+    /**
+     * CD-043 §6: شاشة التصدير — 6 خطوات (القالب، الفرع، القسم، البرنامج، الصفوف، التنزيل).
+     */
+    public function exportForm(): void
+    {
+        Auth::enforce('evaluations.export');
+        $templates = (new Template())->getAllActiveWithType();
+        $branches = (new Branch())->getAllWithDepartments();
+        $programs = array_map(static function ($p): array {
+            return [
+                'id' => (int) $p->id,
+                'type' => (string) $p->type,
+                'title' => (string) $p->title,
+                'executing_branch_id' => (int) ($p->executing_branch_id ?? 0),
+                'executing_department_id' => (int) ($p->executing_department_id ?? 0),
+            ];
+        }, array_merge(
+            (new TrainingProgram())->all('course'),
+            (new TrainingProgram())->all('workshop')
+        ));
+        $limits = $this->excel->exportLimits();
+        $this->view('evaluations/excel_export', [
+            'pageTitle' => 'تصدير قالب Excel',
+            'templates' => $templates,
+            'branches' => $branches,
+            'programs' => $programs,
+            'limits' => $limits,
+        ]);
+    }
+
+    /**
+     * CD-043 §6: تنزيل ملف التصدير وفق النطاقات المختارة + تسجيل تدقيق.
+     */
+    public function downloadExport(): void
+    {
+        Auth::enforce('evaluations.export');
+        $employeeId = $this->currentEmployeeId();
+        $limits = $this->excel->exportLimits();
+        $templateId = (int) ($_GET['template_id'] ?? 0);
+        $filename = 'evaluation-template-' . ($templateId > 0 ? $templateId : 'x') . '-' . date('Ymd-His') . '.xlsx';
+        $tmpFile = null;
+        try {
+            if ($templateId <= 0) {
+                throw new RuntimeException('يرجى اختيار قالب التقييم.');
+            }
+            $template = (new Template())->findById($templateId);
+            if (!$template || (int) ($template->is_active ?? 0) !== 1) {
+                throw new RuntimeException('القالب المحدد غير موجود أو غير نشط.');
+            }
+            $targetType = (string) ($template->target_type ?? 'employee');
+            if (!in_array($targetType, ['employee', 'employee_in_course', 'employee_in_workshop', 'skill'], true)) {
+                throw new RuntimeException('نوع القالب غير مدعوم في CD-043.');
+            }
+            $branchId = $this->optionalId($_GET['branch_id'] ?? null);
+            $departmentId = $this->optionalId($_GET['department_id'] ?? null);
+            $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+            $programId = $isProgram ? $this->optionalId($_GET['program_id'] ?? null) : null;
+            $programScope = $isProgram ? (string) ($_GET['program_scope'] ?? 'all') : 'all';
+            if ($programScope !== 'single') { $programId = null; }
+            $maxRows = (int) ($_GET['max_rows'] ?? 100);
+            $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
+
+            $this->assertScopeExists($branchId, $departmentId);
+            $options = [
+                'mode' => 'prefill',
+                'executing_branch_id' => $branchId,
+                'executing_department_id' => $departmentId,
+            ];
+            if ($programId !== null) {
+                $options['program_id'] = $programId;
+                $options['program_title'] = (string) ($_GET['program_title'] ?? '');
+            }
+            $book = $this->excel->buildTemplate($templateId, $employeeId, $branchId, $departmentId, $maxRows, $options);
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'cd043_export_');
+            if ($tmpFile === false) {
+                throw new RuntimeException('تعذر إنشاء ملف التصدير المؤقت.');
+            }
+            (new Xlsx($book))->save($tmpFile);
+            $size = (int) filesize($tmpFile);
+            $maxBytes = $limits['max_file_size_mb'] * 1024 * 1024;
+            if ($size > $maxBytes) {
+                throw new RuntimeException('حجم الملف الناتج يتجاوز الحد الأقصى (' . $limits['max_file_size_mb'] . ' ميجابايت).');
+            }
+            Audit::log('EVALUATION_EXCEL_EXPORTED', $templateId, 'form_templates', [
+                'template_id' => $templateId,
+                'target_type' => $targetType,
+                'branch_id' => $branchId,
+                'department_id' => $departmentId,
+                'program_scope' => $programScope,
+                'program_id' => $programId,
+                'max_rows' => $maxRows,
+                'filename' => $filename,
+                'size' => $size,
+                'evaluator_employee_id' => $employeeId,
+            ]);
+
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . $size);
+            header('X-Content-Type-Options: nosniff');
+            readfile($tmpFile);
+            @unlink($tmpFile);
+            exit;
+        } catch (RuntimeException $e) {
+            if ($tmpFile !== null && is_file($tmpFile)) { @unlink($tmpFile); }
+            Flash::set($e->getMessage(), 'danger');
+            $this->redirect('/evaluations/excel/export');
+        } catch (\Throwable $e) {
+            if ($tmpFile !== null && is_file($tmpFile)) { @unlink($tmpFile); }
+            error_log('Excel export error: ' . $e->getMessage());
+            Flash::set('تعذر إنشاء ملف التصدير. يرجى المحاولة مرة أخرى.', 'danger');
+            $this->redirect('/evaluations/excel/export');
+        }
+    }
+
+    private function optionalId($value): ?int
+    {
+        if ($value === null || $value === '') { return null; }
+        $id = (int) $value;
+        return $id > 0 ? $id : null;
+    }
+
+    private function assertScopeExists(?int $branchId, ?int $departmentId): void
+    {
+        $pdo = \App\Core\Database::getInstance()->getPdo();
+        if ($branchId !== null) {
+            $stmt = $pdo->prepare('SELECT id FROM branches WHERE id = :id');
+            $stmt->execute(['id' => $branchId]);
+            if ($stmt->fetch() === false) { throw new RuntimeException('الفرع المحدد غير موجود.'); }
+        }
+        if ($departmentId !== null) {
+            $stmt = $pdo->prepare('SELECT branch_id FROM departments WHERE id = :id');
+            $stmt->execute(['id' => $departmentId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row === false) { throw new RuntimeException('القسم المحدد غير موجود.'); }
+            if ($branchId !== null && (int) $row['branch_id'] !== $branchId) {
+                throw new RuntimeException('القسم المحدد لا يتبع الفرع المختار.');
+            }
+        }
     }
 }
 

@@ -106,7 +106,7 @@ table.xl td.rn{background:#f3f4f6;color:#6b7280;font-weight:700}
 <div class="cd042-page">
 <div class="cd042-hdr">
   <h2>📥 استيراد نتائج التقييم من Excel</h2>
-  <div class="sub">CD-042 · تنزيل قالب ← تعبئة ← رفع ← معاينة ← التزام</div>
+  <div class="sub">CD-043 · تصدير قالب ← تعبئة ← رفع ← معاينة ← التزام · <a href="<?= APP_URL ?>/evaluations/excel/export" style="color:#c8943f;font-weight:700;text-decoration:none">شاشة التصدير ↗</a></div>
 </div>
 <div class="cd042-alert">
   <span>⚠️</span>
