@@ -255,7 +255,7 @@ final class ExcelTemplateBuilder
         $branches = $this->getBranches($branchId);
         $departmentsByBranch = $this->getDepartmentsByBranch($branches);
         $gradeLabels = $this->getGradeLabels($layout);
-        $programTitles = $this->getProgramTitles($layout, $departmentId, $options);
+        $programTitles = $this->getProgramTitles($layout, $branchId, $departmentId, $options);
 
         $book = new Spreadsheet();
         $sheet = $book->getActiveSheet();
@@ -633,7 +633,7 @@ final class ExcelTemplateBuilder
         return count($rows) === 1 ? $rows[0] : null;
     }
 
-    private function getProgramTitles(array $layout, ?int $departmentId, array $options): array
+    private function getProgramTitles(array $layout, ?int $branchId, ?int $departmentId, array $options): array
     {
         if (!in_array($layout['target_type'], ['employee_in_course', 'employee_in_workshop'], true)) {
             return [];
@@ -645,11 +645,13 @@ final class ExcelTemplateBuilder
         $pdo = $this->database->getPdo();
         $sql = 'SELECT DISTINCT title FROM training_programs WHERE type = :type';
         $params = ['type' => $type];
-        $branchId = !empty($options['executing_branch_id']) ? (int) $options['executing_branch_id'] : null;
+        $executingBranchId = ($branchId !== null && $branchId > 0)
+            ? $branchId
+            : (!empty($options['executing_branch_id']) ? (int) $options['executing_branch_id'] : null);
         $deptId = !empty($options['executing_department_id']) ? (int) $options['executing_department_id'] : $departmentId;
-        if ($branchId !== null && $branchId > 0) {
-            $sql .= ' AND executing_branch_id = :ebid';
-            $params['ebid'] = $branchId;
+        if ($executingBranchId !== null && $executingBranchId > 0) {
+            $sql .= ' AND executing_branch_id = :bid';
+            $params['bid'] = $executingBranchId;
         }
         if ($deptId !== null && $deptId > 0) {
             $sql .= ' AND executing_department_id = :edid';
@@ -660,7 +662,6 @@ final class ExcelTemplateBuilder
         $stmt->execute($params);
         return array_values(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
     }
-
     private function getEvaluatorInfo(int $employeeId): array
     {
         if ($employeeId <= 0) {
@@ -855,50 +856,6 @@ final class ExcelTemplateBuilder
         }
     }
 
-    /**
-     * CD-043 BUG-001 robust fix: ensure list-type data validations in the saved
-     * .xlsx use the standard OOXML attribute `showDataDropDown="1"` (Excel reads
-     * this attribute; PhpSpreadsheet writes the non-standard `showDropDown`).
-     * Post-processes the file in place. Safe to call on any .xlsx path.
-     */
-    public static function ensureDropdownsEnabled(string $path): void
-    {
-        if (!is_file($path) || !is_readable($path) || !is_writable($path)) {
-            return;
-        }
-        $zip = new \ZipArchive();
-        if ($zip->Open($path) !== true) {
-            return;
-        }
-        $xml = $zip->getFromName('xl/worksheets/sheet1.xml');
-        if ($xml === false) {
-            $zip->Close();
-            return;
-        }
-        $newXml = preg_replace_callback(
-            '#<dataValidation\b([^>]*)>#',
-            static function (array $m): string {
-                $attrs = $m[1];
-                if (strpos($attrs, 'type="list"') === false) {
-                    return $m[0];
-                }
-                if (strpos($attrs, 'showDataDropDown=') === false) {
-                    $attrs .= ' showDataDropDown="1"';
-                }
-                $attrs = preg_replace('#showDropDown="0"#', 'showDropDown="1"', $attrs);
-                return '<dataValidation' . $attrs . '>';
-            },
-            $xml
-        );
-        if (!is_string($newXml) || $newXml === $xml) {
-            $zip->Close();
-            return;
-        }
-        // Replace the entry safely: delete then re-add.
-        $zip->deleteName('xl/worksheets/sheet1.xml');
-        $zip->addFromString('xl/worksheets/sheet1.xml', $newXml);
-        $zip->Close();
-    }
     private function addListValidation(Worksheet $sheet, string $range, string $formula, string $title, string $message): void
     {
         $dv = new DataValidation();
@@ -910,22 +867,6 @@ final class ExcelTemplateBuilder
             ->setShowErrorMessage(true)
             ->setErrorTitle($title)
             ->setError($message);
-        $sheet->setDataValidation($range, $dv);
-    }
-
-    private function addIndirectDepartmentValidation(Worksheet $sheet, string $range, string $branchColumn, int $startRow): void
-    {
-        $dv = new DataValidation();
-        // الصيغة مرتبطة بصف البيانات الأول؛ Excel يزيح المرجع نسبياً لباقي الصفوف.
-        $formula = 'INDIRECT("Dept_"&MATCH($' . $branchColumn . $startRow . ',BranchList,0))';
-        $dv->setType(DataValidation::TYPE_LIST)
-            ->setErrorStyle(DataValidation::STYLE_STOP)
-            ->setAllowBlank(true)
-            ->setShowDropDown(true)
-            ->setFormula1($formula)
-            ->setShowErrorMessage(true)
-            ->setErrorTitle('قسم غير صالح')
-            ->setError('اختر قسماً تابعاً للفرع المختار في نفس الصف.');
         $sheet->setDataValidation($range, $dv);
     }
 
@@ -965,7 +906,7 @@ final class ExcelTemplateBuilder
         $dv->setType(DataValidation::TYPE_CUSTOM)
             ->setErrorStyle(DataValidation::STYLE_INFORMATION)
             ->setAllowBlank(true)
-            ->setShowDropDown(false)
+            ->setShowDropDown(true)
             ->setFormula1('LEN(' . strtok($range, ':') . ')>0')
             ->setShowErrorMessage(false)
             ->setShowInputMessage(true)
@@ -1076,7 +1017,8 @@ final class ExcelTemplateBuilder
 
     private function addNamedRange(Spreadsheet $book, string $name, Worksheet $sheet, string $col, int $lastRow): void
     {
-        $book->addNamedRange(new NamedRange($name, $sheet, $col . '2:' . $col . max(2, $lastRow)));
+        $end = max(2, $lastRow);
+        $book->addNamedRange(new NamedRange($name, $sheet, '$' . $col . '$2:$' . $col . '$' . $end));
     }
 
     // ────────────────────────────────────────────────────────────────
