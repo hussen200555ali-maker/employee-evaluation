@@ -1082,11 +1082,13 @@ final class ExcelTemplateBuilder
 
         $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
                        ev.evaluator_name, ev.evaluator_title, ev.context_id, ev.context_type,
-                       e.emp_code, e.full_name AS emp_full_name, e.branch_name AS emp_branch_name, e.department_name AS emp_department_name,
+                       e.emp_code, e.full_name AS emp_full_name, eb.name AS emp_branch_name, ed.name AS emp_department_name,
                        tp.title AS program_title, tb.name AS program_branch_name, td.name AS program_department_name,
                        tp.start_date AS program_start_date, tp.end_date AS program_end_date, tp.responsible_person AS program_responsible
                 FROM evaluations ev
                 INNER JOIN employees e ON e.id = ev.evaluated_employee_id
+                LEFT JOIN branches eb ON eb.id = e.branch_id
+                LEFT JOIN departments ed ON ed.id = e.department_id
                 LEFT JOIN training_programs tp ON tp.id = ev.context_id
                 LEFT JOIN branches tb ON tb.id = tp.executing_branch_id
                 LEFT JOIN departments td ON td.id = tp.executing_department_id
@@ -1140,11 +1142,13 @@ final class ExcelTemplateBuilder
 
         $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
                        ev.evaluator_name, ev.evaluator_title, ev.context_id, ev.context_type,
-                       e.emp_code, e.full_name AS emp_full_name, e.branch_name AS emp_branch_name, e.department_name AS emp_department_name,
+                       e.emp_code, e.full_name AS emp_full_name, eb.name AS emp_branch_name, ed.name AS emp_department_name,
                        tp.title AS program_title, tb.name AS program_branch_name, td.name AS program_department_name,
                        tp.start_date AS program_start_date, tp.end_date AS program_end_date, tp.responsible_person AS program_responsible
                 FROM evaluations ev
                 INNER JOIN employees e ON e.id = ev.evaluated_employee_id
+                LEFT JOIN branches eb ON eb.id = e.branch_id
+                LEFT JOIN departments ed ON ed.id = e.department_id
                 INNER JOIN training_programs tp ON tp.id = ev.context_id
                 LEFT JOIN branches tb ON tb.id = tp.executing_branch_id
                 LEFT JOIN departments td ON td.id = tp.executing_department_id
