@@ -305,7 +305,7 @@ final class ExcelTemplateBuilder
         $sheet = $book->getActiveSheet();
         $sheet->setTitle(self::MAIN_SHEET);
         $sheet->setRightToLeft(true);
-        $sheet->getDefaultRowDimension()->setRowHeight(18);
+        $sheet->getDefaultRowDimension()->setRowHeight(26);
 
         $columns = $layout['columns'];
         $lastCol = Coordinate::stringFromColumnIndex(count($columns));
