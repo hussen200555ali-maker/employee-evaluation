@@ -129,20 +129,10 @@ table.xl td.rn{background:#f3f4f6;color:#6b7280;font-weight:700}
 </div>
 <!-- ===== Export panel ===== -->
 <div class="cd042-card">
-  <div class="cd042-card-h">① تنزيل قالب Excel</div>
+  <div class="cd042-card-h">📤 تصدير قالب Excel (SRS §6)</div>
   <div class="cd042-card-b">
-    <div class="cd042-grid">
-      <div class="cd042-fld"><label>القالب</label>
-        <select id="cd042-tpl"><?php if(!empty($templates)): foreach($templates as $tpl): ?><option value="<?= (int)$tpl->id ?>" data-type="<?= htmlspecialchars($tpl->target_type) ?>"><?= htmlspecialchars($tpl->template_name) ?></option><?php endforeach; endif; ?></select>
-      </div>
-      <div class="cd042-fld"><label>الفرع</label>
-        <select id="cd042-br"><option value="">الكل</option><?php if(!empty($branches)): foreach($branches as $br): ?><option value="<?= (int)$br->id ?>"><?= htmlspecialchars($br->name) ?></option><?php endforeach; endif; ?></select>
-      </div>
-      <div class="cd042-fld"><label>القسم</label><select id="cd042-dept" disabled><option value="">الكل</option></select></div>
-      <div class="cd042-fld"><label>عدد الصفوف</label><input type="number" id="cd042-max" value="100" min="1" max="2000"></div>
-    </div>
-    <div style="margin-top:6px;font-size:10px;color:#6c757d">الحد: ١ صف كحد أدنى · ٢٠٠٠ صف كحد أقصى · القوائم المنسدلة للفرع/القسم تُصدّر حسب الاختيار</div>
-    <div style="margin-top:10px"><a id="cd042-dl" class="cd042-btn cd042-btn-ok" href="<?= APP_URL ?>/evaluations/excel/template<?php if(!empty($templates)): ?>?template_id=<?= (int)$templates[0]->id ?><?php endif; ?>">⬇ تنزيل القالب</a></div>
+    <div style="font-size:11px;color:#6c757d;margin-bottom:10px">لتصدير قالب مطابق لـ SRS (4 أنواع: فردي/مهاري/دورة/ورشة، فلاتر البرنامج، 50–2000 صف) استخدم شاشة التصدير المخصصة.</div>
+    <a href="<?= APP_URL ?>/evaluations/excel/export" class="cd042-btn cd042-btn-ok">↗ فتح شاشة التصدير</a>
   </div>
 </div>
 <!-- ===== Upload zone ===== -->
@@ -364,21 +354,24 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     }
   }
 
-  // Build tabs
+  // Build tabs — always show all 4 SRS types (§4.1), even if no templates yet
   if (tabsEl) {
     var firstType = null;
     CD042_TYPE_ORDER.forEach(function(type){
-      if (byType[type] && byType[type].length) {
-        if (!firstType) firstType = type;
+      if (CD042_TYPE_LABELS[type]) {
+        if (!firstType && byType[type] && byType[type].length) firstType = type;
         var btn = document.createElement('div');
-        btn.className = 'ptab';
+        btn.className = 'ptab' + ((!byType[type] || !byType[type].length) ? ' disabled' : '');
         btn.setAttribute('data-type', type);
         btn.textContent = (CD042_TYPE_ICONS[type] || '') + ' ' + (CD042_TYPE_LABELS[type] || type);
-        btn.addEventListener('click', function(){ showType(type); });
+        if (byType[type] && byType[type].length) {
+          btn.addEventListener('click', function(){ showType(type); });
+        }
         tabsEl.appendChild(btn);
       }
     });
     if (firstType) showType(firstType);
+    else if (CD042_TYPE_ORDER.length) showType(CD042_TYPE_ORDER[0]);
   }
 
   // Branch/department cascading

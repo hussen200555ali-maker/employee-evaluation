@@ -64,12 +64,26 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       <div class="cd043-fld full">
         <label for="cd043-tpl">القالب (نشط فقط)</label>
         <select id="cd043-tpl">
-          <?php if ($templates === []): ?><option value="">لا توجد قوالب نشطة</option><?php endif; ?>
-          <?php foreach ($templates as $tpl): ?>
-            <option value="<?= (int)$tpl->id ?>" data-type="<?= htmlspecialchars((string)$tpl->target_type) ?>">
-              <?= htmlspecialchars((string)$tpl->template_name) ?> — <?= htmlspecialchars($typeLabels[(string)$tpl->target_type] ?? (string)$tpl->target_type) ?>
-            </option>
+          <?php
+            $types = ['employee','skill','employee_in_course','employee_in_workshop'];
+            $labels = ['employee'=>'فردي','skill'=>'مهاري','employee_in_course'=>'موظف داخل دورة','employee_in_workshop'=>'موظف داخل ورشة'];
+            $hasAny = false;
+            foreach ($types as $t):
+              $group = array_values(array_filter($templates, static fn($tpl) => (string)$tpl->target_type === $t));
+          ?>
+            <optgroup label="<?= htmlspecialchars($labels[$t]) ?>">
+              <?php if ($group === []): ?>
+                <option value="" disabled>لا توجد قوالب نشطة</option>
+              <?php else: foreach ($group as $tpl): $hasAny = true; ?>
+                <option value="<?= (int)$tpl->id ?>" data-type="<?= htmlspecialchars((string)$tpl->target_type) ?>">
+                  <?= htmlspecialchars((string)$tpl->template_name) ?>
+                </option>
+              <?php endforeach; endif; ?>
+            </optgroup>
           <?php endforeach; ?>
+          <?php if (!$hasAny): ?>
+            <option value="" disabled>لا توجد قوالب نشطة</option>
+          <?php endif; ?>
         </select>
       </div>
 
@@ -131,7 +145,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     <div class="cd043-card-b">
       <div class="cd043-fld">
         <label for="cd043-rows">عدد صفوف البيانات</label>
-        <input type="number" id="cd043-rows" value="100" min="<?= (int)$limits['min_rows'] ?>" max="<?= (int)$limits['max_rows'] ?>" step="1">
+        <input type="number" id="cd043-rows" value="100" min="<?= max(50, (int)($limits['min_rows'] ?? 50)) ?>" max="<?= (int)($limits['max_rows'] ?? 2000) ?>" step="1">
       </div>
       <div class="cd043-fld">
         <div class="cd043-hint">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صفاً. يُقبل النطاق الكامل ويُضبط تلقائياً عند التجاوز.</div>
