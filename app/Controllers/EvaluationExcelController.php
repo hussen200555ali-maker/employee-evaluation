@@ -10,7 +10,6 @@ use App\Models\GradingScale;
 use App\Models\Template;
 use App\Models\TrainingProgram;
 use App\Services\EvaluationExcelService;
-use App\Services\Excel\ExcelTemplateBuilder;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 final class EvaluationExcelController extends Controller
@@ -348,8 +347,6 @@ final class EvaluationExcelController extends Controller
                 throw new RuntimeException('تعذر إنشاء ملف التصدير المؤقت.');
             }
             (new Xlsx($book))->save($tmpFile);
-            // CD-043 BUG-001 robust fix: ensure list dropdowns are enabled in the file.
-            ExcelTemplateBuilder::ensureDropdownsEnabled($tmpFile);
             $size = (int) filesize($tmpFile);
             $maxBytes = $limits['max_file_size_mb'] * 1024 * 1024;
             if ($size > $maxBytes) {
