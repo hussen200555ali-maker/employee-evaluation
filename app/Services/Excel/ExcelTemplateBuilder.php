@@ -855,13 +855,57 @@ final class ExcelTemplateBuilder
         }
     }
 
+    /**
+     * CD-043 BUG-001 robust fix: ensure list-type data validations in the saved
+     * .xlsx use the standard OOXML attribute `showDataDropDown="1"` (Excel reads
+     * this attribute; PhpSpreadsheet writes the non-standard `showDropDown`).
+     * Post-processes the file in place. Safe to call on any .xlsx path.
+     */
+    public static function ensureDropdownsEnabled(string $path): void
+    {
+        if (!is_file($path) || !is_readable($path) || !is_writable($path)) {
+            return;
+        }
+        $zip = new \ZipArchive();
+        if ($zip->Open($path) !== true) {
+            return;
+        }
+        $xml = $zip->getFromName('xl/worksheets/sheet1.xml');
+        if ($xml === false) {
+            $zip->Close();
+            return;
+        }
+        $newXml = preg_replace_callback(
+            '#<dataValidation\b([^>]*)>#',
+            static function (array $m): string {
+                $attrs = $m[1];
+                if (strpos($attrs, 'type="list"') === false) {
+                    return $m[0];
+                }
+                if (strpos($attrs, 'showDataDropDown=') === false) {
+                    $attrs .= ' showDataDropDown="1"';
+                }
+                $attrs = preg_replace('#showDropDown="0"#', 'showDropDown="1"', $attrs);
+                return '<dataValidation' . $attrs . '>';
+            },
+            $xml
+        );
+        if (!is_string($newXml) || $newXml === $xml) {
+            $zip->Close();
+            return;
+        }
+        // Replace the entry safely: delete then re-add.
+        $zip->deleteName('xl/worksheets/sheet1.xml');
+        $zip->addFromString('xl/worksheets/sheet1.xml', $newXml);
+        $zip->Close();
+    }
     private function addListValidation(Worksheet $sheet, string $range, string $formula, string $title, string $message): void
     {
         $dv = new DataValidation();
         $dv->setType(DataValidation::TYPE_LIST)
             ->setErrorStyle(DataValidation::STYLE_STOP)
             ->setAllowBlank(true)
-            ->setShowDropDown(true)
+            ->setShowDropDown(false)
             ->setFormula1($formula)
             ->setShowErrorMessage(true)
             ->setErrorTitle($title)
@@ -877,7 +921,7 @@ final class ExcelTemplateBuilder
         $dv->setType(DataValidation::TYPE_LIST)
             ->setErrorStyle(DataValidation::STYLE_STOP)
             ->setAllowBlank(true)
-            ->setShowDropDown(true)
+            ->setShowDropDown(false)
             ->setFormula1($formula)
             ->setShowErrorMessage(true)
             ->setErrorTitle('قسم غير صالح')

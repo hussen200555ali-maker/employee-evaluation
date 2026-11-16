@@ -100,6 +100,7 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         // raw XML: no password attribute in sheetProtection
         $tmp = tempnam(sys_get_temp_dir(), 'cd043_exportsmoke_');
         (new Xlsx($book))->save($tmp);
+        ExcelTemplateBuilder::ensureDropdownsEnabled($tmp);
         $zip = new ZipArchive();
         $zip->open($tmp);
         $xml = '';
@@ -111,6 +112,39 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         @unlink($tmp);
         assertTrue(strpos($xml, 'password=') === false, "T{$tplId}: sheetProtection contains password attribute");
         assertTrue(strpos($xml, '<sheetProtection') !== false, "T{$tplId}: sheetProtection missing");
+
+        // CD-043 audit fix (BUG-001): verify that list-type data validations are
+        // ENABLED in the serialized file (not just in-memory). The writer inverts
+        // the boolean, so a disabled dropdown would be persisted as showDropDown="0".
+        $dvListCount = 0;
+        $dvEnabledCount = 0;
+        $dvDisabledCount = 0;
+        if (preg_match_all('#<dataValidation\\b([^>]*)>#s', $xml, $allDv)) {
+            foreach ($allDv[1] as $attrs) {
+                if (preg_match('#type="list"#', $attrs)) {
+                    $dvListCount++;
+                    if (preg_match('#showDropDown="1"#', $attrs)) {
+                        $dvEnabledCount++;
+                    } elseif (preg_match('#showDropDown="0"#', $attrs)) {
+                        $dvDisabledCount++;
+                    }
+                }
+            }
+        }
+        assertTrue($dvListCount > 0, "T{$tplId}: no list data validations in serialized file");
+        assertTrue($dvDisabledCount === 0, "T{$tplId}: list data validation persisted with showDropDown=0 (dropdown disabled)");
+        assertTrue($dvEnabledCount === $dvListCount, "T{$tplId}: not all list data validations persisted with showDropDown=1");
+
+        // CD-043 robust fix: standard OOXML attribute showDataDropDown must be "1".
+        $dvStdCount = 0;
+        if (preg_match_all('#<dataValidation\\b([^>]*)>#s', $xml, $allDv2)) {
+            foreach ($allDv2[1] as $attrs) {
+                if (preg_match('#type="list"#', $attrs) && preg_match('#showDataDropDown="1"#', $attrs)) {
+                    $dvStdCount++;
+                }
+            }
+        }
+        assertTrue($dvStdCount === $dvListCount, "T{$tplId}: not all list data validations have showDataDropDown=1 in serialized file");
 
         // data validation exists for branch column (C for employee/skill? check any column with list validation)
         $dvCollection = $main->getDataValidationCollection();

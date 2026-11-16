@@ -1145,8 +1145,8 @@ final class EvaluationExcelService
         $branchList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$branches)).'"';
         $helperCol=$this->colLetter($tailStartCol + 4);
         for($row=$startRow;$row<=$endRow;$row++){
-            $bv=$sheet->getCell('D'.$row)->getDataValidation(); $bv->setType(DataValidation::TYPE_LIST); $bv->setErrorStyle(DataValidation::STYLE_STOP); $bv->setAllowBlank(true); $bv->setShowDropDown(true); $bv->setFormula1($branchList); $bv->setShowErrorMessage(true); $bv->setErrorTitle('فرع غير صالح'); $bv->setError('اختر فرعاً من القائمة.');
-            $dv=$sheet->getCell('E'.$row)->getDataValidation(); $dv->setType(DataValidation::TYPE_LIST); $dv->setErrorStyle(DataValidation::STYLE_STOP); $dv->setAllowBlank(true); $dv->setShowDropDown(true); $dv->setFormula1('INDIRECT("Dept_"&'.$helperCol.$row.')'); $dv->setShowErrorMessage(true); $dv->setErrorTitle('قسم غير صالح'); $dv->setError('اختر قسماً تابعاً للفرع المختار في نفس الصف.');
+            $bv=$sheet->getCell('D'.$row)->getDataValidation(); $bv->setType(DataValidation::TYPE_LIST); $bv->setErrorStyle(DataValidation::STYLE_STOP); $bv->setAllowBlank(true); $bv->setShowDropDown(false); $bv->setFormula1($branchList); $bv->setShowErrorMessage(true); $bv->setErrorTitle('فرع غير صالح'); $bv->setError('اختر فرعاً من القائمة.');
+            $dv=$sheet->getCell('E'.$row)->getDataValidation(); $dv->setType(DataValidation::TYPE_LIST); $dv->setErrorStyle(DataValidation::STYLE_STOP); $dv->setAllowBlank(true); $dv->setShowDropDown(false); $dv->setFormula1('INDIRECT("Dept_"&'.$helperCol.$row.')'); $dv->setShowErrorMessage(true); $dv->setErrorTitle('قسم غير صالح'); $dv->setError('اختر قسماً تابعاً للفرع المختار في نفس الصف.');
         }
         foreach($sections as $idx=>$section){
             // CD-042: use sectionColMap if available (accounts for notes columns)
@@ -1166,10 +1166,10 @@ final class EvaluationExcelService
                 if(is_array($options)){ foreach($options as $opt){ if(is_array($opt)&&isset($opt['label'])){ $labels[]=(string)$opt['label']; } elseif(is_string($opt)){ $labels[]=$opt; } } }
                 if($labels!==[]){
                     $listFormula='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$labels)).'"';
-                    for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_LIST); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setShowDropDown(true); $v->setFormula1($listFormula); $v->setShowErrorMessage(true); $v->setErrorTitle('تقدير غير صالح'); $v->setError('اختر من القائمة: '.implode('، ',$labels)); }
+                    for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_LIST); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setShowDropDown(false); $v->setFormula1($listFormula); $v->setShowErrorMessage(true); $v->setErrorTitle('تقدير غير صالح'); $v->setError('اختر من القائمة: '.implode('، ',$labels)); }
                 }
             } elseif($section['evaluation_type']==='boolean'){
-                for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_LIST); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setShowDropDown(true); $v->setFormula1('"نعم,لا"'); $v->setShowErrorMessage(true); $v->setErrorTitle('قيمة غير صالحة'); $v->setError('اختر: نعم أو لا.'); }
+                for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_LIST); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setShowDropDown(false); $v->setFormula1('"نعم,لا"'); $v->setShowErrorMessage(true); $v->setErrorTitle('قيمة غير صالحة'); $v->setError('اختر: نعم أو لا.'); }
             }
         }
         $dateCol=$this->colLetter($tailStartCol+1);
@@ -1191,8 +1191,8 @@ final class EvaluationExcelService
         $branchList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$branches)).'"';
         $deptList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$departments)).'"';
         for($row=$startRow;$row<=$endRow;$row++){
-            $bv=$sheet->getCell('B'.$row)->getDataValidation(); $bv->setType(DataValidation::TYPE_LIST); $bv->setErrorStyle(DataValidation::STYLE_STOP); $bv->setAllowBlank(true); $bv->setShowDropDown(true); $bv->setFormula1($branchList); $bv->setShowErrorMessage(true); $bv->setErrorTitle('فرع غير صالح'); $bv->setError('اختر فرعاً من القائمة.');
-            $cv=$sheet->getCell('C'.$row)->getDataValidation(); $cv->setType(DataValidation::TYPE_LIST); $cv->setErrorStyle(DataValidation::STYLE_STOP); $cv->setAllowBlank(true); $cv->setShowDropDown(true); $cv->setFormula1($deptList); $cv->setShowErrorMessage(true); $cv->setErrorTitle('قسم غير صالح'); $cv->setError('اختر قسماً من القائمة.');
+            $bv=$sheet->getCell('B'.$row)->getDataValidation(); $bv->setType(DataValidation::TYPE_LIST); $bv->setErrorStyle(DataValidation::STYLE_STOP); $bv->setAllowBlank(true); $bv->setShowDropDown(false); $bv->setFormula1($branchList); $bv->setShowErrorMessage(true); $bv->setErrorTitle('فرع غير صالح'); $bv->setError('اختر فرعاً من القائمة.');
+            $cv=$sheet->getCell('C'.$row)->getDataValidation(); $cv->setType(DataValidation::TYPE_LIST); $cv->setErrorStyle(DataValidation::STYLE_STOP); $cv->setAllowBlank(true); $cv->setShowDropDown(false); $cv->setFormula1($deptList); $cv->setShowErrorMessage(true); $cv->setErrorTitle('قسم غير صالح'); $cv->setError('اختر قسماً من القائمة.');
         }
     }
     private function applyDuplicateFormatting(Worksheet $sheet, int $startRow, int $endRow): void
