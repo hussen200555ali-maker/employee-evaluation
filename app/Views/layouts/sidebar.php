@@ -122,7 +122,7 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
             <?php endif; ?>
 
             <!-- ================= التقييمات (CD-040.4) ================= -->
-            <?php if (Auth::userHasPermission('evaluations.create') || Auth::userHasPermission('reports.view.all')): ?>
+            <?php if (Auth::userHasPermission('evaluations.create') || Auth::userHasPermission('evaluations.fill') || Auth::userHasPermission('evaluations.export') || Auth::userHasPermission('reports.view.all')): ?>
             <li class="sidebar-category <?php echo ($__isActive('/evaluations') || $__isActive('/evaluations/create')) ? 'open' : ''; ?>">
                 <button type="button" class="sidebar-category-toggle" aria-expanded="false">
                     <span class="sidebar-category-label"><i class="fas fa-clipboard-check sidebar-cat-ico"></i> التقييمات</span>
@@ -133,8 +133,11 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                     <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/create"><i class="fas fa-pen-square fa-fw me-2"></i> التقييم الفردي</a></li>
                     <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/bulk-create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/bulk-create"><i class="fas fa-table fa-fw me-2"></i> التقييم الجماعي</a></li>
                     <?php endif; ?>
+                    <?php if (Auth::userHasPermission('evaluations.fill') || Auth::userHasPermission('evaluations.export')): ?>
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations/excel') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations/excel/import"><i class="fas fa-file-excel fa-fw me-2"></i> استيراد وتصدير Excel</a></li>
+                    <?php endif; ?>
                     <?php if (Auth::userHasPermission('reports.view.all')): ?>
-                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations') && !$__isActive('/evaluations/create') && !$__isActive('/evaluations/bulk-create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> ملفات أداء الموظفين<?php if ($__pendingEvals !== null && $__pendingEvals > 0): ?> <span class="badge bg-warning text-dark ms-1"><?php echo $__pendingEvals; ?></span><?php endif; ?></a></li>
+                    <li><a class="sidebar-sublink <?php echo $__isActive('/evaluations') && !$__isActive('/evaluations/create') && !$__isActive('/evaluations/bulk-create') && !$__isActive('/evaluations/excel') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/evaluations"><i class="fas fa-folder-open fa-fw me-2"></i> ملفات أداء الموظفين<?php if ($__pendingEvals !== null && $__pendingEvals > 0): ?> <span class="badge bg-warning text-dark ms-1"><?php echo $__pendingEvals; ?></span><?php endif; ?></a></li>
                     <?php endif; ?>
                 </ul>
             </li>

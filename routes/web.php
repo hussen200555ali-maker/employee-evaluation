@@ -154,8 +154,7 @@ $router->get('api/training-programs/list/:type', 'App\Controllers\ApiController@
 $router->get('api/positions', 'App\Controllers\ApiController@positions');
 $router->get('api/evaluations/exists', 'App\Controllers\ApiController@evaluationExists');
 
-// CD-034: ما زال مؤرشفًا (خارج نطاق CD-037) — Excel + الوحدات + المرن + الجدولة
-/*
+// CD-043: إعادة تفعيل مسارات Excel (كانت معطّلة منذ CD-037)
 $router->get('evaluations/excel/import', 'App\Controllers\EvaluationExcelController@importForm');
 $router->get('evaluations/excel/template', 'App\Controllers\EvaluationExcelController@downloadTemplate');
 $router->get('evaluations/excel/template/:id', 'App\Controllers\EvaluationExcelController@downloadTemplate');
@@ -165,6 +164,8 @@ $router->get('evaluations/excel/training-template', 'App\Controllers\EvaluationE
 $router->get('api/training-templates', 'App\Controllers\EvaluationExcelController@getTrainingTemplates');
 $router->get('api/training-list', 'App\Controllers\EvaluationExcelController@getTrainingList');
 
+/*
+// CD-034: ما زال مؤرشفًا (خارج نطاق CD-043) — الوحدات + المرن + الجدولة
 // --- 5.5: تقييم الوحدات (المرحلة 1) ---
 $router->get('units/evaluations/create', 'App\Controllers\UnitEvaluationController@create');
 $router->post('units/evaluations/store', 'App\Controllers\UnitEvaluationController@store');
