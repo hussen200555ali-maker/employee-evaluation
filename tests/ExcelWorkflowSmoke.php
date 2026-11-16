@@ -300,6 +300,7 @@ try {
     assertTrue($eval !== false, 'T5: لم يُنشأ تقييم');
     assertTrue((string)$eval['final_grade_label'] === 'ممتاز', 'T5: final_grade_label خاطئ: ' . ($eval['final_grade_label'] ?? 'null'));
     assertTrue((float)$eval['final_grade_value'] === 5.0, 'T5: final_grade_value خاطئ: ' . ($eval['final_grade_value'] ?? 'null'));
+    assertTrue((float)$eval['final_score'] === 100.0, 'T5: final_score (parity) خاطئ: ' . ($eval['final_score'] ?? 'null'));
 
     echo "  [PASS] TEST 5 — employee_in_course (descriptive, overall grade)\n";
     $passCount++;

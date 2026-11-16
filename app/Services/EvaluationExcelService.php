@@ -768,8 +768,6 @@ final class EvaluationExcelService
                     $answerNotes=trim((string)($payload['section_notes'][$sectionIdInt]??''));
                     $answerInsert->execute(['evaluation_id'=>$evaluationId,'section_id'=>$sectionIdInt,'raw_value'=>$trimmedValue,'notes'=>$answerNotes!==''?$answerNotes:null,'normalized_score'=>$this->normalize($section,$trimmedValue)]);
                 }
-                $final=$this->calculateFinalScore($evaluationId,$templateId);
-                $pdo->prepare('UPDATE evaluations SET final_score=:score, status="completed", updated_at=NOW() WHERE id=:id')->execute(['score'=>$final,'id'=>$evaluationId]);
                 // CD-043 ضمانة 1: النتيجة النهائية للدورة الوصفية = التقدير العام.
                 $overallLabel=trim((string)($payload['overall_grade_label']??''));
                 if($overallLabel!=='' && $targetType==='employee_in_course' && (string)($template['evaluation_mode']??'')==='descriptive'){
@@ -777,6 +775,8 @@ final class EvaluationExcelService
                     $pdo->prepare('UPDATE evaluations SET final_grade_label=:label, final_grade_value=:val, updated_at=NOW() WHERE id=:id')
                         ->execute(['label'=>$overallLabel,'val'=>$gradeValue,'id'=>$evaluationId]);
                 }
+                $final=$this->calculateFinalScore($evaluationId,$templateId);
+                $pdo->prepare('UPDATE evaluations SET final_score=:score, status="completed", updated_at=NOW() WHERE id=:id')->execute(['score'=>$final,'id'=>$evaluationId]);
                 $pdo->prepare('INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, ip_address) VALUES (:user_id, "EVALUATION_EXCEL_IMPORTED", "evaluations", :evaluation_id, :details, :ip)')->execute(['user_id'=>$userId,'evaluation_id'=>$evaluationId,'details'=>json_encode(['batch_id'=>$batchId,'target_type'=>$targetType,'emp_code'=>$empCode,'evaluation_date'=>$evaluationDate],JSON_UNESCAPED_UNICODE),'ip'=>$_SERVER['REMOTE_ADDR']??null]);
                 $committedEvaluations++;
             }
@@ -1274,11 +1274,8 @@ final class EvaluationExcelService
     }
     private function calculateFinalScore(int $evaluationId, int $templateId): float
     {
-        $query=$this->database->getPdo()->prepare('SELECT c.criterion_weight, cs.section_weight, COALESCE(ea.normalized_score, 0) AS normalized_score FROM criteria c JOIN criteria_sections cs ON cs.criterion_id = c.id LEFT JOIN evaluation_answers ea ON ea.section_id = cs.id AND ea.evaluation_id = :evaluation_id WHERE c.template_id = :template_id');
-        $query->execute(['evaluation_id'=>$evaluationId,'template_id'=>$templateId]);
-        $total=0.0;
-        foreach($query->fetchAll(PDO::FETCH_ASSOC) as $row){ $total+=((float)$row['normalized_score']*(float)$row['section_weight']/100)*((float)$row['criterion_weight']/100); }
-        return round($total,2);
+        // CD-043 P4: مفوّض إلى EvaluationCalculator (parity 100%).
+        return (float) \App\Services\EvaluationCalculator::calculate($evaluationId);
     }
     private function extractTemplateId(Worksheet $sheet, Spreadsheet $book): int
     {

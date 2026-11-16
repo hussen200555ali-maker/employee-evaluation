@@ -383,63 +383,10 @@ class Evaluation extends Model {
      * =================================================================
      */
     public function calculateFinalScore($evaluationId) {
-        // 1. ط¬ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط§ظ„طھظ‚ظٹظٹظ… ط§ظ„ط£ط³ط§ط³ظٹط©
-        $evaluation = $this->findById($evaluationId);
-        if (!$evaluation) return null;
-
-        // 2. ط¬ظ„ط¨ ظ‡ظٹظƒظ„ ط§ظ„ظ‚ط§ظ„ط¨
-        $templateModel = new \App\Models\Template();
-        $template = $templateModel->getTemplateWithStructure($evaluation->template_id);
-        if (!$template) return null;
-        if (($template['evaluation_mode'] ?? 'numeric') === 'descriptive') {
-            // CD-023: الدرجة النهائية = القيمة الرقمية للتقدير العام المختار
-            return $this->calculateDescriptiveScore($evaluationId, $template);
-        }
-
-        // 3. ط¬ظ„ط¨ ط§ظ„ط¥ط¬ط§ط¨ط§طھ ظ…ط¹ ط§ظ„ط¯ط±ط¬ط§طھ ط§ظ„ظ…ظˆط­ط¯ط© ط§ظ„ظ…ط­ظپظˆط¸ط©
-        $this->db->query("SELECT section_id, normalized_score FROM evaluation_answers WHERE evaluation_id = :id");
-        $this->db->bind(':id', $evaluationId);
-        $answers = $this->db->fetchAll(\PDO::FETCH_KEY_PAIR); // [section_id => normalized_score]
-
-        if (empty($answers)) return 0.0;
-
-        // 4. ط¨ط¯ط، ط¹ظ…ظ„ظٹط© ط§ظ„ط­ط³ط§ط¨
-        $totalScore = 0.0;
-
-        foreach ($template['criteria'] as $criterion) {
-            $criterionScore = 0.0;
-            
-            foreach ($criterion['sections'] as $section) {
-                // CD-023: تخطّي الأقسام النصية والتقدير العام (لا تشارك في الحساب الرقمي)
-                $sectionType = $section['evaluation_type'] ?? 'percentage';
-                if (in_array($sectionType, ['textarea', 'text', 'overall_grade'], true)) {
-                    continue;
-                }
-                $sectionId = $section['id'];
-                // ط¬ظ„ط¨ ط§ظ„ط¯ط±ط¬ط© ط§ظ„ظ…ظˆط­ط¯ط© ظ…ط¨ط§ط´ط±ط© ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
-                $normalizedScore = (float)($answers[$sectionId] ?? 0);
-                
-                // طھط·ط¨ظٹظ‚ ظˆط²ظ† ط§ظ„ظ‚ط³ظ…
-                $sectionWeight = (float)($section['section_weight'] ?? 0);
-                $criterionScore += ($normalizedScore * $sectionWeight / 100.0);
-            }
-
-            // طھط·ط¨ظٹظ‚ ظˆط²ظ† ط§ظ„ظ…ط¹ظٹط§ط±
-            $criterionWeight = (float)($criterion['criterion_weight'] ?? 0);
-            $totalScore += ($criterionScore * $criterionWeight / 100.0);
-        }
-
-        // طھظ‚ط±ظٹط¨ ط§ظ„ظ†طھظٹط¬ط© ط§ظ„ظ†ظ‡ط§ط¦ظٹط© ظ„ط£ظ‚ط±ط¨ ظ…ظ†ط²ظ„طھظٹظ† ط¹ط´ط±ظٹطھظٹظ†
-        return round($totalScore, 2);
+        // CD-043 P4: مفوّض إلى EvaluationCalculator (المحرك الموحّد) — parity 100%.
+        return \App\Services\EvaluationCalculator::calculate((int) $evaluationId);
     }
 
-    /**
-     * CD-023: حساب الدرجة النهائية للقالب الوصفي.
-     * يجد قسم "التقدير العام"، يقرأ الإجابة (grade_label)، ويحوّلها إلى
-     * قيمتها الرقمية من grading_scales.
-     *
-     * @return float|null  القيمة الرقمية أو null إن لم تُوجد إجابة
-     */
     private function calculateDescriptiveScore(int $evaluationId, array $template): ?float {
         // CD-040.3: اقرأ grade_label من جدول evaluations مباشرة (لا من evaluation_answers)
         // CD-040.3.1: اسم العمود الفعلي final_grade_label (لا grade_label)
