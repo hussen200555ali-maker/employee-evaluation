@@ -330,16 +330,37 @@ final class EvaluationExcelController extends Controller
             $maxRows = (int) ($_GET['max_rows'] ?? 100);
             $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
 
+            // Smart Prefill (Phase 1): blank | org (previous_evals/executing reserved for Phase 2)
+            $prefillStrategy = trim((string) ($_GET['prefill_strategy'] ?? 'blank'));
+            $allowedStrategies = ['blank', 'org', 'previous_evals', 'executing'];
+            if (!in_array($prefillStrategy, $allowedStrategies, true)) {
+                $prefillStrategy = 'blank';
+            }
+            if ($prefillStrategy === 'executing' && !$isProgram) {
+                $prefillStrategy = 'blank';
+            }
+            if (in_array($prefillStrategy, ['previous_evals', 'executing'], true)) {
+                throw new RuntimeException('هذا الخيار سيتوفر في المرحلة الثانية (Phase 2) من ميزة التعبئة الذكية.');
+            }
+
             $this->assertScopeExists($branchId, $departmentId);
+
+            $executingBranchId = $this->optionalId($_GET['executing_branch_id'] ?? null);
+            $executingDeptId = $this->optionalId($_GET['executing_department_id'] ?? null);
+            $this->assertScopeExists($executingBranchId, $executingDeptId);
+
             $options = [
-                'mode' => 'prefill',
-                'executing_branch_id' => $branchId,
-                'executing_department_id' => $departmentId,
+                'prefill_strategy' => $prefillStrategy,
+                'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
+                'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
+                'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
+                'user_id' => (int) Auth::id(),
             ];
             if ($programId !== null) {
                 $options['program_id'] = $programId;
                 $options['program_title'] = (string) ($_GET['program_title'] ?? '');
             }
+
             $book = $this->excel->buildTemplate($templateId, $employeeId, $branchId, $departmentId, $maxRows, $options);
 
             $tmpFile = tempnam(sys_get_temp_dir(), 'cd043_export_');
@@ -359,6 +380,9 @@ final class EvaluationExcelController extends Controller
                 'department_id' => $departmentId,
                 'program_scope' => $programScope,
                 'program_id' => $programId,
+                'prefill_strategy' => $prefillStrategy,
+                'executing_branch_id' => $options['executing_branch_id'] ?? null,
+                'executing_department_id' => $options['executing_department_id'] ?? null,
                 'max_rows' => $maxRows,
                 'filename' => $filename,
                 'size' => $size,

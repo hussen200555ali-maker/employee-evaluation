@@ -36,21 +36,28 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
 .cd043-alert{padding:10px 14px;border-radius:8px;font-size:11px;background:#fff3cd;color:#856404;border:1px solid #ffe69b;margin-bottom:10px}
 .cd043-steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;color:#0c2823}
 .cd043-step{background:#e8f5e9;border:1px solid #c8e6c9;border-radius:999px;padding:4px 10px;font-weight:700}
-@media(max-width:768px){.cd043-card-b{grid-template-columns:1fr}}
+.cd043-radio-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cd043-radio{border:1px solid #e0e8e4;border-radius:8px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:#fff}
+.cd043-radio input{margin-top:3px}
+.cd043-radio .t{font-size:12px;font-weight:700;color:#0c2823}
+.cd043-radio .d{font-size:10px;color:#6c757d;margin-top:2px;line-height:1.5}
+.cd043-radio.disabled{opacity:.55;cursor:not-allowed;background:#f8faf9}
+.cd043-warning{display:none;padding:10px 14px;border-radius:8px;font-size:11px;background:#fff3cd;color:#856404;border:1px solid #ffe69b;margin-top:10px;line-height:1.7}
+@media(max-width:768px){.cd043-card-b,.cd043-radio-group{grid-template-columns:1fr}}
 </style>
 <div class="cd043-wrap">
 <div class="cd043-page">
   <div class="cd043-hdr">
     <h2>📤 تصدير قالب تقييم Excel</h2>
-    <div class="sub">CD-043 · اختر النطاق ثم نزّل قالباً جاهزاً للتعبئة — ملف .xlsx فقط</div>
+    <div class="sub">CD-043 / Smart Prefill · اختر النطاق وطريقة التعبئة ثم نزّل قالباً جاهزاً — ملف .xlsx فقط</div>
   </div>
 
   <div class="cd043-steps">
     <span class="cd043-step">① القالب</span>
-    <span class="cd043-step">② الفرع</span>
-    <span class="cd043-step">③ القسم</span>
-    <span class="cd043-step">④ البرنامج</span>
-    <span class="cd043-step">⑤ عدد الصفوف</span>
+    <span class="cd043-step">② الفرع/القسم</span>
+    <span class="cd043-step">③ البرنامج</span>
+    <span class="cd043-step">④ طريقة التعبئة</span>
+    <span class="cd043-step">⑤ الصفوف</span>
     <span class="cd043-step">⑥ تنزيل</span>
   </div>
 
@@ -59,7 +66,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   </div>
 
   <div class="cd043-card">
-    <div class="cd043-card-h">①–④ نطاق التصدير</div>
+    <div class="cd043-card-h">①–③ نطاق التصدير</div>
     <div class="cd043-card-b">
       <div class="cd043-fld full">
         <label for="cd043-tpl">القالب (نشط فقط)</label>
@@ -88,7 +95,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       </div>
 
       <div class="cd043-fld">
-        <label for="cd043-branch">نطاق الفرع</label>
+        <label for="cd043-branch">نطاق الفرع (الموظف/الهيكل)</label>
         <select id="cd043-branch">
           <option value="">كل الفروع</option>
           <?php foreach ($branches as $br): ?>
@@ -98,11 +105,11 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       </div>
 
       <div class="cd043-fld">
-        <label for="cd043-dept">نطاق القسم</label>
+        <label for="cd043-dept">نطاق القسم (الموظف/الهيكل)</label>
         <select id="cd043-dept" disabled>
           <option value="">كل الأقسام</option>
         </select>
-        <div class="cd043-hint">يُفعّل بعد اختيار فرع.</div>
+        <div class="cd043-hint" id="cd043-dept-hint">يُفعّل بعد اختيار فرع. (في الخيار 4 للدورات/الورش تُعطّل فلاتر الموظف ويُعتمد المنفذ)</div>
       </div>
 
       <div class="cd043-fld" id="cd043-program-scope-wrap" style="display:none">
@@ -118,7 +125,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
         <select id="cd043-program" disabled>
           <option value="">— اختر برنامجاً —</option>
         </select>
-        <div class="cd043-hint">يُفلتر حسب نوع القالب والفرع/القسم المنفذ أدناه.</div>
+        <div class="cd043-hint">يُفلتر حسب نوع القالب والفرع/القسم المنفذ.</div>
       </div>
 
       <div class="cd043-fld" id="cd043-program-branch-wrap" style="display:none">
@@ -141,6 +148,35 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   </div>
 
   <div class="cd043-card">
+    <div class="cd043-card-h">④ طريقة تعبئة الملف (Pre-fill)</div>
+    <div class="cd043-card-b">
+      <div class="cd043-fld full">
+        <div class="cd043-radio-group" id="cd043-strategy-group">
+          <label class="cd043-radio" data-strategy="blank">
+            <input type="radio" name="prefill_strategy" value="blank" checked>
+            <div><div class="t">1) قالب فارغ (الافتراضي)</div><div class="d">ترويسة وصفوف فارغة فقط.</div></div>
+          </label>
+          <label class="cd043-radio" data-strategy="org">
+            <input type="radio" name="prefill_strategy" value="org">
+            <div><div class="t">2) تعبئة حسب الهيكل التنظيمي</div><div class="d">موظفو النطاق التنظيمي المحدد، مع أحدث تقييم مرجعي (إن وجد) وفق القواعد.</div></div>
+          </label>
+          <label class="cd043-radio" data-strategy="previous_evals">
+            <input type="radio" name="prefill_strategy" value="previous_evals">
+            <div><div class="t">3) تعبئة حسب التقييمات السابقة</div><div class="d">كل التقييمات السابقة المطابقة (كل تقييم في صف مستقل). <b>(Phase 2)</b></div></div>
+          </label>
+          <label class="cd043-radio" data-strategy="executing" id="cd043-radio-executing">
+            <input type="radio" name="prefill_strategy" value="executing">
+            <div><div class="t">4) تعبئة حسب الجهة المنفذة</div><div class="d">للدورات/الورش فقط وفق البرنامج والجهة المنفذة. <b>(Phase 2)</b></div></div>
+          </label>
+        </div>
+        <div id="cd043-prefill-warning" class="cd043-warning">
+          تنبيه: الملف سيُعبأ بتقييمات/بيانات سابقة (إن وجدت) كمرجع. لتجنب رفض الصفوف كـ (تقييم مكرر / E-017) يجب عليك تغيير <b>تاريخ التقييم</b> للأنواع الفردية/المهارية، أو تغيير <b>بيانات/سياق البرنامج</b> للدورات والورش قبل الاستيراد. النظام لا يقوم بتحديث التقييمات القديمة (لا Upsert).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cd043-card">
     <div class="cd043-card-h">⑤ عدد الصفوف</div>
     <div class="cd043-card-b">
       <div class="cd043-fld">
@@ -148,7 +184,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
         <input type="number" id="cd043-rows" value="100" min="<?= max(50, (int)($limits['min_rows'] ?? 50)) ?>" max="<?= (int)($limits['max_rows'] ?? 2000) ?>" step="1">
       </div>
       <div class="cd043-fld">
-        <div class="cd043-hint">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صفاً. يُقبل النطاق الكامل ويُضبط تلقائياً عند التجاوز.</div>
+        <div class="cd043-hint">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صفاً. عند تجاوز المتاح سيتم الاقتصاص وفق ترتيب حتمي (تنبيه تأكيد تفصيلي في Phase 3).</div>
       </div>
     </div>
   </div>
@@ -157,7 +193,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     <div class="cd043-card-h">⑥ تنزيل القالب</div>
     <div class="cd043-card-b">
       <div class="cd043-actions">
-        <div class="cd043-hint">سيتم تسجيل عملية التصدير في سجل التدقيق (المستخدم، الوقت، القالب، النطاق، عدد الصفوف).</div>
+        <div class="cd043-hint">سيتم تسجيل عملية التصدير في سجل التدقيق (المستخدم، الوقت، القالب، النطاق، الاستراتيجية، عدد الصفوف).</div>
         <a id="cd043-download" class="cd043-btn cd043-btn-ok disabled" href="#">⬇ تنزيل ملف Excel</a>
       </div>
     </div>
@@ -199,7 +235,13 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   var progDept = document.getElementById('cd043-program-dept');
   var rows = document.getElementById('cd043-rows');
   var link = document.getElementById('cd043-download');
+  var warning = document.getElementById('cd043-prefill-warning');
+  var radioExec = document.getElementById('cd043-radio-executing');
 
+  function getStrategy() {
+    var checked = document.querySelector('input[name="prefill_strategy"]:checked');
+    return checked ? checked.value : 'blank';
+  }
   function targetType() {
     if (!tpl || !tpl.options.length) return '';
     var opt = tpl.options[tpl.selectedIndex];
@@ -217,7 +259,38 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       o.textContent = d.name;
       selectEl.appendChild(o);
     });
-    selectEl.disabled = !branchId;
+  }
+
+  function syncEmployeeScopeFilters() {
+    var s = getStrategy();
+    var opt4 = isProgramType() && s === 'executing';
+    // Q1/Q5: in option 4 disable employee branch/dept filters
+    branch.disabled = opt4;
+    var deptEnabled = !opt4 && !!branch.value;
+    dept.disabled = !deptEnabled;
+    if (opt4) {
+      // keep UI consistent (values ignored by backend for opt4)
+      // do not clear to avoid user confusion on switch back, but disable
+    } else {
+      fillDepartments(dept, branch.value, 'كل الأقسام');
+    }
+  }
+
+  function syncStrategyUI() {
+    var isProgram = isProgramType();
+    if (radioExec) {
+      var input = radioExec.querySelector('input');
+      if (!isProgram) {
+        radioExec.classList.add('disabled');
+        if (input) { input.disabled = true; if (input.checked) { document.querySelector('input[name="prefill_strategy"][value="blank"]').checked = true; } }
+      } else {
+        radioExec.classList.remove('disabled');
+        if (input) { input.disabled = false; }
+      }
+    }
+    var s = getStrategy();
+    warning.style.display = (s === 'org' || s === 'previous_evals' || s === 'executing') ? 'block' : 'none';
+    syncEmployeeScopeFilters();
   }
 
   function fillPrograms() {
@@ -250,13 +323,12 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     progBranchWrap.style.display = single ? '' : 'none';
     progDeptWrap.style.display = single ? '' : 'none';
     progBranch.disabled = !single;
-    progDept.disabled = !single;
+    progDept.disabled = !single || !progBranch.value;
     if (single) {
       fillPrograms();
-      if (!progBranch.value && branch.value) { progBranch.value = branch.value; fillPrograms(); }
-      if (!progDept.value && dept.value) { progDept.value = dept.value; fillPrograms(); }
+      if (!progBranch.value && branch.value) { progBranch.value = branch.value; progDept.disabled = !progBranch.value; fillPrograms(); }
     } else {
-      program.disabled = true;
+      if (program) program.disabled = true;
     }
   }
 
@@ -266,6 +338,8 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     if (!templateId) { link.classList.add('disabled'); link.setAttribute('href', '#'); return; }
     var params = new URLSearchParams();
     params.set('template_id', templateId);
+    var strategy = getStrategy();
+    params.set('prefill_strategy', strategy);
     if (branch.value) params.set('branch_id', branch.value);
     if (dept.value) params.set('department_id', dept.value);
     if (isProgramType()) {
@@ -273,9 +347,9 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       if (programScope.value === 'single') {
         if (!program.value) { link.classList.add('disabled'); link.setAttribute('href', '#'); return; }
         params.set('program_id', program.value);
-        if (progBranch.value) params.set('executing_branch_id', progBranch.value);
-        if (progDept.value) params.set('executing_department_id', progDept.value);
       }
+      if (progBranch.value) params.set('executing_branch_id', progBranch.value);
+      if (progDept.value) params.set('executing_department_id', progDept.value);
     }
     var minRows = parseInt(rows.getAttribute('min'), 10) || 50;
     var maxRows = parseInt(rows.getAttribute('max'), 10) || 2000;
@@ -288,9 +362,12 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     link.classList.remove('disabled');
   }
 
-  if (tpl) tpl.addEventListener('change', function () { syncProgramBlock(); updateLink(); });
+  function onStrategyChange() { syncStrategyUI(); updateLink(); }
+
+  if (tpl) tpl.addEventListener('change', function () { syncProgramBlock(); syncStrategyUI(); updateLink(); });
   if (branch) branch.addEventListener('change', function () {
     fillDepartments(dept, branch.value, 'كل الأقسام');
+    dept.disabled = !branch.value || (getStrategy()==='executing' && isProgramType());
     if (progBranch && progBranch.value && progBranch.value !== branch.value) {
       progBranch.value = branch.value;
       fillDepartments(progDept, progBranch.value, 'كل الأقسام');
@@ -305,15 +382,18 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   if (progBranch) progBranch.addEventListener('change', function () {
     fillDepartments(progDept, progBranch.value, 'كل الأقسام');
     progDept.value = '';
+    progDept.disabled = !progBranch.value;
     fillPrograms();
     updateLink();
   });
   if (progDept) progDept.addEventListener('change', function () { fillPrograms(); updateLink(); });
   if (rows) rows.addEventListener('input', updateLink);
+  document.querySelectorAll('input[name="prefill_strategy"]').forEach(function(r){ r.addEventListener('change', onStrategyChange); });
 
   fillDepartments(dept, '', 'كل الأقسام');
   fillDepartments(progDept, '', 'كل الأقسام');
   syncProgramBlock();
+  syncStrategyUI();
   updateLink();
 })();
 </script>

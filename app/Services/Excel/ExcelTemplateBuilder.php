@@ -694,12 +694,35 @@ final class ExcelTemplateBuilder
 
     private function prefillRows(Worksheet $sheet, array $layout, ?int $branchId, ?int $departmentId, int $start, int $end, array $options): void
     {
+        $strategy = (string) ($options['prefill_strategy'] ?? '');
+        if ($strategy === '') {
+            // Backward compatibility (training/program exports, legacy mode)
+            $mode = (string) ($options['mode'] ?? 'prefill');
+            if ($mode === 'empty') {
+                return;
+            }
+            $strategy = 'legacy';
+        }
+
+        if ($strategy === 'blank') {
+            return;
+        }
+        if ($strategy === 'org') {
+            $this->prefillOrgRows($sheet, $layout, $branchId, $departmentId, $start, $end, $options);
+            return;
+        }
+        if (in_array($strategy, ['previous_evals', 'executing'], true)) {
+            // Phase 2 (controller blocks for now)
+            return;
+        }
+
+        // legacy behavior
         $targetType = $layout['target_type'];
         $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
 
         if ($isProgram) {
             $program = $layout['program'];
-            if (!is_array($program) || empty($options['program_id']) && empty($options['program_title'])) {
+            if (!is_array($program) || (empty($options['program_id']) && empty($options['program_title']))) {
                 return; // «كل البرامج»: صفوف فارغة لتعبئة رأس البرنامج يدوياً.
             }
             $stmt = $this->database->getPdo()->prepare(
@@ -709,7 +732,7 @@ final class ExcelTemplateBuilder
                  LEFT JOIN branches b ON b.id = e.branch_id
                  LEFT JOIN departments d ON d.id = e.department_id
                  WHERE pp.program_id = :pid
-                 ORDER BY e.full_name ASC'
+                 ORDER BY e.full_name ASC, e.id ASC'
             );
             $stmt->execute(['pid' => (int) $program['id']]);
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -750,7 +773,7 @@ final class ExcelTemplateBuilder
             $sql .= ' AND e.branch_id = :branch';
             $params['branch'] = $branchId;
         }
-        $sql .= ' ORDER BY e.full_name ASC';
+        $sql .= ' ORDER BY e.full_name ASC, e.id ASC';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $row = $start;
@@ -764,6 +787,201 @@ final class ExcelTemplateBuilder
             ]);
             $row++;
         }
+    }
+
+    /**
+     * Phase 1 / Option 2 (Org Structure): employees in org scope with latest evaluation reference (if any).
+     * - A1/A2: latest eval per employee (evaluation_date DESC, id DESC), deterministic ordering + limit.
+     * - Q2 (program, all programs): latest eval regardless of program; header from that eval.
+     * - Q2 (program, single): latest eval within selected program context.
+     * - Q6: no previous eval => basic employee data, grades/reference empty.
+     * - A5/A6: fill branch names (helpers via formulas) and actual section/overall/notes/date/header fields.
+     */
+    private function prefillOrgRows(Worksheet $sheet, array $layout, ?int $branchId, ?int $departmentId, int $start, int $end, array $options): void
+    {
+        $pdo = $this->database->getPdo();
+        $targetType = (string) ($layout['target_type'] ?? 'employee');
+        $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+        $templateId = (int) ($layout['template_id'] ?? 0);
+        $limit = max(0, $end - $start + 1);
+        if ($templateId <= 0 || $limit <= 0) {
+            return;
+        }
+
+        // Employee org scope (option 2): filter by employee branch/department
+        $empParams = [];
+        $empWhere = 'e.is_active = 1';
+        if ($departmentId !== null && $departmentId > 0) {
+            $empWhere .= ' AND e.department_id = :dept';
+            $empParams['dept'] = $departmentId;
+        } elseif ($branchId !== null && $branchId > 0) {
+            $empWhere .= ' AND e.branch_id = :branch';
+            $empParams['branch'] = $branchId;
+        }
+        $empSql = 'SELECT e.id, e.emp_code, e.full_name, b.name AS branch_name, d.name AS department_name
+                   FROM employees e
+                   LEFT JOIN branches b ON b.id = e.branch_id
+                   LEFT JOIN departments d ON d.id = e.department_id
+                   WHERE ' . $empWhere . '
+                   ORDER BY e.full_name ASC, e.id ASC
+                   LIMIT ' . (int) $limit;
+        $empStmt = $pdo->prepare($empSql);
+        $empStmt->execute($empParams);
+        $employees = $empStmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($employees === []) {
+            return;
+        }
+
+        $employeeIds = array_values(array_map(static fn($r) => (int) $r['id'], $employees));
+        $programId = isset($options['program_id']) ? (int) $options['program_id'] : 0;
+
+        $latestByEmp = $this->fetchLatestEvaluationsForEmployees($templateId, $employeeIds, $isProgram, $programId);
+        $evalIds = array_values(array_unique(array_filter(array_map(static fn($r) => (int) ($r['id'] ?? 0), $latestByEmp))));
+        $answersByEval = $this->fetchEvaluationAnswersMap($evalIds);
+
+        $row = $start;
+        foreach ($employees as $emp) {
+            if ($row > $end) { break; }
+            $empId = (int) $emp['id'];
+            $ev = $latestByEmp[$empId] ?? null;
+            $values = [
+                'employee_name' => (string) ($emp['full_name'] ?? ''),
+                'employee_code' => (string) ($emp['emp_code'] ?? ''),
+                'employee_branch' => (string) ($emp['branch_name'] ?? ''),
+                'employee_department' => (string) ($emp['department_name'] ?? ''),
+            ];
+
+            if (is_array($ev)) {
+                $evalId = (int) $ev['id'];
+                $values['evaluation_date'] = $this->formatDateForExcel((string) ($ev['evaluation_date'] ?? ''));
+                $values['notes'] = (string) ($ev['notes'] ?? '');
+                // overall grade label (descriptive course overall handled via overall_grade column)
+                $values['overall_grade'] = (string) ($ev['final_grade_label'] ?? '');
+
+                if ($isProgram) {
+                    $values['program_title'] = (string) ($ev['program_title'] ?? '');
+                    $values['program_branch'] = (string) ($ev['program_branch_name'] ?? '');
+                    $values['program_department'] = (string) ($ev['program_department_name'] ?? '');
+                    $values['program_start'] = $this->formatDateForExcel((string) ($ev['program_start_date'] ?? ''));
+                    $values['program_end'] = $this->formatDateForExcel((string) ($ev['program_end_date'] ?? ''));
+                    $values['program_responsible'] = (string) ($ev['program_responsible'] ?? '');
+                }
+
+                foreach (($answersByEval[$evalId] ?? []) as $sectionId => $ans) {
+                    $sid = (int) $sectionId;
+                    $values['section_' . $sid] = (string) ($ans['raw_value'] ?? '');
+                    $noteVal = trim((string) ($ans['notes'] ?? ''));
+                    if ($noteVal !== '') {
+                        $values['notes_' . $sid] = $noteVal;
+                    }
+                }
+            }
+
+            $this->writeRow($sheet, $layout, $row, $values);
+            $row++;
+        }
+    }
+
+    /**
+     * Fetch latest evaluation per employee for template.
+     * - Program + specific programId: restrict to that program/context.
+     * - Program + all programs (option 2 Q2): latest regardless of program (no context restriction).
+     * - Non-program: latest for template+employee.
+     * Returns map [employee_id => evaluation row].
+     */
+    private function fetchLatestEvaluationsForEmployees(int $templateId, array $employeeIds, bool $isProgram, int $programId = 0): array
+    {
+        $employeeIds = array_values(array_unique(array_filter(array_map('intval', $employeeIds), static fn($v) => $v > 0)));
+        if ($templateId <= 0 || $employeeIds === []) {
+            return [];
+        }
+        $pdo = $this->database->getPdo();
+        $in = implode(',', array_fill(0, count($employeeIds), '?'));
+
+        $ctxFilter = '';
+        $params = [$templateId];
+        if ($isProgram && $programId > 0) {
+            $ctxFilter = ' AND ev.context_id = ?';
+        }
+
+        $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
+                       ev.context_id, ev.context_type,
+                       tp.title AS program_title, tb.name AS program_branch_name, td.name AS program_department_name,
+                       tp.start_date AS program_start_date, tp.end_date AS program_end_date, tp.responsible_person AS program_responsible
+                FROM evaluations ev
+                LEFT JOIN training_programs tp ON tp.id = ev.context_id
+                LEFT JOIN branches tb ON tb.id = tp.executing_branch_id
+                LEFT JOIN departments td ON td.id = tp.executing_department_id
+                INNER JOIN (
+                    SELECT ev2.evaluated_employee_id, MAX(ev2.id) AS id
+                    FROM evaluations ev2
+                    INNER JOIN (
+                        SELECT evaluated_employee_id, MAX(evaluation_date) AS max_date
+                        FROM evaluations
+                        WHERE template_id = ?' . $ctxFilter . ' AND evaluated_employee_id IN (' . $in . ')
+                        GROUP BY evaluated_employee_id
+                    ) mx ON mx.evaluated_employee_id = ev2.evaluated_employee_id AND mx.max_date = ev2.evaluation_date
+                    WHERE ev2.template_id = ?' . $ctxFilter . ' AND ev2.evaluated_employee_id IN (' . $in . ')
+                    GROUP BY ev2.evaluated_employee_id
+                ) pick ON pick.id = ev.id
+                WHERE ev.template_id = ?' . $ctxFilter;
+
+        // params: templateId, [ctx?], IN ids, templateId, [ctx?], IN ids, templateId, [ctx?]
+        $allParams = [$templateId];
+        if ($ctxFilter !== '') { $allParams[] = $programId; }
+        foreach ($employeeIds as $id) { $allParams[] = $id; }
+        $allParams[] = $templateId;
+        if ($ctxFilter !== '') { $allParams[] = $programId; }
+        foreach ($employeeIds as $id) { $allParams[] = $id; }
+        $allParams[] = $templateId;
+        if ($ctxFilter !== '') { $allParams[] = $programId; }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($allParams);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $map = [];
+        foreach ($rows as $r) {
+            $map[(int) $r['evaluated_employee_id']] = $r;
+        }
+        return $map;
+    }
+
+    /** @return array<int,array<int,array{raw_value:string,notes:string}>> [evaluation_id => [section_id => answer]] */
+    private function fetchEvaluationAnswersMap(array $evaluationIds): array
+    {
+        $evaluationIds = array_values(array_unique(array_filter(array_map('intval', $evaluationIds), static fn($v) => $v > 0)));
+        if ($evaluationIds === []) {
+            return [];
+        }
+        $pdo = $this->database->getPdo();
+        $in = implode(',', array_fill(0, count($evaluationIds), '?'));
+        $stmt = $pdo->prepare('SELECT evaluation_id, section_id, raw_value, notes FROM evaluation_answers WHERE evaluation_id IN (' . $in . ')');
+        $stmt->execute($evaluationIds);
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $eid = (int) $row['evaluation_id'];
+            $sid = (int) $row['section_id'];
+            if (!isset($map[$eid])) { $map[$eid] = []; }
+            $map[$eid][$sid] = [
+                'raw_value' => (string) ($row['raw_value'] ?? ''),
+                'notes' => (string) ($row['notes'] ?? ''),
+            ];
+        }
+        return $map;
+    }
+
+    private function formatDateForExcel(string $date): string
+    {
+        $date = trim($date);
+        if ($date === '' || $date === '0000-00-00') {
+            return '';
+        }
+        // normalize common DB formats to YYYY-MM-DD
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return $date;
+        }
+        $ts = strtotime($date);
+        return $ts ? date('Y-m-d', $ts) : $date;
     }
 
     private function writeRow(Worksheet $sheet, array $layout, int $row, array $values): void
