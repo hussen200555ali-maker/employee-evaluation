@@ -129,6 +129,7 @@ final class ExcelTemplateBuilder
         if ($isProgram) {
             $add(['key' => 'program_title', 'kind' => 'fixed', 'label' => 'اسم البرنامج *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'اختر ' . $contextLabel . ' من القائمة']);
             $add(['key' => 'program_branch', 'kind' => 'fixed', 'label' => 'الفرع المنفذ *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'فرع تنفيذ ' . $contextLabel]);
+            $add(['key' => 'program_branch_safe_id', 'kind' => 'helper', 'label' => '', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => '']);
             $add(['key' => 'program_department', 'kind' => 'fixed', 'label' => 'القسم المنفذ *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'قسم تنفيذ ' . $contextLabel . ' (مرتبط بالفرع المنفذ)']);
             $add(['key' => 'program_start', 'kind' => 'fixed', 'label' => 'تاريخ البدء *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'YYYY-MM-DD']);
             $add(['key' => 'program_end', 'kind' => 'fixed', 'label' => 'تاريخ الانتهاء *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'YYYY-MM-DD — بعد تاريخ البدء']);
@@ -136,11 +137,13 @@ final class ExcelTemplateBuilder
             $add(['key' => 'employee_name', 'kind' => 'fixed', 'label' => 'الاسم *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'اسم الموظف — أو اتركه واملأ الرقم الوظيفي']);
             $add(['key' => 'employee_code', 'kind' => 'fixed', 'label' => 'الرقم الوظيفي', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'رمز فريد — أو اتركه واملأ الاسم']);
             $add(['key' => 'employee_branch', 'kind' => 'fixed', 'label' => 'الفرع', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'فرع الموظف']);
+            $add(['key' => 'employee_branch_safe_id', 'kind' => 'helper', 'label' => '', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => '']);
             $add(['key' => 'employee_department', 'kind' => 'fixed', 'label' => 'القسم', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'قسم الموظف (مرتبط بالفرع)']);
         } else {
             $add(['key' => 'employee_name', 'kind' => 'fixed', 'label' => 'الاسم *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'الاسم الكامل — أو اتركه واملأ الرقم الوظيفي']);
             $add(['key' => 'employee_code', 'kind' => 'fixed', 'label' => 'الرقم الوظيفي', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'رمز فريد — أو اتركه واملأ الاسم']);
             $add(['key' => 'employee_branch', 'kind' => 'fixed', 'label' => 'الفرع', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'اختر من القائمة (الفرع أو القسم أحدهما إلزامي)']);
+            $add(['key' => 'employee_branch_safe_id', 'kind' => 'helper', 'label' => '', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => '']);
             $add(['key' => 'employee_department', 'kind' => 'fixed', 'label' => 'القسم', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'اختر من القائمة (مرتبط بالفرع)']);
         }
 
@@ -326,16 +329,25 @@ final class ExcelTemplateBuilder
         }
 
         // ── تنسيق الترويسة ──
-        $fixedEnd = Coordinate::stringFromColumnIndex(count($layout['fixed_columns']));
+        $fixedEndIndex = 0;
+        $criteriaStartIndex = count($columns) + 1;
+        $tailStartIndex = count($columns) - count($layout['tail_columns']) + 1;
+        foreach ($columns as $i => $col) {
+            $pos = $i + 1;
+            if (in_array($col['kind'], ['fixed', 'helper'], true)) { $fixedEndIndex = max($fixedEndIndex, $pos); }
+            if (in_array($col['kind'], ['section', 'notes', 'overall_grade'], true)) { $criteriaStartIndex = min($criteriaStartIndex, $pos); }
+        }
+        if ($fixedEndIndex < 1) { $fixedEndIndex = 1; }
+        $fixedEnd = Coordinate::stringFromColumnIndex($fixedEndIndex);
         $sheet->getStyle('A2:' . $fixedEnd . '3')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle('A2:' . $fixedEnd . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
         $sheet->getStyle('A2:' . $fixedEnd . '3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $tailStart = Coordinate::stringFromColumnIndex(count($columns) - count($layout['tail_columns']) + 1);
+        $tailStart = Coordinate::stringFromColumnIndex($tailStartIndex);
         $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('374151');
         $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $criteriaStart = Coordinate::stringFromColumnIndex(count($layout['fixed_columns']) + 1);
-        $criteriaEnd = Coordinate::stringFromColumnIndex(count($columns) - count($layout['tail_columns']));
+        $criteriaStart = Coordinate::stringFromColumnIndex(min($criteriaStartIndex, $tailStartIndex - 1));
+        $criteriaEnd = Coordinate::stringFromColumnIndex($tailStartIndex - 1);
         $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getFont()->setBold(true)->setSize(9)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
         $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
@@ -362,6 +374,9 @@ final class ExcelTemplateBuilder
         if ($mode !== 'empty') {
             $this->prefillRows($sheet, $layout, $branchId, $departmentId, $dataStart, $dataEnd, $options);
         }
+
+        // BUG-004: helper columns (hidden) map branch name -> safe ID for dependent dropdowns
+        $this->applyBranchHelperColumns($sheet, $layout, $dataStart, $dataEnd);
 
         // ── التحقق من صحة الإدخال ──
         $this->applyValidations($sheet, $layout, $branches, $departmentsByBranch, $gradeLabels, $programTitles, $dataStart, $dataEnd);
@@ -788,9 +803,9 @@ final class ExcelTemplateBuilder
                     break;
                 case 'program_department':
                     if ($hasBranches) {
-                        $branchCol = $this->findColumn($layout, 'program_branch');
-                        $formula = $branchCol !== null
-                            ? 'INDIRECT(SUBSTITUTE($' . $branchCol['letter'] . $start . '," ","_"))'
+                        $helperCol = $this->findColumn($layout, 'program_branch_safe_id');
+                        $formula = $helperCol !== null
+                            ? 'INDIRECT($' . $helperCol['letter'] . $start . ')'
                             : 'DepartmentList';
                         $this->addListValidation($sheet, $range, $formula, 'القسم المنفذ', 'اختر قسماً تابعاً للفرع المنفّذ.');
                     }
@@ -806,9 +821,9 @@ final class ExcelTemplateBuilder
                     break;
                 case 'employee_department':
                     if ($hasBranches) {
-                        $branchCol = $this->findColumn($layout, 'employee_branch');
-                        $formula = $branchCol !== null
-                            ? 'INDIRECT(SUBSTITUTE($' . $branchCol['letter'] . $start . '," ","_"))'
+                        $helperCol = $this->findColumn($layout, 'employee_branch_safe_id');
+                        $formula = $helperCol !== null
+                            ? 'INDIRECT($' . $helperCol['letter'] . $start . ')'
                             : 'DepartmentList';
                         $this->addListValidation($sheet, $range, $formula, 'القسم', 'اختر قسماً تابعاً للفرع المختار.');
                     }
@@ -923,6 +938,32 @@ final class ExcelTemplateBuilder
         $sheet->setDataValidation($range, $dv);
     }
 
+    /**
+     * BUG-004: Fill hidden helper columns with safe branch IDs via VLOOKUP(BranchName, BranchSafeMap, 2, FALSE).
+     * Used by dependent department dropdowns (INDIRECT(helperCell)).
+     */
+    private function applyBranchHelperColumns(Worksheet $sheet, array $layout, int $start, int $end): void
+    {
+        $pairs = [
+            ['branch' => 'program_branch', 'helper' => 'program_branch_safe_id'],
+            ['branch' => 'employee_branch', 'helper' => 'employee_branch_safe_id'],
+        ];
+        foreach ($pairs as $pair) {
+            $branchCol = $this->findColumn($layout, $pair['branch']);
+            $helperCol = $this->findColumn($layout, $pair['helper']);
+            if ($branchCol === null || $helperCol === null) {
+                continue;
+            }
+            $b = $branchCol['letter'];
+            $h = $helperCol['letter'];
+            $sheet->getColumnDimension($h)->setVisible(false);
+            for ($row = $start; $row <= $end; $row++) {
+                $formula = '=IFERROR(VLOOKUP(' . $b . $row . ',BranchSafeMap,2,FALSE),"")';
+                $sheet->setCellValue($h . $row, $formula);
+            }
+        }
+    }
+
     private function applyDuplicateFormatting(Worksheet $sheet, array $layout, int $start, int $end): void
     {
         $isProgram = in_array($layout['target_type'], ['employee_in_course', 'employee_in_workshop'], true);
@@ -1004,35 +1045,41 @@ final class ExcelTemplateBuilder
         $this->addNamedRange($book, "GradeList", $sheet, "D", max(2, count($gradeLabels) + 1));
         $this->addNamedRange($book, "SkillLevelList", $sheet, "E", max(2, count(self::SKILL_LEVELS) + 1));
 
-        // BUG-003: Dependent dropdowns - one named range per branch containing its departments.
-        // Range name must match SUBSTITUTE(branchCell," ","_") used in data validation.
-        $colIndex = 6; // F
-        $lastStyledCol = "E";
-        $usedRangeNames = [];
-        foreach ($branchNames as $branchName) {
-            $rangeName = $this->branchDeptRangeName((string) $branchName);
-            if ($rangeName === '' || isset($usedRangeNames[$rangeName])) {
-                continue;
-            }
-            $usedRangeNames[$rangeName] = true;
-            $depts = $departmentsByBranch[$branchName] ?? [];
-            $col = Coordinate::stringFromColumnIndex($colIndex);
-            $this->writeListColumn($sheet, $col, $rangeName, array_values($depts));
-            $this->addNamedRange($book, $rangeName, $sheet, $col, max(2, count($depts) + 1));
-            $lastStyledCol = $col;
+        // BUG-004: Safe ID (Map & VLOOKUP) for dependent branch->department dropdowns.
+        // F: branch name (map key), G: safe ID (Branch_1...), H+: departments per safe ID.
+        $safeIdCol = 7; // G
+        $deptStartCol = 8; // H
+        $mapLastRow = max(2, count($branchNames) + 1);
+        $sheet->setCellValue('F1', 'BranchName');
+        $sheet->setCellValue('G1', 'المعرّف الآمن');
+        $row = 2;
+        $colIndex = $deptStartCol;
+        $lastStyledCol = 'G';
+        foreach ($branchNames as $i => $branchName) {
+            $safeId = 'Branch_' . ($i + 1);
+            $sheet->setCellValue('F' . $row, (string) $branchName);
+            $sheet->setCellValue('G' . $row, $safeId);
+
+            $depts = array_values($departmentsByBranch[$branchName] ?? []);
+            $deptCol = Coordinate::stringFromColumnIndex($colIndex);
+            $this->writeListColumn($sheet, $deptCol, $safeId, $depts);
+            $this->addNamedRange($book, $safeId, $sheet, $deptCol, max(2, count($depts) + 1));
+
+            $lastStyledCol = $deptCol;
+            $row++;
             $colIndex++;
         }
+        if ($branchNames === []) {
+            $sheet->setCellValue('F2', '');
+            $sheet->setCellValue('G2', '');
+        }
+        // Named range for branch->safeID map (used by VLOOKUP in main sheet helper columns)
+        $book->addNamedRange(new NamedRange('BranchSafeMap', $sheet, '$F$2:$G$' . $mapLastRow));
 
         $sheet->getStyle("A1:" . $lastStyledCol . "1")->getFont()->setBold(true);
         $sheet->getStyle("A1:" . $lastStyledCol . "1")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB("D1E7DD");
         $sheet->getProtection()->setSheet(true);
         $sheet->getProtection()->setHashValue("");
-    }
-
-    private function branchDeptRangeName(string $branchName): string
-    {
-        // Match SUBSTITUTE(<branchCell>," ","_") used by dependent dropdown validations.
-        return str_replace(' ', '_', $branchName);
     }
 
     private function writeListColumn(Worksheet $sheet, string $col, string $header, array $values): void
@@ -1060,35 +1107,48 @@ final class ExcelTemplateBuilder
 
     private function applyColumnWidths(Worksheet $sheet, array $layout): void
     {
-        $isProgram = in_array($layout['target_type'], ['employee_in_course', 'employee_in_workshop'], true);
-        if ($isProgram) {
-            $widths = [26, 20, 20, 14, 14, 20, 24, 16, 20, 20];
-        } else {
-            $widths = [24, 16, 20, 20];
-        }
-        foreach ($widths as $idx => $width) {
-            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($idx + 1))->setWidth($width);
-        }
-        foreach ($layout['columns'] as $col) {
-            if ($col['kind'] === 'section' && ($col['section_type'] ?? '') === 'textarea') {
-                $sheet->getColumnDimension($col['letter'])->setWidth(30);
-            } elseif ($col['kind'] === 'section') {
-                $sheet->getColumnDimension($col['letter'])->setWidth(18);
-            } elseif ($col['kind'] === 'notes') {
-                $sheet->getColumnDimension($col['letter'])->setWidth(18);
-            } elseif ($col['kind'] === 'overall_grade') {
-                $sheet->getColumnDimension($col['letter'])->setWidth(18);
+        foreach ($layout['columns'] as $idx => $col) {
+            $letter = $col['letter'];
+            $kind = (string) $col['kind'];
+            $key = (string) $col['key'];
+            if ($kind === 'helper') {
+                $sheet->getColumnDimension($letter)->setWidth(2);
+                continue;
             }
-        }
-        foreach ($layout['tail_columns'] as $col) {
-            $width = match ($col['key']) {
-                'notes' => 30,
-                'evaluation_date' => 16,
-                'evaluator_name' => 22,
-                'evaluator_title' => 18,
-                default => 18,
-            };
-            $sheet->getColumnDimension($col['letter'])->setWidth($width);
+            if ($kind === 'fixed') {
+                $w = match ($key) {
+                    'program_title' => 26,
+                    'program_branch' => 20,
+                    'program_department' => 20,
+                    'program_start', 'program_end' => 14,
+                    'program_responsible' => 20,
+                    'employee_name' => 24,
+                    'employee_code' => 16,
+                    'employee_branch' => 20,
+                    'employee_department' => 20,
+                    default => 18,
+                };
+                $sheet->getColumnDimension($letter)->setWidth($w);
+                continue;
+            }
+            if ($kind === 'section' && ($col['section_type'] ?? '') === 'textarea') {
+                $sheet->getColumnDimension($letter)->setWidth(30);
+            } elseif ($kind === 'section') {
+                $sheet->getColumnDimension($letter)->setWidth(18);
+            } elseif ($kind === 'notes') {
+                $sheet->getColumnDimension($letter)->setWidth(18);
+            } elseif ($kind === 'overall_grade') {
+                $sheet->getColumnDimension($letter)->setWidth(18);
+            } elseif ($kind === 'tail') {
+                $w = match ($key) {
+                    'notes' => 30,
+                    'evaluation_date' => 16,
+                    'evaluator_name' => 22,
+                    'evaluator_title' => 18,
+                    default => 18,
+                };
+                $sheet->getColumnDimension($letter)->setWidth($w);
+            }
         }
     }
 

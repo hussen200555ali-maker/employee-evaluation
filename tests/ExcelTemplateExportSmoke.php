@@ -74,8 +74,18 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         }
         if (in_array($expectedType, ['employee_in_course', 'employee_in_workshop'], true)) {
             $keys = array_map(static fn($c) => $c['key'], $layout['columns']);
-            assertTrue($keys[0] === 'program_title' && $keys[5] === 'program_responsible', "T{$tplId}: program header block wrong");
-            assertTrue($keys[6] === 'employee_name' && $keys[7] === 'employee_code', "T{$tplId}: employee name/code after program block wrong");
+            $pos = array_flip($keys);
+            assertTrue(
+                isset($pos['program_title'],$pos['program_branch'],$pos['program_department'],$pos['program_start'],$pos['program_end'],$pos['program_responsible'],$pos['employee_name'],$pos['employee_code'])
+                && $pos['program_title'] < $pos['program_branch']
+                && $pos['program_branch'] < $pos['program_department']
+                && $pos['program_department'] < $pos['program_start']
+                && $pos['program_start'] < $pos['program_end']
+                && $pos['program_end'] < $pos['program_responsible']
+                && $pos['program_responsible'] < $pos['employee_name']
+                && $pos['employee_name'] < $pos['employee_code'],
+                "T{$tplId}: program header block wrong"
+            );
         }
 
         // named ranges
@@ -135,22 +145,19 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         $dvCollection = $main->getDataValidationCollection();
         assertTrue(count($dvCollection) > 0, "T{$tplId}: no data validations");
 
-        // BUG-003: department dropdowns are dependent on branch (INDIRECT + SUBSTITUTE)
+        // BUG-004: department dropdowns are dependent via Safe ID map (INDIRECT to hidden helper cell)
         $deptDependentFound = false;
         foreach ($dvCollection as $dv) {
             $f = (string) $dv->getFormula1();
-            if (stripos($f, 'INDIRECT') !== false && stripos($f, 'SUBSTITUTE') !== false) { $deptDependentFound = true; break; }
+            if (stripos($f, 'INDIRECT') !== false) { $deptDependentFound = true; break; }
         }
-        assertTrue($deptDependentFound, "T{$tplId}: dependent department dropdown (INDIRECT/SUBSTITUTE) not found");
-
-        // BUG-003: per-branch department named ranges exist (e.g. branch name with spaces replaced by _)
-        $perBranchFound = false;
+        assertTrue($deptDependentFound, "T{$tplId}: dependent department dropdown (INDIRECT) not found");
+        assertTrue(in_array('BranchSafeMap', $names, true), "T{$tplId}: missing named range BranchSafeMap");
+        $branchSafeFound = false;
         foreach ($names as $nr) {
-            if (!in_array($nr, ['BranchList','DepartmentList','ProgramList','GradeList','SkillLevelList'], true)) {
-                $perBranchFound = true; break;
-            }
+            if (preg_match('/^Branch_\\d+$/', $nr)) { $branchSafeFound = true; break; }
         }
-        assertTrue($perBranchFound, "T{$tplId}: per-branch department named ranges not found");
+        assertTrue($branchSafeFound, "T{$tplId}: Branch_N safe named ranges not found");
 
         $book->disconnectWorksheets();
         echo "  [PASS] template {$tplId} ({$expectedType}) structural checks\n";
