@@ -4,206 +4,220 @@ $templates = $templates ?? [];
 $branches = $branches ?? [];
 $programs = $programs ?? [];
 $limits = $limits ?? ['min_rows' => 50, 'max_rows' => 2000, 'max_file_size_mb' => 50];
-$typeLabels = [
-    'employee' => 'فردي',
-    'skill' => 'مهاري',
-    'employee_in_course' => 'موظف داخل دورة',
-    'employee_in_workshop' => 'موظف داخل ورشة',
-];
 $programTypes = ['employee_in_course', 'employee_in_workshop'];
 ?>
-<style>
-.cd043-wrap{background:#f5f8f6;min-height:100vh;direction:rtl;font-family:'Cairo',sans-serif}
-.cd043-page{max-width:1000px;margin:0 auto;padding:14px}
-.cd043-hdr{background:linear-gradient(135deg,#0c2823,#0d5e52);color:#fff;padding:14px 20px;border-radius:10px;margin-bottom:10px;position:relative}
-.cd043-hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:#c8943f}
-.cd043-hdr h2{font-size:16px;font-weight:800;margin:0}
-.cd043-hdr .sub{font-size:11px;opacity:.85;margin-top:2px}
-.cd043-card{background:#fff;border:1px solid #e0e8e4;border-radius:10px;margin-bottom:10px;overflow:hidden}
-.cd043-card-h{background:linear-gradient(180deg,#fbfdfc,#f1f7f3);padding:10px 16px;border-bottom:1px solid #e0e8e4;font-weight:800;color:#0c2823;font-size:13px;display:flex;align-items:center;gap:8px}
-.cd043-card-b{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.cd043-fld{min-width:0}
-.cd043-fld.full{grid-column:1 / -1}
-.cd043-fld label{display:block;font-size:10px;color:#6c757d;font-weight:700;margin-bottom:4px}
-.cd043-fld select,.cd043-fld input{width:100%;padding:8px 10px;border:1px solid #e0e8e4;border-radius:6px;font-family:'Cairo';font-size:12px;background:#fff}
-.cd043-fld select:disabled,.cd043-fld input:disabled{background:#f3f4f6;color:#9ca3af}
-.cd043-hint{font-size:10px;color:#6c757d;margin-top:4px;line-height:1.6}
-.cd043-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.cd043-btn{padding:10px 22px;border:none;border-radius:8px;font-family:'Cairo';font-size:12px;font-weight:700;cursor:pointer;display:inline-block;text-decoration:none}
-.cd043-btn-ok{background:#1b6b32;color:#fff}
-.cd043-btn-ok.disabled{background:#9ca3af;pointer-events:none}
-.cd043-btn-ghost{background:#e8e8e8;color:#6c757d}
-.cd043-alert{padding:10px 14px;border-radius:8px;font-size:11px;background:#fff3cd;color:#856404;border:1px solid #ffe69b;margin-bottom:10px}
-.cd043-steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;color:#0c2823}
-.cd043-step{background:#e8f5e9;border:1px solid #c8e6c9;border-radius:999px;padding:4px 10px;font-weight:700}
-.cd043-radio-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.cd043-radio{border:1px solid #e0e8e4;border-radius:8px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:#fff}
-.cd043-radio input{margin-top:3px}
-.cd043-radio .t{font-size:12px;font-weight:700;color:#0c2823}
-.cd043-radio .d{font-size:10px;color:#6c757d;margin-top:2px;line-height:1.5}
-.cd043-radio.disabled{opacity:.55;cursor:not-allowed;background:#f8faf9}
-.cd043-warning{display:none;padding:10px 14px;border-radius:8px;font-size:11px;background:#fff3cd;color:#856404;border:1px solid #ffe69b;margin-top:10px;line-height:1.7}
-@media(max-width:768px){.cd043-card-b,.cd043-radio-group{grid-template-columns:1fr}}
-</style>
-<div class="cd043-wrap">
-<div class="cd043-page">
-  <div class="cd043-hdr">
-    <h2>📤 تصدير قالب تقييم Excel</h2>
-    <div class="sub">CD-043 / Smart Prefill · اختر النطاق وطريقة التعبئة ثم نزّل قالباً جاهزاً — ملف .xlsx فقط</div>
-  </div>
+<link rel="stylesheet" href="<?= APP_URL ?>/public/css/excel-flow.css?v=1.0">
 
-  <div class="cd043-steps">
-    <span class="cd043-step">① القالب</span>
-    <span class="cd043-step">② الفرع/القسم</span>
-    <span class="cd043-step">③ البرنامج</span>
-    <span class="cd043-step">④ طريقة التعبئة</span>
-    <span class="cd043-step">⑤ الصفوف</span>
-    <span class="cd043-step">⑥ تنزيل</span>
-  </div>
+<div class="xf-page">
+  <div class="xf-container xf-container--narrow">
+    <header class="xf-page-header">
+      <div class="xf-page-header__row">
+        <div>
+          <h1 class="xf-page-header__title"><i class="fas fa-file-export" aria-hidden="true"></i> تصدير قالب تقييم Excel</h1>
+          <p class="xf-page-header__sub">تهيئة نطاق التصدير واستراتيجية التعبئة الذكية (Smart Prefill) ثم تنزيل قالب .xlsx جاهز للاستخدام.</p>
+        </div>
+        <div class="xf-page-header__meta">
+          <span class="xf-chip"><i class="fas fa-shield-alt"></i> تسجيل تدقيق تلقائي</span>
+          <a class="xf-chip xf-chip--light" href="<?= APP_URL ?>/evaluations/excel/import"><i class="fas fa-file-import"></i> شاشة الاستيراد</a>
+        </div>
+      </div>
+    </header>
 
-  <div class="cd043-alert">
-    الصفوف المسموحة: <?= (int)$limits['min_rows'] ?>–<?= (int)$limits['max_rows'] ?> صفاً · الحد الأقصى لحجم الملف: <?= (int)$limits['max_file_size_mb'] ?> ميجابايت · يُنشأ ملف بترويسة واحدة وورقة قوائم مخفية.
-  </div>
+    <ol class="xf-steps" aria-label="خطوات التصدير">
+      <li class="xf-step is-active"><span class="xf-step__num">1</span> القالب والنطاق</li>
+      <li class="xf-step"><span class="xf-step__num">2</span> البرنامج/المنفذ</li>
+      <li class="xf-step"><span class="xf-step__num">3</span> طريقة التعبئة</li>
+      <li class="xf-step"><span class="xf-step__num">4</span> الصفوف والتنزيل</li>
+    </ol>
 
-  <div class="cd043-card">
-    <div class="cd043-card-h">①–③ نطاق التصدير</div>
-    <div class="cd043-card-b">
-      <div class="cd043-fld full">
-        <label for="cd043-tpl">القالب (نشط فقط)</label>
-        <select id="cd043-tpl">
-          <?php
-            $types = ['employee','skill','employee_in_course','employee_in_workshop'];
-            $labels = ['employee'=>'فردي','skill'=>'مهاري','employee_in_course'=>'موظف داخل دورة','employee_in_workshop'=>'موظف داخل ورشة'];
-            $hasAny = false;
-            foreach ($types as $t):
-              $group = array_values(array_filter($templates, static fn($tpl) => (string)$tpl->target_type === $t));
-          ?>
-            <optgroup label="<?= htmlspecialchars($labels[$t]) ?>">
-              <?php if ($group === []): ?>
+    <div class="xf-callout xf-callout--info" style="margin-bottom:14px">
+      <i class="fas fa-info-circle"></i>
+      <div>الصفوف المسموحة: <strong><?= (int)$limits['min_rows'] ?>–<?= (int)$limits['max_rows'] ?></strong> صفاً · الحد الأقصى لحجم الملف: <strong><?= (int)$limits['max_file_size_mb'] ?></strong> ميجابايت · يتم إنشاء ملف .xlsx بترويسة وورقة قوائم مساندة.</div>
+    </div>
+
+    <section class="xf-card">
+      <div class="xf-card__header">
+        <h2 class="xf-card__title"><i class="fas fa-sliders-h"></i> 1) نطاق التصدير</h2>
+      </div>
+      <div class="xf-card__body">
+        <div class="xf-grid">
+          <div class="xf-field xf-col-12">
+            <label for="cd043-tpl">القالب (النشط)</label>
+            <select id="cd043-tpl" class="xf-select">
+              <?php
+                $types = ['employee','skill','employee_in_course','employee_in_workshop'];
+                $labels = ['employee'=>'فردي','skill'=>'مهاري','employee_in_course'=>'موظف داخل دورة','employee_in_workshop'=>'موظف داخل ورشة'];
+                $hasAny = false;
+                foreach ($types as $t):
+                  $group = array_values(array_filter($templates, static fn($tpl) => (string)$tpl->target_type === $t));
+              ?>
+                <optgroup label="<?= htmlspecialchars($labels[$t]) ?>">
+                  <?php if ($group === []): ?>
+                    <option value="" disabled>لا توجد قوالب نشطة</option>
+                  <?php else: foreach ($group as $tpl): $hasAny = true; ?>
+                    <option value="<?= (int)$tpl->id ?>" data-type="<?= htmlspecialchars((string)$tpl->target_type) ?>">
+                      <?= htmlspecialchars((string)$tpl->template_name) ?>
+                    </option>
+                  <?php endforeach; endif; ?>
+                </optgroup>
+              <?php endforeach; ?>
+              <?php if (!$hasAny): ?>
                 <option value="" disabled>لا توجد قوالب نشطة</option>
-              <?php else: foreach ($group as $tpl): $hasAny = true; ?>
-                <option value="<?= (int)$tpl->id ?>" data-type="<?= htmlspecialchars((string)$tpl->target_type) ?>">
-                  <?= htmlspecialchars((string)$tpl->template_name) ?>
-                </option>
-              <?php endforeach; endif; ?>
-            </optgroup>
-          <?php endforeach; ?>
-          <?php if (!$hasAny): ?>
-            <option value="" disabled>لا توجد قوالب نشطة</option>
-          <?php endif; ?>
-        </select>
-      </div>
+              <?php endif; ?>
+            </select>
+          </div>
 
-      <div class="cd043-fld">
-        <label for="cd043-branch">نطاق الفرع (الموظف/الهيكل)</label>
-        <select id="cd043-branch">
-          <option value="">كل الفروع</option>
-          <?php foreach ($branches as $br): ?>
-            <option value="<?= (int)$br->id ?>"><?= htmlspecialchars((string)$br->name) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+          <div class="xf-field xf-col-6">
+            <label for="cd043-branch">فرع الموظف (النطاق التنظيمي)</label>
+            <select id="cd043-branch" class="xf-select">
+              <option value="">كل الفروع</option>
+              <?php foreach ($branches as $br): ?>
+                <option value="<?= (int)$br->id ?>"><?= htmlspecialchars((string)$br->name) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <div class="xf-help">يُستخدم لتحديد نطاق الموظفين (حسب الاستراتيجية).</div>
+          </div>
 
-      <div class="cd043-fld">
-        <label for="cd043-dept">نطاق القسم (الموظف/الهيكل)</label>
-        <select id="cd043-dept" disabled>
-          <option value="">كل الأقسام</option>
-        </select>
-        <div class="cd043-hint" id="cd043-dept-hint">يُفعّل بعد اختيار فرع. (في الخيار 4 للدورات/الورش تُعطّل فلاتر الموظف ويُعتمد المنفذ)</div>
-      </div>
+          <div class="xf-field xf-col-6">
+            <label for="cd043-dept">قسم الموظف (النطاق التنظيمي)</label>
+            <select id="cd043-dept" class="xf-select" disabled>
+              <option value="">كل الأقسام</option>
+            </select>
+            <div class="xf-help" id="cd043-dept-hint">يُفعّل بعد اختيار الفرع. في خيار "الجهة المنفذة" للدورات/الورش تُعطّل فلاتر الموظف ويُعتمد نطاق المنفذ.</div>
+          </div>
+        </div>
 
-      <div class="cd043-fld" id="cd043-program-scope-wrap" style="display:none">
-        <label for="cd043-program-scope">نطاق البرنامج (دورة/ورشة)</label>
-        <select id="cd043-program-scope">
-          <option value="all">كل البرامج</option>
-          <option value="single">برنامج واحد</option>
-        </select>
+        <div class="xf-divider"></div>
+        <p class="xf-section-desc"><i class="fas fa-chalkboard-teacher" style="color:var(--xf-primary)"></i> <strong>سياق البرنامج/الجهة المنفذة</strong> (يظهر للقوالب البرنامجية: دورة/ورشة)</p>
+        <div class="xf-grid">
+          <div class="xf-field xf-col-4" id="cd043-program-scope-wrap" style="display:none">
+            <label for="cd043-program-scope">نطاق البرنامج</label>
+            <select id="cd043-program-scope" class="xf-select">
+              <option value="all">كل البرامج</option>
+              <option value="single">برنامج واحد محدد</option>
+            </select>
+          </div>
+          <div class="xf-field xf-col-8" id="cd043-program-wrap" style="display:none">
+            <label for="cd043-program">البرنامج</label>
+            <select id="cd043-program" class="xf-select" disabled>
+              <option value="">— اختر برنامجاً —</option>
+            </select>
+            <div class="xf-help">تُفلتر القائمة حسب نوع القالب والفرع/القسم المنفذ.</div>
+          </div>
+          <div class="xf-field xf-col-6" id="cd043-program-branch-wrap" style="display:none">
+            <label for="cd043-program-branch">الفرع المنفذ</label>
+            <select id="cd043-program-branch" class="xf-select" disabled>
+              <option value="">كل الفروع</option>
+              <?php foreach ($branches as $br): ?>
+                <option value="<?= (int)$br->id ?>"><?= htmlspecialchars((string)$br->name) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="xf-field xf-col-6" id="cd043-program-dept-wrap" style="display:none">
+            <label for="cd043-program-dept">القسم المنفذ</label>
+            <select id="cd043-program-dept" class="xf-select" disabled>
+              <option value="">كل الأقسام</option>
+            </select>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <div class="cd043-fld" id="cd043-program-wrap" style="display:none">
-        <label for="cd043-program">اسم البرنامج</label>
-        <select id="cd043-program" disabled>
-          <option value="">— اختر برنامجاً —</option>
-        </select>
-        <div class="cd043-hint">يُفلتر حسب نوع القالب والفرع/القسم المنفذ.</div>
+    <section class="xf-card">
+      <div class="xf-card__header">
+        <h2 class="xf-card__title"><i class="fas fa-magic"></i> 2) استراتيجية التعبئة (Smart Prefill)</h2>
       </div>
-
-      <div class="cd043-fld" id="cd043-program-branch-wrap" style="display:none">
-        <label for="cd043-program-branch">الفرع المنفذ</label>
-        <select id="cd043-program-branch" disabled>
-          <option value="">كل الفروع</option>
-          <?php foreach ($branches as $br): ?>
-            <option value="<?= (int)$br->id ?>"><?= htmlspecialchars((string)$br->name) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-
-      <div class="cd043-fld" id="cd043-program-dept-wrap" style="display:none">
-        <label for="cd043-program-dept">القسم المنفذ</label>
-        <select id="cd043-program-dept" disabled>
-          <option value="">كل الأقسام</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="cd043-card">
-    <div class="cd043-card-h">④ طريقة تعبئة الملف (Pre-fill)</div>
-    <div class="cd043-card-b">
-      <div class="cd043-fld full">
-        <div class="cd043-radio-group" id="cd043-strategy-group">
-          <label class="cd043-radio" data-strategy="blank">
+      <div class="xf-card__body">
+        <div class="xf-radio-grid" id="cd043-strategy-group" role="radiogroup" aria-label="طريقة تعبئة الملف">
+          <label class="xf-radio-card" data-strategy="blank">
             <input type="radio" name="prefill_strategy" value="blank" checked>
-            <div><div class="t">1) قالب فارغ (الافتراضي)</div><div class="d">ترويسة وصفوف فارغة فقط.</div></div>
+            <div>
+              <p class="xf-radio-card__title">1) قالب فارغ</p>
+              <p class="xf-radio-card__desc">ترويسة وبنية جاهزة مع صفوف بيانات فارغة (الافتراضي).</p>
+            </div>
           </label>
-          <label class="cd043-radio" data-strategy="org">
+          <label class="xf-radio-card" data-strategy="org">
             <input type="radio" name="prefill_strategy" value="org">
-            <div><div class="t">2) تعبئة حسب الهيكل التنظيمي</div><div class="d">موظفو النطاق التنظيمي المحدد، مع أحدث تقييم مرجعي (إن وجد) وفق القواعد.</div></div>
+            <div>
+              <p class="xf-radio-card__title">2) الهيكل التنظيمي</p>
+              <p class="xf-radio-card__desc">موظفو النطاق المحدد مع أحدث تقييم مرجعي لكل موظف (إن وجد) وفق القواعد.</p>
+            </div>
           </label>
-          <label class="cd043-radio" data-strategy="previous_evals">
+          <label class="xf-radio-card" data-strategy="previous_evals">
             <input type="radio" name="prefill_strategy" value="previous_evals">
-            <div><div class="t">3) تعبئة حسب التقييمات السابقة</div><div class="d">كل التقييمات السابقة المطابقة (كل تقييم في صف مستقل بسياقه التاريخي).</div></div>
+            <div>
+              <p class="xf-radio-card__title">3) التقييمات السابقة</p>
+              <p class="xf-radio-card__desc">كل التقييمات المطابقة — صف مستقل لكل تقييم بسياقه التاريخي.</p>
+            </div>
           </label>
-          <label class="cd043-radio" data-strategy="executing" id="cd043-radio-executing">
+          <label class="xf-radio-card" data-strategy="executing" id="cd043-radio-executing">
             <input type="radio" name="prefill_strategy" value="executing">
-            <div><div class="t">4) تعبئة حسب الجهة المنفذة</div><div class="d">للدورات/الورش: وفق البرنامج والفرع/القسم المنفذ (تُعطّل فلاتر الموظف).</div></div>
+            <div>
+              <p class="xf-radio-card__title">4) الجهة المنفذة</p>
+              <p class="xf-radio-card__desc">للدورات/الورش فقط: وفق البرنامج والفرع/القسم المنفذ (مع تعطيل فلاتر الموظف).</p>
+            </div>
           </label>
         </div>
-        <div id="cd043-prefill-warning" class="cd043-warning">
-          تنبيه: الملف سيُعبأ بتقييمات/بيانات سابقة (إن وجدت) كمرجع. لتجنب رفض الصفوف كـ (تقييم مكرر / E-017) يجب عليك تغيير <b>تاريخ التقييم</b> للأنواع الفردية/المهارية، أو تغيير <b>بيانات/سياق البرنامج</b> للدورات والورش قبل الاستيراد. النظام لا يقوم بتحديث التقييمات القديمة (لا Upsert).
+
+        <div id="cd043-prefill-warning" class="xf-callout xf-callout--warning xf-mt-2" style="display:none">
+          <i class="fas fa-exclamation-triangle"></i>
+          <div><strong>تنبيه مرجعي:</strong> قد يحتوي الملف على بيانات/تقييمات سابقة للرجوع إليها. لتجنب رفض الصفوف كتقييم مكرر (<b>E-017</b>) غيّر <b>تاريخ التقييم</b> (فردي/مهاري) أو <b>سياق/بيانات البرنامج</b> (دورة/ورشة) قبل الاستيراد. النظام لا يُحدّث التقييمات القديمة (لا Upsert).</div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <div class="cd043-card">
-    <div class="cd043-card-h">⑤ عدد الصفوف</div>
-    <div class="cd043-card-b">
-      <div class="cd043-fld">
-        <label for="cd043-rows">عدد صفوف البيانات</label>
-        <input type="number" id="cd043-rows" value="100" min="<?= max(50, (int)($limits['min_rows'] ?? 50)) ?>" max="<?= (int)($limits['max_rows'] ?? 2000) ?>" step="1">
+    <section class="xf-card">
+      <div class="xf-card__header">
+        <h2 class="xf-card__title"><i class="fas fa-list-ol"></i> 3) عدد الصفوف والتنزيل</h2>
       </div>
-      <div class="cd043-fld">
-        <div class="cd043-hint">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صفاً. عند تجاوز المتاح سيتم الاقتصاص وفق ترتيب حتمي (تنبيه تأكيد تفصيلي/Modal في Phase 3).</div>
-      </div>
-    </div>
-  </div>
+      <div class="xf-card__body">
+        <div class="xf-grid" style="align-items:end">
+          <div class="xf-field xf-col-4">
+            <label for="cd043-rows">عدد صفوف البيانات</label>
+            <input type="number" id="cd043-rows" class="xf-input" value="100" min="<?= max(50, (int)($limits['min_rows'] ?? 50)) ?>" max="<?= (int)($limits['max_rows'] ?? 2000) ?>" step="1">
+            <div class="xf-help">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صف.</div>
+          </div>
+          <div class="xf-field xf-col-8">
+            <div class="xf-callout xf-callout--info" style="margin:0">
+              <i class="fas fa-clipboard-check"></i>
+              <div>عند تجاوز العدد المتاح للحد المطلوب سيظهر تأكيد قبل التنزيل يوضح (المُصدَّر من أصل المتاح)، مع تطبيق اقتصاص حتمي. تُسجَّل عملية التصدير في سجل التدقيق (المستخدم، الوقت، القالب، النطاق، الاستراتيجية، العدّ).</div>
+            </div>
+          </div>
+        </div>
 
-  <div class="cd043-card">
-    <div class="cd043-card-h">⑥ تنزيل القالب</div>
-    <div class="cd043-card-b">
-      <div class="cd043-actions">
-        <div class="cd043-hint">سيتم تسجيل عملية التصدير في سجل التدقيق (المستخدم، الوقت، القالب، النطاق، الاستراتيجية، عدد الصفوف).</div>
-        <a id="cd043-download" class="cd043-btn cd043-btn-ok disabled" href="#">⬇ تنزيل ملف Excel</a>
+        <div class="xf-divider"></div>
+        <div class="xf-actions">
+          <div class="xf-actions__group">
+            <a href="<?= APP_URL ?>/evaluations/excel/import" class="xf-btn xf-btn--ghost"><i class="fas fa-arrow-right"></i> العودة للاستيراد</a>
+          </div>
+          <div class="xf-actions__group">
+            <a id="cd043-download" class="xf-btn xf-btn--primary is-disabled" href="#" aria-disabled="true">
+              <i class="fas fa-download"></i> <span class="xf-btn-label">تنزيل ملف Excel</span>
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div style="margin-bottom:14px">
-    <a href="<?= APP_URL ?>/evaluations/excel/import" class="cd043-btn cd043-btn-ghost">← شاشة الاستيراد</a>
+    </section>
   </div>
 </div>
+
+<!-- Modal: cap confirmation (A4) -->
+<div id="cd043-export-modal" class="xf-modal-backdrop" style="display:none" aria-hidden="true">
+  <div class="xf-modal" role="dialog" aria-modal="true" aria-labelledby="cd043-modal-title">
+    <div class="xf-modal__header">
+      <i class="fas fa-exclamation-circle" style="color:var(--xf-warning);font-size:1.1rem"></i>
+      <h3 id="cd043-modal-title" class="xf-modal__title">تأكيد التصدير</h3>
+    </div>
+    <div class="xf-modal__body">
+      <p id="cd043-modal-msg" class="xf-mb-0"></p>
+    </div>
+    <div class="xf-modal__footer">
+      <button type="button" id="cd043-modal-cancel" class="xf-btn xf-btn--secondary">إلغاء</button>
+      <button type="button" id="cd043-modal-confirm" class="xf-btn xf-btn--primary"><i class="fas fa-check"></i> متابعة التنزيل</button>
+    </div>
+  </div>
 </div>
+
 <script>
 (function () {
   var APP = <?= json_encode(APP_URL, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
@@ -251,6 +265,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   function programType() { return targetType() === 'employee_in_workshop' ? 'workshop' : 'course'; }
 
   function fillDepartments(selectEl, branchId, allLabel) {
+    if (!selectEl) return;
     selectEl.innerHTML = '<option value="">' + allLabel + '</option>';
     var items = BRANCHES[branchId] || [];
     items.forEach(function (d) {
@@ -264,15 +279,11 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   function syncEmployeeScopeFilters() {
     var s = getStrategy();
     var opt4 = isProgramType() && s === 'executing';
-    // Q1/Q5: in option 4 disable employee branch/dept filters
-    branch.disabled = opt4;
-    var deptEnabled = !opt4 && !!branch.value;
-    dept.disabled = !deptEnabled;
-    if (opt4) {
-      // keep UI consistent (values ignored by backend for opt4)
-      // do not clear to avoid user confusion on switch back, but disable
-    } else {
-      fillDepartments(dept, branch.value, 'كل الأقسام');
+    if (branch) branch.disabled = opt4;
+    var deptEnabled = !opt4 && !!(branch && branch.value);
+    if (dept) dept.disabled = !deptEnabled;
+    if (!opt4 && dept) {
+      fillDepartments(dept, branch ? branch.value : '', 'كل الأقسام');
     }
   }
 
@@ -281,15 +292,15 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     if (radioExec) {
       var input = radioExec.querySelector('input');
       if (!isProgram) {
-        radioExec.classList.add('disabled');
-        if (input) { input.disabled = true; if (input.checked) { document.querySelector('input[name="prefill_strategy"][value="blank"]').checked = true; } }
+        radioExec.classList.add('is-disabled');
+        if (input) { input.disabled = true; if (input.checked) { var b = document.querySelector('input[name="prefill_strategy"][value="blank"]'); if (b) b.checked = true; } }
       } else {
-        radioExec.classList.remove('disabled');
+        radioExec.classList.remove('is-disabled');
         if (input) { input.disabled = false; }
       }
     }
     var s = getStrategy();
-    warning.style.display = (s === 'org' || s === 'previous_evals' || s === 'executing') ? 'block' : 'none';
+    if (warning) warning.style.display = (s === 'org' || s === 'previous_evals' || s === 'executing') ? 'flex' : 'none';
     syncEmployeeScopeFilters();
     syncProgramBlock();
   }
@@ -297,8 +308,8 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   function fillPrograms() {
     if (!program) return;
     var type = programType();
-    var bId = progBranch.value ? parseInt(progBranch.value, 10) : 0;
-    var dId = progDept.value ? parseInt(progDept.value, 10) : 0;
+    var bId = progBranch && progBranch.value ? parseInt(progBranch.value, 10) : 0;
+    var dId = progDept && progDept.value ? parseInt(progDept.value, 10) : 0;
     var current = program.value;
     program.innerHTML = '<option value="">— اختر برنامجاً —</option>';
     PROGRAMS.filter(function (p) {
@@ -313,30 +324,26 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       program.appendChild(o);
     });
     if (current) { program.value = current; }
-    program.disabled = programScope.value !== 'single';
+    program.disabled = !(programScope && programScope.value === 'single');
   }
 
   function syncProgramBlock() {
     var isProgram = isProgramType();
     var strategy = getStrategy();
     var optExec = isProgram && strategy === 'executing';
-    programScopeWrap.style.display = isProgram ? '' : 'none';
-    var single = isProgram && programScope.value === 'single';
+    if (programScopeWrap) programScopeWrap.style.display = isProgram ? '' : 'none';
+    var single = isProgram && programScope && programScope.value === 'single';
     var showExecFilters = isProgram && (single || optExec);
-    programWrap.style.display = single ? '' : 'none';
-    progBranchWrap.style.display = showExecFilters ? '' : 'none';
-    progDeptWrap.style.display = showExecFilters ? '' : 'none';
-    progBranch.disabled = !showExecFilters;
-    progDept.disabled = !showExecFilters || !progBranch.value;
-    if (showExecFilters) {
-      fillDepartments(progDept, progBranch.value, 'كل الأقسام');
-      progDept.disabled = !progBranch.value;
+    if (programWrap) programWrap.style.display = single ? '' : 'none';
+    if (progBranchWrap) progBranchWrap.style.display = showExecFilters ? '' : 'none';
+    if (progDeptWrap) progDeptWrap.style.display = showExecFilters ? '' : 'none';
+    if (progBranch) progBranch.disabled = !showExecFilters;
+    if (progDept) progDept.disabled = !showExecFilters || !(progBranch && progBranch.value);
+    if (showExecFilters && progDept) {
+      fillDepartments(progDept, progBranch ? progBranch.value : '', 'كل الأقسام');
+      progDept.disabled = !(progBranch && progBranch.value);
     }
-    if (single) {
-      fillPrograms();
-    } else {
-      if (program) program.disabled = true;
-    }
+    if (single) { fillPrograms(); } else if (program) { program.disabled = true; }
   }
 
   function buildParams() {
@@ -346,16 +353,16 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     params.set('template_id', templateId);
     var strategy = getStrategy();
     params.set('prefill_strategy', strategy);
-    if (branch.value) params.set('branch_id', branch.value);
-    if (dept.value) params.set('department_id', dept.value);
+    if (branch && branch.value) params.set('branch_id', branch.value);
+    if (dept && dept.value) params.set('department_id', dept.value);
     if (isProgramType()) {
-      params.set('program_scope', programScope.value);
-      if (programScope.value === 'single') {
-        if (!program.value) return null;
+      params.set('program_scope', programScope ? programScope.value : 'all');
+      if (programScope && programScope.value === 'single') {
+        if (!program || !program.value) return null;
         params.set('program_id', program.value);
       }
-      if (progBranch.value) params.set('executing_branch_id', progBranch.value);
-      if (progDept.value) params.set('executing_department_id', progDept.value);
+      if (progBranch && progBranch.value) params.set('executing_branch_id', progBranch.value);
+      if (progDept && progDept.value) params.set('executing_department_id', progDept.value);
     }
     var minRows = parseInt(rows.getAttribute('min'), 10) || 50;
     var maxRows = parseInt(rows.getAttribute('max'), 10) || 2000;
@@ -370,10 +377,39 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   function updateLink() {
     if (!link) return;
     var params = buildParams();
-    if (!params) { link.classList.add('disabled'); link.setAttribute('href', '#'); link.dataset.ready = '0'; return; }
+    if (!params) {
+      link.classList.add('is-disabled');
+      link.setAttribute('href', '#');
+      link.setAttribute('aria-disabled', 'true');
+      link.dataset.ready = '0';
+      return;
+    }
     link.setAttribute('href', APP + '/evaluations/excel/export/download?' + params.toString());
     link.dataset.ready = '1';
-    link.classList.remove('disabled');
+    link.classList.remove('is-disabled');
+    link.setAttribute('aria-disabled', 'false');
+  }
+
+  function setLinkLoading(loading) {
+    if (!link) return;
+    var label = link.querySelector('.xf-btn-label');
+    if (loading) {
+      link.classList.add('is-loading', 'is-disabled');
+      link.setAttribute('aria-disabled', 'true');
+      if (label) label.textContent = 'جارٍ التحقق من العدد...';
+      if (!link.querySelector('.xf-spinner')) {
+        var sp = document.createElement('span');
+        sp.className = 'xf-spinner';
+        sp.setAttribute('aria-hidden', 'true');
+        link.insertBefore(sp, label || link.firstChild);
+      }
+    } else {
+      link.classList.remove('is-loading');
+      var sp = link.querySelector('.xf-spinner');
+      if (sp) sp.remove();
+      if (label) label.textContent = 'تنزيل ملف Excel';
+      updateLink();
+    }
   }
 
   function showExportModal(message, onConfirm) {
@@ -397,26 +433,23 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
 
   if (link) {
     link.addEventListener('click', function (e) {
-      if (link.classList.contains('disabled') || link.dataset.ready !== '1') { e.preventDefault(); return; }
+      if (link.classList.contains('is-disabled') || link.dataset.ready !== '1') { e.preventDefault(); return; }
       var params = buildParams();
       if (!params) { e.preventDefault(); return; }
       e.preventDefault();
       var downloadUrl = APP + '/evaluations/excel/export/download?' + params.toString();
       var countUrl = APP + '/evaluations/excel/export/count?' + params.toString();
-      var originalText = link.textContent;
-      link.classList.add('disabled');
-      link.textContent = '???? ??????...';
+      setLinkLoading(true);
       fetch(countUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(function (r) { return r.json().catch(function(){ return {ok:false,message:'????? ????? ?????????.'}; }); })
+        .then(function (r) { return r.json().catch(function(){ return {ok:false,message:'تعذّر قراءة الاستجابة من الخادم.'}; }); })
         .then(function (data) {
-          link.textContent = originalText;
-          updateLink();
-          if (!data || !data.ok) { alert((data && data.message) ? data.message : '????? ???? ??? ??????? ???????.'); return; }
+          setLinkLoading(false);
+          if (!data || !data.ok) { alert((data && data.message) ? data.message : 'تعذّر حساب عدد السجلات المتاحة حالياً.'); return; }
           var total = parseInt(data.total_available, 10) || 0;
           var exported = parseInt(data.exported_rows, 10) || 0;
           var capped = !!data.capped;
           if (capped && total > exported) {
-            showExportModal('???? ????? ' + exported + ' ?? ??? ' + total + ' ??? (????? ???? ?????? ??????). ?? ???? ?????????', function () {
+            showExportModal('سيتم تصدير ' + exported + ' صفاً من أصل ' + total + ' متاح (تجاوز الحد الأقصى المحدد). هل ترغب في المتابعة بالتنزيل؟', function () {
               window.location.href = downloadUrl;
             });
             return;
@@ -424,9 +457,8 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
           window.location.href = downloadUrl;
         })
         .catch(function () {
-          link.textContent = originalText;
-          updateLink();
-          alert('????? ?????? ?? ??? ??????? ??????. ???? ??? ????.');
+          setLinkLoading(false);
+          alert('تعذّر التحقق من عدد السجلات حالياً. يرجى المحاولة مرة أخرى.');
         });
     });
   }
@@ -435,17 +467,16 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
 
   if (tpl) tpl.addEventListener('change', function () { syncProgramBlock(); syncStrategyUI(); updateLink(); });
   if (branch) branch.addEventListener('change', function () {
-    fillDepartments(dept, branch.value, '?? ???????');
-    dept.disabled = !branch.value || (getStrategy()==='executing' && isProgramType());
+    fillDepartments(dept, branch.value, 'كل الأقسام');
+    if (dept) dept.disabled = !branch.value || (getStrategy()==='executing' && isProgramType());
     updateLink();
   });
   if (dept) dept.addEventListener('change', updateLink);
   if (programScope) programScope.addEventListener('change', function () { syncProgramBlock(); updateLink(); });
   if (program) program.addEventListener('change', updateLink);
   if (progBranch) progBranch.addEventListener('change', function () {
-    fillDepartments(progDept, progBranch.value, '?? ???????');
-    progDept.value = '';
-    progDept.disabled = !progBranch.value;
+    fillDepartments(progDept, progBranch.value, 'كل الأقسام');
+    if (progDept) { progDept.value = ''; progDept.disabled = !progBranch.value; }
     fillPrograms();
     updateLink();
   });
@@ -453,11 +484,12 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   if (rows) rows.addEventListener('input', updateLink);
   document.querySelectorAll('input[name="prefill_strategy"]').forEach(function(r){ r.addEventListener('change', onStrategyChange); });
 
-    fillDepartments(dept, '', 'كل الأقسام');
+  fillDepartments(dept, '', 'كل الأقسام');
   fillDepartments(progDept, '', 'كل الأقسام');
   syncProgramBlock();
   syncStrategyUI();
   updateLink();
 })();
 </script>
+
 <?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; ?>

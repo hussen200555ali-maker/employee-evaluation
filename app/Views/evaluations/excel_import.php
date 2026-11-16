@@ -18,13 +18,13 @@ $typeLabels = [
     'unit' => 'وحدة',
 ];
 $typeIcons = [
-    'employee' => '①',
-    'skill' => '④',
-    'employee_in_course' => '②',
-    'employee_in_workshop' => '③',
-    'course' => '⑤',
-    'workshop' => '⑥',
-    'unit' => '⑦',
+    'employee' => 'fa-user',
+    'skill' => 'fa-tools',
+    'employee_in_course' => 'fa-chalkboard-teacher',
+    'employee_in_workshop' => 'fa-users-cog',
+    'course' => 'fa-book',
+    'workshop' => 'fa-cogs',
+    'unit' => 'fa-sitemap',
 ];
 $typeOrder = ['employee','skill','employee_in_course','employee_in_workshop','course','workshop','unit'];
 $templatesByType = [];
@@ -33,174 +33,217 @@ foreach ($templates as $tpl) {
 }
 $availableTypes = array_values(array_intersect($typeOrder, array_keys($templatesByType)));
 ?>
-<style>
-.cd042-wrap{background:#f5f8f6;min-height:100vh;direction:rtl;font-family:'Cairo',sans-serif}
-.cd042-page{max-width:1100px;margin:0 auto;padding:14px}
-.cd042-hdr{background:linear-gradient(135deg,#0c2823,#0d5e52);color:#fff;padding:14px 20px;border-radius:10px;margin-bottom:10px;position:relative}
-.cd042-hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:#c8943f}
-.cd042-hdr h2{font-size:16px;font-weight:800;margin:0}
-.cd042-hdr .sub{font-size:11px;opacity:.8;margin-top:2px}
-.cd042-alert{padding:10px 14px;border-radius:8px;font-size:11px;display:flex;gap:8px;margin-bottom:10px;background:#fff3cd;color:#856404;border:1px solid #ffe69b}
-.cd042-card{background:#fff;border:1px solid #e0e8e4;border-radius:10px;margin-bottom:10px;overflow:hidden}
-.cd042-card-h{background:linear-gradient(180deg,#fbfdfc,#f1f7f3);padding:10px 16px;border-bottom:1px solid #e0e8e4;font-weight:800;color:#0c2823;font-size:13px;display:flex;align-items:center;gap:8px}
-.cd042-card-b{padding:14px 16px}
-.cd042-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:10px;align-items:end}
-.cd042-fld label{display:block;font-size:10px;color:#6c757d;font-weight:700;margin-bottom:3px}
-.cd042-fld select,.cd042-fld input{width:100%;padding:8px 10px;border:1px solid #e0e8e4;border-radius:6px;font-family:'Cairo';font-size:12px;background:#fff}
-.cd042-btn{padding:9px 18px;border:none;border-radius:8px;font-family:'Cairo';font-size:12px;font-weight:700;cursor:pointer;display:inline-block;text-decoration:none}
-.cd042-btn-ok{background:#1b6b32;color:#fff}
-.cd042-btn-p{background:#0c2823;color:#c8943f}
-.cd042-btn-ghost{background:#e8e8e8;color:#6c757d}
-.cd042-btn-ok:hover,.cd042-btn-p:hover{transform:translateY(-1px)}
-.cd042-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
-.cd042-stat{background:#fff;border:1px solid #e0e8e4;border-radius:8px;padding:10px;text-align:center}
-.cd042-stat .v{font-size:20px;font-weight:800;color:#0c2823}
-.cd042-stat .l{font-size:10px;color:#6c757d;font-weight:600;margin-top:2px}
-.cd042-table{width:100%;border-collapse:collapse;font-size:11px}
-.cd042-table th{background:#0c2823;color:#c8943f;padding:8px 6px;text-align:center;font-size:10px}
-.cd042-table td{padding:6px;border-bottom:1px solid #e0e8e4;text-align:center}
-.cd042-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700}
-.cd042-badge-ok{background:#e6f4ea;color:#1b6b32}
-.cd042-badge-new{background:#faefd9;color:#c8943f}
-.cd042-badge-err{background:#fdecea;color:#c62828}
-/* preview panel */
-.preview-wrap{background:#fff;border:1px solid #e0e8e4;border-radius:10px;margin-bottom:10px;overflow:hidden}
-.preview-tabs{display:flex;gap:4px;padding:8px 12px;background:linear-gradient(180deg,#fbfdfc,#f1f7f3);border-bottom:1px solid #e0e8e4;flex-wrap:wrap}
-.ptab{padding:6px 14px;border:1.5px solid #e0e8e4;border-radius:7px;background:#fff;cursor:pointer;font-family:'Cairo';font-size:11px;font-weight:700;color:#6c757d;transition:all .15s}
-.ptab:hover{border-color:#c8943f}
-.ptab.active{background:#0c2823;color:#c8943f;border-color:#0c2823}
-.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#fff;border-radius:8px;margin-bottom:10px;font-size:9px;border:1px solid #e0e8e4}
-.lg{display:flex;align-items:center;gap:4px}
-.lg-c{width:14px;height:14px;border-radius:3px;border:1px solid #e0e8e4}
-.preview-scroll{overflow-x:auto;padding:10px 12px}
-table.xl{border-collapse:collapse;font-size:10px;min-width:700px}
-table.xl th{padding:6px 4px;text-align:center;font-weight:700;border:1px solid #d1d5db}
-table.xl th.col-ltr{background:#0c2823;color:#c8943f;font-size:9px}
-table.xl th.emp{background:#0c2823;color:#fff}
-table.xl th.crit{background:#0c2823;color:#fff}
-table.xl th.sec{background:#d1e7dd;color:#0c2823;font-size:9px}
-table.xl th.gnotes{background:#374151;color:#fff;font-size:9px}
-table.xl th.eval{background:#374151;color:#fff;font-size:9px}
-table.xl th .star{color:#f87171}
-table.xl th .w{display:block;font-size:8px;color:#c8943f;font-weight:600}
-table.xl th .dd{display:block;font-size:8px;color:#9ca3af}
-table.xl th .tag{display:block;font-size:8px;color:#6b7280}
-table.xl td{padding:4px 6px;border:1px solid #e5e7eb;text-align:center;font-size:10px}
-table.xl td.d{background:#fffbeb}
-table.xl td.new{background:#faefd9}
-table.xl td.rn{background:#f3f4f6;color:#6b7280;font-weight:700}
-/* upload zone */
-.upload-zone{border:2px dashed #c8943f;border-radius:10px;padding:24px;text-align:center;background:#faf7f0;cursor:pointer;transition:all .15s}
-.upload-zone:hover,.upload-zone.drag{background:#f5efe3;border-color:#0c2823}
-.upload-zone .icon{font-size:32px;margin-bottom:6px}
-.upload-zone .title{font-size:13px;font-weight:700;color:#0c2823}
-.upload-zone .sub{font-size:10px;color:#6c757d;margin-top:4px}
-.upload-info{margin-top:8px;font-size:11px;color:#1b6b32;font-weight:600}
-/* sticky bar */
-.sticky-bar{position:sticky;bottom:0;background:rgba(255,255,255,.85);backdrop-filter:blur(6px);border-top:1px solid #e0e8e4;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;border-radius:10px 10px 0 0}
-.sticky-bar .note{font-size:10px;color:#6c757d}
-.sticky-bar .actions{display:flex;gap:8px}
-@media(max-width:768px){.cd042-grid{grid-template-columns:1fr 1fr}.cd042-stats{grid-template-columns:1fr 1fr}.preview-scroll{overflow-x:scroll}table.xl{min-width:900px}.sticky-bar{flex-direction:column;align-items:stretch}}
-</style>
-<div class="cd042-wrap">
-<div class="cd042-page">
-<div class="cd042-hdr">
-  <h2>📥 استيراد نتائج التقييم من Excel</h2>
-  <div class="sub">CD-043 · تصدير قالب ← تعبئة ← رفع ← معاينة ← التزام · <a href="<?= APP_URL ?>/evaluations/excel/export" style="color:#c8943f;font-weight:700;text-decoration:none">شاشة التصدير ↗</a></div>
-</div>
-<div class="cd042-alert">
-  <span>⚠️</span>
-  <div><strong>ملاحظة:</strong> يمكنك إضافة موظفين جدد من خلال هذا الملف. تأكد من إدخال (الاسم أو الرقم الوظيفي) و (الفرع أو القسم) لكل موظف.</div>
-</div>
-<?php if ($preview === null): ?>
-<!-- ===== Preview panel: template structure ===== -->
-<div class="preview-wrap">
-  <div class="preview-tabs" id="cd042-tabs"></div>
-  <div class="legend">
-    <div class="lg"><div class="lg-c" style="background:#0c2823"></div>الترويسة</div>
-    <div class="lg"><div class="lg-c" style="background:#d1e7dd"></div>الأقسام</div>
-    <div class="lg"><div class="lg-c" style="background:#c8943f"></div>الوزن</div>
-    <div class="lg"><div class="lg-c" style="background:#fffbeb"></div>قائمة منسدلة</div>
-    <div class="lg"><div class="lg-c" style="background:#f0f7ff"></div>رقم</div>
-    <div class="lg"><div class="lg-c" style="background:#fcfcfc"></div>نصّي</div>
-    <div class="lg"><div class="lg-c" style="background:#faefd9"></div>موظف جديد</div>
+<link rel="stylesheet" href="<?= APP_URL ?>/public/css/excel-flow.css?v=1.0">
+
+<div class="xf-page">
+  <div class="xf-container">
+    <header class="xf-page-header">
+      <div class="xf-page-header__row">
+        <div>
+          <h1 class="xf-page-header__title"><i class="fas fa-file-import" aria-hidden="true"></i> استيراد تقييمات Excel</h1>
+          <p class="xf-page-header__sub">تنزيل/مطابقة القالب، رفع الملف، معاينة النتائج والتحقق، ثم اعتماد الاستيراد ضمن تدفق مؤسسي آمن.</p>
+        </div>
+        <div class="xf-page-header__meta">
+          <span class="xf-chip"><i class="fas fa-shield-alt"></i> تحقق قبل الالتزام</span>
+          <a class="xf-chip xf-chip--light" href="<?= APP_URL ?>/evaluations/excel/export"><i class="fas fa-file-export"></i> شاشة التصدير</a>
+        </div>
+      </div>
+    </header>
+
+    <ol class="xf-steps" aria-label="خطوات الاستيراد">
+      <li class="xf-step <?= $preview === null ? 'is-active' : '' ?>"><span class="xf-step__num">1</span> القالب والرفع</li>
+      <li class="xf-step <?= $preview !== null ? 'is-active' : '' ?>"><span class="xf-step__num">2</span> المعاينة والتحقق</li>
+      <li class="xf-step"><span class="xf-step__num">3</span> اعتماد الاستيراد</li>
+    </ol>
+
+    <?php if ($preview === null): ?>
+      <div class="xf-callout xf-callout--info" style="margin-bottom:14px">
+        <i class="fas fa-info-circle"></i>
+        <div><strong>ملاحظة:</strong> يمكن إضافة موظفين جدد عبر الملف عند استيفاء الحقول المطلوبة (الاسم أو الرقم الوظيفي، والفرع/القسم حسب القالب). استخدم القالب المطابق لتجنب أخطاء البنية.</div>
+      </div>
+
+      <section class="xf-card">
+        <div class="xf-card__header">
+          <h2 class="xf-card__title"><i class="fas fa-table"></i> معاينة هيكل القوالب</h2>
+          <div class="xf-muted" style="font-size:.8rem">استعرض الأعمدة والمتطلبات حسب نوع القالب قبل التعبئة</div>
+        </div>
+        <div class="xf-tabs" id="cd042-tabs"></div>
+        <div class="xf-legend">
+          <span class="xf-legend__item"><span class="xf-swatch" style="background:#334e68"></span> حقول تعريف/ثابتة</span>
+          <span class="xf-legend__item"><span class="xf-swatch" style="background:#0f766e"></span> معيار/مجموعة</span>
+          <span class="xf-legend__item"><span class="xf-swatch" style="background:#e6f4f1"></span> أقسام التقييم</span>
+          <span class="xf-legend__item"><span class="xf-swatch" style="background:#eff8ff"></span> قائمة/اختيار</span>
+          <span class="xf-legend__item"><span class="xf-swatch" style="background:#f8fbff"></span> رقمي/تاريخ</span>
+          <span class="xf-legend__item"><span class="xf-swatch" style="background:#fffaf0"></span> صف مثال</span>
+        </div>
+        <div class="xf-card__body xf-card__body--flush">
+          <div id="cd042-preview" class="xf-table-wrap xf-table-wrap--preview" style="padding:10px 12px"></div>
+        </div>
+      </section>
+
+      <div class="xf-grid">
+        <section class="xf-card xf-col-6">
+          <div class="xf-card__header">
+            <h2 class="xf-card__title"><i class="fas fa-file-download"></i> الحصول على القالب</h2>
+          </div>
+          <div class="xf-card__body">
+            <p class="xf-section-desc">لضمان توافق البنية والاعتمادات (القوائم، النطاق، عدد الصفوف، واستراتيجيات التعبئة)، استخدم شاشة التصدير المعتمدة.</p>
+            <a href="<?= APP_URL ?>/evaluations/excel/export" class="xf-btn xf-btn--secondary"><i class="fas fa-external-link-alt"></i> فتح شاشة التصدير</a>
+          </div>
+        </section>
+
+        <section class="xf-card xf-col-6">
+          <div class="xf-card__header">
+            <h2 class="xf-card__title"><i class="fas fa-cloud-upload-alt"></i> رفع الملف للمعاينة</h2>
+          </div>
+          <div class="xf-card__body">
+            <form method="post" action="<?= APP_URL ?>/evaluations/excel/preview" enctype="multipart/form-data" id="cd042-upload-form">
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+              <label class="xf-upload" id="cd042-zone" for="cd042-file">
+                <div class="xf-upload__icon"><i class="fas fa-file-excel"></i></div>
+                <p class="xf-upload__title">اسحب ملف XLSX هنا أو انقر للاختيار</p>
+                <p class="xf-upload__sub">الامتداد .xlsx فقط · الحد الأقصى 20 ميجابايت · يُفضّل استخدام القالب المُصدَّر من النظام</p>
+                <input type="file" id="cd042-file" name="workbook" accept=".xlsx" required hidden>
+              </label>
+              <div class="xf-fileinfo" id="cd042-fileinfo"></div>
+              <div class="xf-actions" style="margin-top:12px;justify-content:flex-end">
+                <button type="submit" class="xf-btn xf-btn--primary" id="cd042-preview-btn"><i class="fas fa-search"></i> <span class="xf-btn-label">معاينة والتحقق</span></button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+
+    <?php else: ?>
+      <?php
+        $total = (int)($preview['total'] ?? 0);
+        $valid = (int)($preview['valid'] ?? 0);
+        $invalid = (int)($preview['invalid'] ?? 0);
+        $newEmp = (int)($preview['new_employees'] ?? 0);
+      ?>
+      <div class="xf-stats">
+        <div class="xf-stat xf-stat--neutral">
+          <div class="xf-stat__icon"><i class="fas fa-list"></i></div>
+          <div><div class="xf-stat__value"><?= $total ?></div><div class="xf-stat__label">إجمالي الصفوف</div></div>
+        </div>
+        <div class="xf-stat xf-stat--success">
+          <div class="xf-stat__icon"><i class="fas fa-check-circle"></i></div>
+          <div><div class="xf-stat__value"><?= $valid ?></div><div class="xf-stat__label">صفوف صالحة</div></div>
+        </div>
+        <div class="xf-stat xf-stat--warning">
+          <div class="xf-stat__icon"><i class="fas fa-user-plus"></i></div>
+          <div><div class="xf-stat__value"><?= $newEmp ?></div><div class="xf-stat__label">موظفون جدد</div></div>
+        </div>
+        <div class="xf-stat xf-stat--danger">
+          <div class="xf-stat__icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <div><div class="xf-stat__value"><?= $invalid ?></div><div class="xf-stat__label">صفوف بأخطاء</div></div>
+        </div>
+      </div>
+
+      <?php if ($invalid > 0): ?>
+        <div class="xf-callout xf-callout--danger" style="margin-bottom:14px">
+          <i class="fas fa-times-circle"></i>
+          <div><strong>توجد أخطاء تحتاج معالجة.</strong> يرجى تصحيح الصفوف الموضحة أدناه في ملف Excel ثم إعادة الرفع. لن يتم اعتماد الاستيراد إلا بعد خلوه من الأخطاء.</div>
+        </div>
+      <?php else: ?>
+        <div class="xf-callout xf-callout--success" style="margin-bottom:14px">
+          <i class="fas fa-check-circle"></i>
+          <div><strong>الملف جاهز للاعتماد.</strong> تمت معاينة جميع الصفوف بنجاح ويمكنك تأكيد الاستيراد.</div>
+        </div>
+      <?php endif; ?>
+
+      <section class="xf-card">
+        <div class="xf-card__header">
+          <h2 class="xf-card__title"><i class="fas fa-clipboard-list"></i> نتائج المعاينة</h2>
+          <div class="xf-muted" style="font-size:.8rem">يتم تمييز الصفوف والأعمدة المهمة لتسهيل المراجعة</div>
+        </div>
+        <div class="xf-card__body xf-card__body--flush">
+          <div class="xf-table-wrap" style="max-height:65vh">
+            <table class="xf-table">
+              <thead>
+                <tr>
+                  <th class="is-status is-id">#</th>
+                  <th class="is-status">الحالة</th>
+                  <th class="is-id col-important">الرقم الوظيفي</th>
+                  <th class="col-important">الاسم</th>
+                  <th class="col-important">الفرع</th>
+                  <th class="col-important">القسم</th>
+                  <th class="col-important">تاريخ التقييم</th>
+                  <th>مقتطف/درجات</th>
+                  <th style="min-width:260px">النتيجة والملاحظات</th>
+                </tr>
+              </thead>
+              <tbody>
+              <?php foreach (($preview['rows'] ?? []) as $row): ?>
+                <?php
+                  $err = !empty($row['errors']);
+                  $isNew = !empty($row['is_new_employee']);
+                  $rowCls = $err ? 'xf-row--err' : ($isNew ? 'xf-row--new' : 'xf-row--ok');
+                ?>
+                <tr class="<?= $rowCls ?>">
+                  <td class="is-status is-id xf-num"><?= (int)($row['row'] ?? 0) ?></td>
+                  <td class="is-status">
+                    <?php if ($err): ?>
+                      <span class="xf-badge xf-badge--err"><i class="fas fa-times-circle"></i> خطأ</span>
+                    <?php elseif ($isNew): ?>
+                      <span class="xf-badge xf-badge--new"><i class="fas fa-user-plus"></i> جديد</span>
+                    <?php else: ?>
+                      <span class="xf-badge xf-badge--ok"><i class="fas fa-check-circle"></i> صالح</span>
+                    <?php endif; ?>
+                  </td>
+                  <td class="is-id col-important"><?= htmlspecialchars($row['payload']['emp_code'] ?? '—') ?></td>
+                  <td class="col-important"><?= htmlspecialchars($row['payload']['full_name'] ?? '—') ?></td>
+                  <td class="col-important"><?= htmlspecialchars($row['payload']['branch_name'] ?? '—') ?></td>
+                  <td class="col-important"><?= htmlspecialchars($row['payload']['department_name'] ?? '—') ?></td>
+                  <td class="col-important xf-num"><?= htmlspecialchars($row['payload']['evaluation_date'] ?? '—') ?></td>
+                  <td>
+                    <?php if (!empty($row['section_values'])): ?>
+                      <?php $vals = array_values($row['section_values']); $shown = array_slice($vals, 0, 3); ?>
+                      <span class="xf-muted" title="<?= htmlspecialchars(implode(' | ', array_map('strval', $vals))) ?>">
+                        <?= htmlspecialchars(implode(' · ', array_map(static fn($v) => mb_strimwidth((string)$v, 0, 24, '…'), $shown))) ?>
+                        <?= count($vals) > 3 ? ' …' : '' ?>
+                      </span>
+                    <?php else: ?>—<?php endif; ?>
+                  </td>
+                  <td>
+                    <?php if ($err): ?>
+                      <ul class="xf-errors"><?php foreach ($row['errors'] as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul>
+                    <?php else: ?>
+                      <span class="xf-badge xf-badge--ok"><i class="fas fa-check"></i> جاهز للاستيراد</span>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <?php if ($invalid === 0 && $valid > 0): ?>
+        <form method="post" action="<?= APP_URL ?>/evaluations/excel/commit/<?= (int)($preview['batch_id'] ?? 0) ?>" id="cd042-commit-form">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+          <div class="xf-sticky-bar">
+            <div class="xf-sticky-bar__note"><i class="fas fa-lock"></i> القالب المعتمد: تم التحقق من البنية — سيتم استيراد <strong><?= $valid ?></strong> صفاً صالحاً فقط.</div>
+            <div class="xf-actions__group">
+              <a href="<?= APP_URL ?>/evaluations/excel/import" class="xf-btn xf-btn--secondary"><i class="fas fa-redo"></i> إعادة الرفع</a>
+              <button type="submit" class="xf-btn xf-btn--success" id="cd042-commit-btn"><i class="fas fa-check-double"></i> <span class="xf-btn-label">تأكيد واعتماد الاستيراد</span></button>
+            </div>
+          </div>
+        </form>
+      <?php else: ?>
+        <div class="xf-sticky-bar">
+          <div class="xf-sticky-bar__note"><i class="fas fa-info-circle"></i> لا يمكن الاعتماد لوجود أخطاء أو عدم وجود صفوف صالحة. قم بتصحيح الملف وأعد المعاينة.</div>
+          <div class="xf-actions__group">
+            <a href="<?= APP_URL ?>/evaluations/excel/import" class="xf-btn xf-btn--primary"><i class="fas fa-arrow-right"></i> العودة وإعادة الرفع</a>
+          </div>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
+
   </div>
-  <div class="preview-scroll" id="cd042-preview"></div>
 </div>
-<!-- ===== Export panel ===== -->
-<div class="cd042-card">
-  <div class="cd042-card-h">📤 تصدير قالب Excel (SRS §6)</div>
-  <div class="cd042-card-b">
-    <div style="font-size:11px;color:#6c757d;margin-bottom:10px">لتصدير قالب مطابق لـ SRS (4 أنواع: فردي/مهاري/دورة/ورشة، فلاتر البرنامج، 50–2000 صف) استخدم شاشة التصدير المخصصة.</div>
-    <a href="<?= APP_URL ?>/evaluations/excel/export" class="cd042-btn cd042-btn-ok">↗ فتح شاشة التصدير</a>
-  </div>
-</div>
-<!-- ===== Upload zone ===== -->
-<div class="cd042-card">
-  <div class="cd042-card-h">② رفع الملف المعبّأ</div>
-  <div class="cd042-card-b">
-    <form method="post" action="<?= APP_URL ?>/evaluations/excel/preview" enctype="multipart/form-data" id="cd042-upload-form">
-      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-      <label class="upload-zone" id="cd042-zone" for="cd042-file">
-        <div class="icon">📁</div>
-        <div class="title">اسحب ملف XLSX هنا أو انقر للاختيار</div>
-        <div class="sub">حد أقصى ٢٠ ميغابايت (يتّسع لـ 2000 موظف) · .xlsx فقط · استعمل القالب المُصدّر</div>
-        <input type="file" id="cd042-file" name="workbook" accept=".xlsx" required hidden>
-      </label>
-      <div class="upload-info" id="cd042-fileinfo"></div>
-      <div style="margin-top:10px"><button type="submit" class="cd042-btn cd042-btn-p">🔍 معاينة</button></div>
-    </form>
-  </div>
-</div>
-<?php else: ?>
-<div class="cd042-stats">
-  <div class="cd042-stat"><div class="v"><?= (int)($preview['total']??0) ?></div><div class="l">إجمالي الصفوف</div></div>
-  <div class="cd042-stat"><div class="v" style="color:#1b6b32"><?= (int)($preview['valid']??0) ?></div><div class="l">صالحة</div></div>
-  <div class="cd042-stat"><div class="v" style="color:#c8943f"><?= (int)($preview['new_employees']??0) ?></div><div class="l">موظف جديد</div></div>
-  <div class="cd042-stat"><div class="v" style="color:#c62828"><?= (int)($preview['invalid']??0) ?></div><div class="l">أخطاء</div></div>
-</div>
-<?php if(($preview['invalid']??0)>0): ?><div class="cd042-alert" style="background:#fdecea;color:#c62828;border-color:#f5c6cb"><span>✕</span><div>يوجد أخطاء — صحّحها وأعد الرفع.</div></div><?php endif; ?>
-<div class="cd042-card">
-  <div class="cd042-card-h">معاينة البيانات</div>
-  <div style="overflow-x:auto">
-    <table class="cd042-table">
-      <thead><tr><th>#</th><th>الحالة</th><th>الرقم</th><th>الاسم</th><th>الفرع</th><th>القسم</th><th>التاريخ</th><th>الدرجات</th><th>النتيجة</th></tr></thead>
-      <tbody>
-      <?php foreach(($preview['rows']??[]) as $row): ?>
-        <?php $err = !empty($row['errors']); $isNew = !empty($row['is_new_employee']); ?>
-        <tr style="background:<?= $err?'#fdecea':($isNew?'#faefd9':'#f0fdf4') ?>">
-          <td><?= (int)($row['row']??0) ?></td>
-          <td><?php if($err): ?><span class="cd042-badge cd042-badge-err">✕ خطأ</span><?php elseif($isNew): ?><span class="cd042-badge cd042-badge-new">＋ جديد</span><?php else: ?><span class="cd042-badge cd042-badge-ok">✓ صالح</span><?php endif; ?></td>
-          <td><?= htmlspecialchars($row['payload']['emp_code']??'—') ?></td>
-          <td><?= htmlspecialchars($row['payload']['full_name']??'—') ?></td>
-          <td><?= htmlspecialchars($row['payload']['branch_name']??'—') ?></td>
-          <td><?= htmlspecialchars($row['payload']['department_name']??'—') ?></td>
-          <td dir="ltr"><?= htmlspecialchars($row['payload']['evaluation_date']??'—') ?></td>
-          <td><?php if(!empty($row['section_values'])): foreach($row['section_values'] as $v): ?><span style="border:1px solid #e0e8e4;padding:1px 4px;border-radius:3px;margin:1px"><?= htmlspecialchars((string)$v) ?></span><?php endforeach; else: ?>—<?php endif; ?></td>
-          <td><?php if($err): ?><ul style="margin:0;padding-right:14px;font-size:10px;color:#c62828"><?php foreach($row['errors'] as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul><?php else: ?>✓<?php endif; ?></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-<?php if(($preview['invalid']??0)==0 && ($preview['valid']??0)>0): ?>
-<form method="post" action="<?= APP_URL ?>/evaluations/excel/commit/<?= (int)($preview['batch_id']??0) ?>" id="cd042-commit-form" style="margin-top:10px">
-  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-  <div class="sticky-bar">
-    <div class="note">القالب محمي: تعديل البيانات فقط — لا إضافة أعمدة أو تغيير أنواع الخلايا</div>
-    <div class="actions">
-      <a href="<?= APP_URL ?>/evaluations/excel/import" class="cd042-btn cd042-btn-ghost">↺ تفريغ</a>
-      <button type="submit" class="cd042-btn cd042-btn-ok" id="cd042-commit-btn">✅ تأكيد الاستيراد — <?= (int)($preview['valid']??0) ?> تقييم</button>
-    </div>
-  </div>
-</form>
-<?php else: ?>
-<a href="<?= APP_URL ?>/evaluations/excel/import" class="cd042-btn cd042-btn-p">← العودة</a>
-<?php endif; ?>
-<?php endif; ?>
-</div>
-</div>
+
 <script>
 var APP_URL_CONST = "<?= APP_URL ?>";
 var CD042_STRUCTURES = <?= json_encode($templateStructures, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
@@ -208,8 +251,8 @@ var CD042_TEMPLATES = <?= json_encode(array_map(function($t){return ['id'=>(int)
 var CD042_TYPE_LABELS = <?= json_encode($typeLabels, JSON_UNESCAPED_UNICODE) ?>;
 var CD042_TYPE_ICONS = <?= json_encode($typeIcons, JSON_UNESCAPED_UNICODE) ?>;
 var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
+
 (function(){
-  // Group templates by type
   var byType = {};
   CD042_TEMPLATES.forEach(function(t){ (byType[t.type]=byType[t.type]||[]).push(t); });
   var tabsEl = document.getElementById('cd042-tabs');
@@ -232,15 +275,19 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     dlLink.href = url;
   }
 
+  function isImportantCol(c){
+    if(!c) return false;
+    if(c.kind === 'tail') return (c.key === 'evaluation_date' || c.key === 'evaluator_name');
+    if(c.kind === 'fixed') return ['employee_name','employee_code','employee_branch','employee_department','program_title'].indexOf(c.key) !== -1;
+    return c.kind === 'overall_grade';
+  }
+
   function renderPreview(tplId){
     var st = CD042_STRUCTURES[tplId];
     if(!st || !previewEl) return;
     var cols = st.columns || [];
-    // group consecutive sections by 'group'
-    // letter row
-    var html = '<table class="xl"><thead>';
-    // row 1: letters
-    html += '<tr><th class="col-ltr" style="min-width:28px"></th>';
+    var html = '<div class="xf-table-wrap"><table class="xl"><thead>';
+    html += '<tr><th class="col-ltr" style="min-width:34px">#</th>';
     var i = 0;
     while (i < cols.length) {
       var span = 1;
@@ -252,7 +299,6 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
       i += span;
     }
     html += '</tr>';
-    // row 2: fixed/tail labels (rowspan 2) + criterion headers (colspan)
     html += '<tr><th class="rn"></th>';
     i = 0;
     while (i < cols.length) {
@@ -260,110 +306,90 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
       if (c.kind === 'fixed' || c.kind === 'tail') {
         html += '<th class="' + (c.kind==='tail'?'gnotes':'emp') + '" rowspan="2">' + esc(c.label) + '</th>';
         i++;
-      } else if (c.kind === 'section') {
-        // criterion group
-        var grp = c.group;
+      } else if (c.kind === 'section' || c.kind === 'overall_grade') {
+        var grp = c.group || (c.kind==='overall_grade' ? 'التقدير العام' : '');
         var span = 1;
-        while (i + span < cols.length && cols[i+span].kind === 'section' && cols[i+span].group === grp) span++;
-        // find weight from st.criteria
+        while (i + span < cols.length && ((cols[i+span].kind === 'section' || cols[i+span].kind === 'overall_grade') && (cols[i+span].group || '') === grp)) span++;
         var crit = (st.criteria || []).filter(function(x){return x.name===grp;})[0];
         var wtxt = crit ? ('الوزن ' + Math.round(crit.weight) + '٪') : '';
-        html += '<th class="crit" colspan="' + span + '">' + esc(grp) + '<span class="w">' + wtxt + '</span></th>';
+        html += '<th class="crit" colspan="' + span + '">' + esc(grp) + (wtxt ? '<span class="w" style="display:block;font-size:.7rem;opacity:.9">' + wtxt + '</span>' : '') + '</th>';
         i += span;
       } else {
         i++;
       }
     }
-    html += '</tr>';
-    // row 3: section labels
-    html += '<tr><th class="rn"></th>';
+    html += '</tr><tr><th class="rn"></th>';
     cols.forEach(function(c){
-      if (c.kind === 'section') {
-        var cls = 'sec';
+      if (c.kind === 'section' || c.kind === 'overall_grade') {
         var tag = '';
         var t = c.section_type;
-        if (t === 'percentage') tag = 'نسبة ٠–١٠٠';
+        if (t === 'percentage') tag = 'نسبة 0–100';
         else if (t === 'numeric') tag = 'رقمي';
-        else if (t === 'boolean') tag = 'نعم/لا ▼';
-        else if (t === 'grade' || t === 'multiple_choice') tag = 'قائمة ▼';
-        else if (t === 'textarea' || t === 'text') tag = 'نص';
-        else if (t === 'overall_grade') tag = 'تقدير ▼';
-        var req = c.label.indexOf('*')>=0 ? '<span class="star">*</span>' : '';
-        html += '<th class="' + cls + '">' + esc(c.label.replace(' *','')) + (req?' *':'') + '<span class="tag">' + tag + '</span></th>';
+        else if (t === 'boolean') tag = 'نعم/لا';
+        else if (t === 'grade' || t === 'multiple_choice') tag = 'قائمة';
+        else if (t === 'textarea' || t === 'text' || t === 'descriptive') tag = 'نص';
+        else if (t === 'overall_grade' || c.kind === 'overall_grade') tag = 'تقدير';
+        var req = (c.label || '').indexOf('*')>=0 ? ' *' : '';
+        html += '<th class="sec">' + esc((c.label||'').replace(' *','')) + req + (tag ? '<span class="tag" style="display:block;font-size:.68rem;opacity:.85">' + tag + '</span>' : '') + '</th>';
       }
     });
     html += '</tr></thead><tbody>';
-    // sample rows
     (st.sample_rows || []).forEach(function(row, idx){
       var isNew = (idx === (st.sample_rows.length-1));
       html += '<tr>';
       html += '<td class="rn">' + (3+idx) + '</td>';
       cols.forEach(function(c){
         var v = row[c.letter];
-        var cellCls = isNew ? 'new' : 'd';
-        var kindCls = '';
-        if (c.kind === 'fixed') {
-          if (c.label.indexOf('فرع')>=0) kindCls='dd';
-          else if (c.label.indexOf('قسم')>=0) kindCls='dd';
-          else if (c.label.indexOf('رقم')>=0) kindCls='num';
-          else kindCls='txt';
-        } else if (c.kind === 'section') {
-          var t = c.section_type;
-          if (t === 'boolean') kindCls='dd';
-          else if (t === 'percentage' || t === 'numeric') kindCls='num';
-          else kindCls='txt';
-        } else if (c.kind === 'tail') {
-          if (c.label.indexOf('تاريخ')>=0) kindCls='num';
-          else kindCls='txt';
-        }
-        html += '<td class="' + cellCls + ' ' + kindCls + '">' + esc(v) + '</td>';
+        var cls = isNew ? 'new' : 'd';
+        if (isImportantCol(c)) cls += ' num';
+        var t = c.section_type;
+        if (c.kind === 'fixed' && (c.key.indexOf('branch')!==-1 || c.key.indexOf('department')!==-1)) cls += ' dd';
+        if (c.kind === 'section' && (t === 'boolean' || t === 'grade' || t === 'multiple_choice')) cls += ' dd';
+        html += '<td class="' + cls + '">' + esc(v) + '</td>';
       });
       html += '</tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     previewEl.innerHTML = html;
   }
 
   function showType(type){
-    // activate tab
     document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
     document.querySelectorAll('.ptab').forEach(function(t){ if(t.getAttribute('data-type')===type) t.classList.add('active'); });
-    // update main template select to first template of this type
     var list = byType[type] || [];
     if (list.length && tplSel) {
       tplSel.value = list[0].id;
-      // if multiple templates, show a small selector above preview
+      var wrapPrev = document.getElementById('cd042-type-tpl-wrap');
       if (list.length > 1) {
-        var selHtml = '<div style="padding:8px 12px;background:#f9fafb;border-bottom:1px solid #e0e8e4;font-size:11px;display:flex;align-items:center;gap:8px"><label style="font-weight:700;color:#0c2823">القالب:</label><select id="cd042-type-tpl" style="padding:4px 8px;border:1px solid #e0e8e4;border-radius:6px;font-family:Cairo;font-size:11px">';
+        var selHtml = '<div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid #d9e2ec;font-size:.84rem;display:flex;align-items:center;gap:10px"><label style="font-weight:700;color:#334e68">القالب:</label><select id="cd042-type-tpl" class="xf-select" style="max-width:420px;min-height:36px;padding:4px 10px">';
         list.forEach(function(t){ selHtml += '<option value="' + t.id + '">' + esc(t.name) + '</option>'; });
         selHtml += '</select></div>';
-        // remove previous
-        var prev = document.getElementById('cd042-type-tpl-wrap');
-        if (prev) prev.remove();
+        if (wrapPrev) wrapPrev.remove();
         var wrap = document.createElement('div');
         wrap.id = 'cd042-type-tpl-wrap';
         wrap.innerHTML = selHtml;
         previewEl.parentNode.insertBefore(wrap, previewEl);
         document.getElementById('cd042-type-tpl').addEventListener('change', function(){ tplSel.value = this.value; renderPreview(parseInt(this.value)); updateDl(); });
       } else {
-        var prev = document.getElementById('cd042-type-tpl-wrap');
-        if (prev) prev.remove();
+        if (wrapPrev) wrapPrev.remove();
       }
       renderPreview(list[0].id);
       updateDl();
+    } else if (previewEl) {
+      previewEl.innerHTML = '<div style="padding:18px;color:#627d98;font-size:.9rem">لا تتوفر معاينة هيكل لهذا النوع حالياً.</div>';
     }
   }
 
-  // Build tabs — always show all 4 SRS types (§4.1), even if no templates yet
   if (tabsEl) {
     var firstType = null;
     CD042_TYPE_ORDER.forEach(function(type){
       if (CD042_TYPE_LABELS[type]) {
         if (!firstType && byType[type] && byType[type].length) firstType = type;
-        var btn = document.createElement('div');
-        btn.className = 'ptab' + ((!byType[type] || !byType[type].length) ? ' disabled' : '');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ptab xf-tab' + ((!byType[type] || !byType[type].length) ? ' disabled' : '');
         btn.setAttribute('data-type', type);
-        btn.textContent = (CD042_TYPE_ICONS[type] || '') + ' ' + (CD042_TYPE_LABELS[type] || type);
+        btn.innerHTML = '<i class="fas ' + (CD042_TYPE_ICONS[type] || 'fa-file') + '" aria-hidden="true"></i> ' + esc(CD042_TYPE_LABELS[type] || type);
         if (byType[type] && byType[type].length) {
           btn.addEventListener('click', function(){ showType(type); });
         }
@@ -374,23 +400,20 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     else if (CD042_TYPE_ORDER.length) showType(CD042_TYPE_ORDER[0]);
   }
 
-  // Branch/department cascading
   if (brSel) brSel.addEventListener('change', function(){
     var list = branches[this.value] || [];
-    deptSel.innerHTML = '<option value="">الكل</option>';
-    list.forEach(function(d){ var o = document.createElement('option'); o.value = d.id; o.textContent = d.name; deptSel.appendChild(o); });
-    deptSel.disabled = !this.value;
+    if (deptSel) {
+      deptSel.innerHTML = '<option value="">الكل</option>';
+      list.forEach(function(d){ var o = document.createElement('option'); o.value = d.id; o.textContent = d.name; deptSel.appendChild(o); });
+      deptSel.disabled = !this.value;
+    }
     updateDl();
   });
-  if (tplSel) tplSel.addEventListener('change', function(){
-    renderPreview(parseInt(this.value));
-    updateDl();
-  });
+  if (tplSel) tplSel.addEventListener('change', function(){ renderPreview(parseInt(this.value)); updateDl(); });
   if (maxInp) maxInp.addEventListener('input', updateDl);
   if (deptSel) deptSel.addEventListener('change', updateDl);
   updateDl();
 
-  // Drag and drop
   var zone = document.getElementById('cd042-zone');
   var fileInput = document.getElementById('cd042-file');
   var fileInfo = document.getElementById('cd042-fileinfo');
@@ -402,13 +425,51 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     fileInput.addEventListener('change', showFileInfo);
   }
   function showFileInfo(){
-    if (!fileInput || !fileInput.files.length) { if (fileInfo) fileInfo.textContent=''; return; }
+    if (!fileInput || !fileInput.files.length) { if (fileInfo) { fileInfo.textContent=''; fileInfo.style.color=''; } return; }
     var f = fileInput.files[0];
     var sizeMB = (f.size / (1024*1024)).toFixed(2);
-    if (fileInfo) fileInfo.textContent = f.name + ' — ' + sizeMB + ' MB';
-    if (f.size > 20*1024*1024) { if (fileInfo) fileInfo.textContent += ' · ⚠️ dépasse 20MB'; }
-    if (!/\.xlsx$/i.test(f.name)) { if (fileInfo) fileInfo.textContent += ' · ⚠️ .xlsx uniquement'; }
+    var ok = /\.xlsx$/i.test(f.name) && f.size <= 20*1024*1024;
+    if (fileInfo) {
+      fileInfo.textContent = f.name + ' — ' + sizeMB + ' ميجابايت';
+      fileInfo.style.color = ok ? 'var(--xf-success)' : 'var(--xf-danger)';
+      if (f.size > 20*1024*1024) fileInfo.textContent += ' · يتجاوز الحد الأقصى (20 ميجابايت)';
+      if (!/\.xlsx$/i.test(f.name)) fileInfo.textContent += ' · الامتداد المدعوم: .xlsx فقط';
+    }
+  }
+
+  function setBtnLoading(btn, loading, loadingText) {
+    if (!btn) return;
+    var label = btn.querySelector('.xf-btn-label');
+    if (loading) {
+      btn.disabled = true;
+      btn.classList.add('is-loading');
+      if (!btn.dataset.origLabel && label) btn.dataset.origLabel = label.textContent;
+      if (label && loadingText) label.textContent = loadingText;
+      if (!btn.querySelector('.xf-spinner')) {
+        var sp = document.createElement('span'); sp.className = 'xf-spinner'; sp.setAttribute('aria-hidden','true');
+        btn.insertBefore(sp, label || btn.firstChild);
+      }
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('is-loading');
+      var sp = btn.querySelector('.xf-spinner'); if (sp) sp.remove();
+      if (label && btn.dataset.origLabel) label.textContent = btn.dataset.origLabel;
+    }
+  }
+
+  var uploadForm = document.getElementById('cd042-upload-form');
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', function(){
+      setBtnLoading(document.getElementById('cd042-preview-btn'), true, 'جارٍ تحليل الملف...');
+    });
+  }
+  var commitForm = document.getElementById('cd042-commit-form');
+  if (commitForm) {
+    commitForm.addEventListener('submit', function(){
+      setBtnLoading(document.getElementById('cd042-commit-btn'), true, 'جارٍ اعتماد الاستيراد...');
+    });
   }
 })();
 </script>
+
 <?php require_once APP_ROOT . '/app/Views/layouts/footer.php'; ?>
