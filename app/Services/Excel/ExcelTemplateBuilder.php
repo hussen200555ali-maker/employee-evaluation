@@ -788,7 +788,11 @@ final class ExcelTemplateBuilder
                     break;
                 case 'program_department':
                     if ($hasBranches) {
-                        $this->addListValidation($sheet, $range, 'DepartmentList', 'القسم المنفذ', 'اختر قسماً من القائمة.');
+                        $branchCol = $this->findColumn($layout, 'program_branch');
+                        $formula = $branchCol !== null
+                            ? 'INDIRECT(SUBSTITUTE($' . $branchCol['letter'] . $start . '," ","_"))'
+                            : 'DepartmentList';
+                        $this->addListValidation($sheet, $range, $formula, 'القسم المنفذ', 'اختر قسماً تابعاً للفرع المنفّذ.');
                     }
                     break;
                 case 'program_start':
@@ -802,7 +806,11 @@ final class ExcelTemplateBuilder
                     break;
                 case 'employee_department':
                     if ($hasBranches) {
-                        $this->addListValidation($sheet, $range, 'DepartmentList', 'القسم', 'اختر قسماً من القائمة.');
+                        $branchCol = $this->findColumn($layout, 'employee_branch');
+                        $formula = $branchCol !== null
+                            ? 'INDIRECT(SUBSTITUTE($' . $branchCol['letter'] . $start . '," ","_"))'
+                            : 'DepartmentList';
+                        $this->addListValidation($sheet, $range, $formula, 'القسم', 'اختر قسماً تابعاً للفرع المختار.');
                     }
                     break;
                 case 'evaluation_date':
@@ -996,10 +1004,35 @@ final class ExcelTemplateBuilder
         $this->addNamedRange($book, "GradeList", $sheet, "D", max(2, count($gradeLabels) + 1));
         $this->addNamedRange($book, "SkillLevelList", $sheet, "E", max(2, count(self::SKILL_LEVELS) + 1));
 
-        $sheet->getStyle("A1:E1")->getFont()->setBold(true);
-        $sheet->getStyle("A1:E1")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB("D1E7DD");
+        // BUG-003: Dependent dropdowns - one named range per branch containing its departments.
+        // Range name must match SUBSTITUTE(branchCell," ","_") used in data validation.
+        $colIndex = 6; // F
+        $lastStyledCol = "E";
+        $usedRangeNames = [];
+        foreach ($branchNames as $branchName) {
+            $rangeName = $this->branchDeptRangeName((string) $branchName);
+            if ($rangeName === '' || isset($usedRangeNames[$rangeName])) {
+                continue;
+            }
+            $usedRangeNames[$rangeName] = true;
+            $depts = $departmentsByBranch[$branchName] ?? [];
+            $col = Coordinate::stringFromColumnIndex($colIndex);
+            $this->writeListColumn($sheet, $col, $rangeName, array_values($depts));
+            $this->addNamedRange($book, $rangeName, $sheet, $col, max(2, count($depts) + 1));
+            $lastStyledCol = $col;
+            $colIndex++;
+        }
+
+        $sheet->getStyle("A1:" . $lastStyledCol . "1")->getFont()->setBold(true);
+        $sheet->getStyle("A1:" . $lastStyledCol . "1")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB("D1E7DD");
         $sheet->getProtection()->setSheet(true);
         $sheet->getProtection()->setHashValue("");
+    }
+
+    private function branchDeptRangeName(string $branchName): string
+    {
+        // Match SUBSTITUTE(<branchCell>," ","_") used by dependent dropdown validations.
+        return str_replace(' ', '_', $branchName);
     }
 
     private function writeListColumn(Worksheet $sheet, string $col, string $header, array $values): void

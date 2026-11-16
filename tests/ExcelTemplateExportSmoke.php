@@ -135,13 +135,22 @@ foreach ($cases as $tplId => [$expectedType, $expectedOverall]) {
         $dvCollection = $main->getDataValidationCollection();
         assertTrue(count($dvCollection) > 0, "T{$tplId}: no data validations");
 
-        // department dropdown uses DepartmentList (single list per user requirement)
-        $deptListFound = false;
+        // BUG-003: department dropdowns are dependent on branch (INDIRECT + SUBSTITUTE)
+        $deptDependentFound = false;
         foreach ($dvCollection as $dv) {
             $f = (string) $dv->getFormula1();
-            if (stripos($f, 'DepartmentList') !== false) { $deptListFound = true; break; }
+            if (stripos($f, 'INDIRECT') !== false && stripos($f, 'SUBSTITUTE') !== false) { $deptDependentFound = true; break; }
         }
-        assertTrue($deptListFound, "T{$tplId}: DepartmentList dropdown not found");
+        assertTrue($deptDependentFound, "T{$tplId}: dependent department dropdown (INDIRECT/SUBSTITUTE) not found");
+
+        // BUG-003: per-branch department named ranges exist (e.g. branch name with spaces replaced by _)
+        $perBranchFound = false;
+        foreach ($names as $nr) {
+            if (!in_array($nr, ['BranchList','DepartmentList','ProgramList','GradeList','SkillLevelList'], true)) {
+                $perBranchFound = true; break;
+            }
+        }
+        assertTrue($perBranchFound, "T{$tplId}: per-branch department named ranges not found");
 
         $book->disconnectWorksheets();
         echo "  [PASS] template {$tplId} ({$expectedType}) structural checks\n";
