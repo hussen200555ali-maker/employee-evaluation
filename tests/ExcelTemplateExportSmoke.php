@@ -181,9 +181,46 @@ try {
     $failures[] = 'limits: ' . $e->getMessage();
 }
 
+$extraChecks = 0;
+try {
+    $svc = new \App\Services\EvaluationExcelService();
+    $cBlank = $svc->countExportRows(2, null, null, 50, ['prefill_strategy' => 'blank', 'mode' => 'empty', 'user_id' => 1, 'program_scope' => 'all']);
+    assertTrue(($cBlank['prefill_strategy'] ?? '') === 'blank' && ($cBlank['capped'] ?? null) === false, 'blank count');
+    $b1 = $svc->buildTemplate(2, 1, null, null, 50, ['prefill_strategy' => 'blank', 'mode' => 'empty', 'user_id' => 1, 'program_scope' => 'all']);
+    assertTrue($b1->getSheetByName('التقييمات') !== null, 'blank build');
+    echo "  [PASS] smart prefill: blank (count/build)\n";
+    $passCount++; $extraChecks++;
+
+    $cOrg = $svc->countExportRows(1, null, null, 50, ['prefill_strategy' => 'org', 'mode' => 'prefill', 'user_id' => 1]);
+    assertTrue(isset($cOrg['total_available'], $cOrg['exported_rows'], $cOrg['capped']), 'org count structure');
+    $b2 = $svc->buildTemplate(1, 1, null, null, 50, ['prefill_strategy' => 'org', 'mode' => 'prefill', 'user_id' => 1]);
+    assertTrue($b2->getSheetByName('التقييمات') !== null, 'org build');
+    echo "  [PASS] smart prefill: org (count/build)\n";
+    $passCount++; $extraChecks++;
+
+    $cPrev = $svc->countExportRows(2, null, null, 50, ['prefill_strategy' => 'previous_evals', 'mode' => 'prefill', 'user_id' => 1, 'program_scope' => 'all']);
+    assertTrue(($cPrev['prefill_strategy'] ?? '') === 'previous_evals', 'previous_evals count');
+    $b3 = $svc->buildTemplate(2, 1, null, null, 50, ['prefill_strategy' => 'previous_evals', 'mode' => 'prefill', 'user_id' => 1, 'program_scope' => 'all']);
+    assertTrue($b3->getSheetByName('التقييمات') !== null, 'previous_evals build');
+    echo "  [PASS] smart prefill: previous_evals (count/build)\n";
+    $passCount++; $extraChecks++;
+
+    $cExec = $svc->countExportRows(2, null, null, 50, ['prefill_strategy' => 'executing', 'mode' => 'prefill', 'user_id' => 1, 'program_scope' => 'all']);
+    assertTrue(($cExec['prefill_strategy'] ?? '') === 'executing', 'executing count');
+    $b4 = $svc->buildTemplate(2, 1, null, null, 50, ['prefill_strategy' => 'executing', 'mode' => 'prefill', 'user_id' => 1, 'program_scope' => 'all']);
+    assertTrue($b4->getSheetByName('التقييمات') !== null, 'executing build');
+    echo "  [PASS] smart prefill: executing (count/build)\n";
+    $passCount++; $extraChecks++;
+} catch (\Throwable $e) {
+    echo "  [FAIL] smart prefill strategies: " . $e->getMessage() . "\n";
+    $failures[] = 'smart prefill strategies: ' . $e->getMessage();
+}
+
+$totalChecks = count($cases) + 1 + $extraChecks;
+
 echo "\n";
 echo "══════════════════════════════════════════\n";
-echo "  RESULTS: {$passCount} / " . (count($cases) + 1) . " PASSED\n";
+echo "  RESULTS: {$passCount} / {$totalChecks} PASSED\n";
 echo "══════════════════════════════════════════\n";
 if (count($failures) === 0) {
     echo "  ALL TEMPLATE EXPORT CHECKS PASSED.\n";

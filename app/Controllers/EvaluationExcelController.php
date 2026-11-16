@@ -301,6 +301,87 @@ final class EvaluationExcelController extends Controller
     /**
      * CD-043 §6: تنزيل ملف التصدير وفق النطاقات المختارة + تسجيل تدقيق.
      */
+    /**
+     * Phase 3 (A4): return available/export counts for current export filters (AJAX preflight).
+     */
+    public function exportCount(): void
+    {
+        Auth::enforce('evaluations.export');
+        header('Content-Type: application/json; charset=UTF-8');
+        try {
+            $limits = $this->excel->exportLimits();
+            $templateId = (int) ($_GET['template_id'] ?? 0);
+            if ($templateId <= 0) {
+                throw new RuntimeException('يرجى اختيار قالب التقييم.');
+            }
+            $template = (new Template())->findById($templateId);
+            if (!$template || (int) ($template->is_active ?? 0) !== 1) {
+                throw new RuntimeException('القالب المحدد غير موجود أو غير نشط.');
+            }
+            $targetType = (string) ($template->target_type ?? 'employee');
+            if (!in_array($targetType, ['employee', 'employee_in_course', 'employee_in_workshop', 'skill'], true)) {
+                throw new RuntimeException('نوع القالب غير مدعوم في CD-043.');
+            }
+            $branchId = $this->optionalId($_GET['branch_id'] ?? null);
+            $departmentId = $this->optionalId($_GET['department_id'] ?? null);
+            $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+            $programId = $isProgram ? $this->optionalId($_GET['program_id'] ?? null) : null;
+            $programScope = $isProgram ? (string) ($_GET['program_scope'] ?? 'all') : 'all';
+            if ($programScope !== 'single') { $programId = null; }
+            $maxRows = (int) ($_GET['max_rows'] ?? 100);
+            $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
+
+            $prefillStrategy = trim((string) ($_GET['prefill_strategy'] ?? 'blank'));
+            $allowedStrategies = ['blank', 'org', 'previous_evals', 'executing'];
+            if (!in_array($prefillStrategy, $allowedStrategies, true)) { $prefillStrategy = 'blank'; }
+            if ($prefillStrategy === 'executing' && !$isProgram) { $prefillStrategy = 'blank'; }
+
+            $this->assertScopeExists($branchId, $departmentId);
+            $executingBranchId = $this->optionalId($_GET['executing_branch_id'] ?? null);
+            $executingDeptId = $this->optionalId($_GET['executing_department_id'] ?? null);
+            $this->assertScopeExists($executingBranchId, $executingDeptId);
+
+            $effectiveBranchId = $branchId;
+            $effectiveDeptId = $departmentId;
+            if ($prefillStrategy === 'executing' && $isProgram) {
+                $effectiveBranchId = null;
+                $effectiveDeptId = null;
+            }
+
+            $options = [
+                'prefill_strategy' => $prefillStrategy,
+                'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
+                'program_scope' => $programScope,
+                'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
+                'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
+                'user_id' => (int) Auth::id(),
+            ];
+            if ($programId !== null) {
+                $options['program_id'] = $programId;
+                $options['program_title'] = (string) ($_GET['program_title'] ?? '');
+            }
+
+            $counts = $this->excel->countExportRows($templateId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
+            echo json_encode([
+                'ok' => true,
+                'template_id' => $templateId,
+                'prefill_strategy' => $counts['prefill_strategy'] ?? $prefillStrategy,
+                'max_rows' => $maxRows,
+                'total_available' => (int) ($counts['total_available'] ?? 0),
+                'exported_rows' => (int) ($counts['exported_rows'] ?? 0),
+                'capped' => (bool) ($counts['capped'] ?? false),
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (RuntimeException $e) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('Excel export count error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'message' => 'تعذّر حساب عدد السجلات المتاحة حالياً.'], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
     public function downloadExport(): void
     {
         Auth::enforce('evaluations.export');
@@ -367,8 +448,7 @@ final class EvaluationExcelController extends Controller
                 $options['program_title'] = (string) ($_GET['program_title'] ?? '');
             }
 
-            $book = $this->excel->buildTemplate($templateId, $employeeId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
-
+            $counts = $this->excel->countExportRows($templateId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
             $book = $this->excel->buildTemplate($templateId, $employeeId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
 
             $tmpFile = tempnam(sys_get_temp_dir(), 'cd043_export_');
@@ -392,6 +472,9 @@ final class EvaluationExcelController extends Controller
                 'executing_branch_id' => $options['executing_branch_id'] ?? null,
                 'executing_department_id' => $options['executing_department_id'] ?? null,
                 'max_rows' => $maxRows,
+                'total_available' => (int) ($counts['total_available'] ?? 0),
+                'exported_rows' => (int) ($counts['exported_rows'] ?? 0),
+                'capped' => (bool) ($counts['capped'] ?? false),
                 'filename' => $filename,
                 'size' => $size,
                 'evaluator_employee_id' => $employeeId,

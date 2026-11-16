@@ -78,6 +78,42 @@ final class ExcelTemplateBuilder
     }
 
     /**
+     * Phase 3 (A4/Q7): count available/exportable rows for selected strategy and filters.
+     */
+    public function countExport(int $templateId, ?int $branchId, ?int $departmentId, int $maxRows, array $options = []): array
+    {
+        $layout = $this->layout($templateId, $branchId, $departmentId, $options);
+        $strategy = (string) ($options['prefill_strategy'] ?? '');
+        if ($strategy === '') {
+            $strategy = (($options['mode'] ?? 'prefill') === 'empty') ? 'blank' : 'prefill';
+        }
+        if ($strategy === 'prefill') {
+            $isProgram = in_array((string)($layout['target_type'] ?? ''), ['employee_in_course', 'employee_in_workshop'], true);
+            $strategy = (array_key_exists('prefill_ids', $options) || (!$isProgram && $branchId === null && $departmentId === null)) ? 'blank' : 'org';
+        }
+        $maxRows = max(0, $maxRows);
+        if ($strategy === 'blank') {
+            return ['total_available' => 0, 'exported_rows' => 0, 'capped' => false, 'prefill_strategy' => 'blank'];
+        }
+        if ($strategy === 'org') {
+            $total = $this->countOrgRows($branchId, $departmentId);
+        } elseif ($strategy === 'previous_evals') {
+            $total = $this->countPreviousEvaluationRows($layout, $branchId, $departmentId, $options);
+        } elseif ($strategy === 'executing') {
+            $total = $this->countExecutingEvaluationRows($layout, $options);
+        } else {
+            $total = 0;
+        }
+        $exported = min($total, $maxRows);
+        return [
+            'total_available' => $total,
+            'exported_rows' => $exported,
+            'capped' => $total > $maxRows,
+            'prefill_strategy' => $strategy,
+        ];
+    }
+
+    /**
      * وصف تخطيط القالب (أعمدة/صفوف) — يُستخدم من الباني والمستورد معاً
      * حتى يبقى ملف التصدير وملف الاستيراد متطابقين 100%.
      */
@@ -1161,6 +1197,93 @@ final class ExcelTemplateBuilder
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    private function countOrgRows(?int $branchId, ?int $departmentId): int
+    {
+        $pdo = $this->database->getPdo();
+        $sql = 'SELECT COUNT(*) FROM employees e WHERE e.is_active = 1';
+        $params = [];
+        if ($departmentId !== null && $departmentId > 0) {
+            $sql .= ' AND e.department_id = :dept';
+            $params['dept'] = $departmentId;
+        } elseif ($branchId !== null && $branchId > 0) {
+            $sql .= ' AND e.branch_id = :branch';
+            $params['branch'] = $branchId;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function countPreviousEvaluationRows(array $layout, ?int $branchId, ?int $departmentId, array $options): int
+    {
+        $pdo = $this->database->getPdo();
+        $templateId = (int) ($layout['template_id'] ?? 0);
+        $targetType = (string) ($layout['target_type'] ?? 'employee');
+        $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+        if ($templateId <= 0) { return 0; }
+
+        $where = ['ev.template_id = :tid'];
+        $params = ['tid' => $templateId];
+        if ($departmentId !== null && $departmentId > 0) {
+            $where[] = 'e.department_id = :dept';
+            $params['dept'] = $departmentId;
+        } elseif ($branchId !== null && $branchId > 0) {
+            $where[] = 'e.branch_id = :branch';
+            $params['branch'] = $branchId;
+        }
+        $programId = isset($options['program_id']) ? (int) $options['program_id'] : 0;
+        if ($isProgram && $programId > 0) {
+            $where[] = 'ev.context_id = :pid';
+            $params['pid'] = $programId;
+        }
+
+        $sql = 'SELECT COUNT(*)
+                FROM evaluations ev
+                INNER JOIN employees e ON e.id = ev.evaluated_employee_id
+                WHERE ' . implode(' AND ', $where);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function countExecutingEvaluationRows(array $layout, array $options): int
+    {
+        $targetType = (string) ($layout['target_type'] ?? 'employee');
+        $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+        if (!$isProgram) { return 0; }
+        $pdo = $this->database->getPdo();
+        $templateId = (int) ($layout['template_id'] ?? 0);
+        if ($templateId <= 0) { return 0; }
+
+        $where = ['ev.template_id = :tid', 'ev.context_id IS NOT NULL'];
+        $params = ['tid' => $templateId];
+
+        $programId = isset($options['program_id']) ? (int) $options['program_id'] : 0;
+        if ($programId > 0) {
+            $where[] = 'ev.context_id = :pid';
+            $params['pid'] = $programId;
+        }
+
+        $execBranch = isset($options['executing_branch_id']) ? (int) $options['executing_branch_id'] : 0;
+        $execDept = isset($options['executing_department_id']) ? (int) $options['executing_department_id'] : 0;
+        if ($execBranch > 0) {
+            $where[] = 'tp.executing_branch_id = :ebid';
+            $params['ebid'] = $execBranch;
+        }
+        if ($execDept > 0) {
+            $where[] = 'tp.executing_department_id = :edid';
+            $params['edid'] = $execDept;
+        }
+
+        $sql = 'SELECT COUNT(*)
+                FROM evaluations ev
+                INNER JOIN employees e ON e.id = ev.evaluated_employee_id
+                INNER JOIN training_programs tp ON tp.id = ev.context_id
+                WHERE ' . implode(' AND ', $where);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
     private function formatDateForExcel(string $date): string
     {
         $date = trim($date);

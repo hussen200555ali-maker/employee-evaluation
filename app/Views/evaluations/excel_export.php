@@ -339,10 +339,9 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     }
   }
 
-  function updateLink() {
-    if (!link) return;
+  function buildParams() {
     var templateId = tpl ? tpl.value : '';
-    if (!templateId) { link.classList.add('disabled'); link.setAttribute('href', '#'); return; }
+    if (!templateId) return null;
     var params = new URLSearchParams();
     params.set('template_id', templateId);
     var strategy = getStrategy();
@@ -352,7 +351,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     if (isProgramType()) {
       params.set('program_scope', programScope.value);
       if (programScope.value === 'single') {
-        if (!program.value) { link.classList.add('disabled'); link.setAttribute('href', '#'); return; }
+        if (!program.value) return null;
         params.set('program_id', program.value);
       }
       if (progBranch.value) params.set('executing_branch_id', progBranch.value);
@@ -365,29 +364,86 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     if (value > maxRows) value = maxRows;
     rows.value = value;
     params.set('max_rows', String(value));
+    return params;
+  }
+
+  function updateLink() {
+    if (!link) return;
+    var params = buildParams();
+    if (!params) { link.classList.add('disabled'); link.setAttribute('href', '#'); link.dataset.ready = '0'; return; }
     link.setAttribute('href', APP + '/evaluations/excel/export/download?' + params.toString());
+    link.dataset.ready = '1';
     link.classList.remove('disabled');
+  }
+
+  function showExportModal(message, onConfirm) {
+    var modal = document.getElementById('cd043-export-modal');
+    var msg = document.getElementById('cd043-modal-msg');
+    var ok = document.getElementById('cd043-modal-confirm');
+    var cancel = document.getElementById('cd043-modal-cancel');
+    if (!modal || !msg || !ok || !cancel) { if (confirm(message)) onConfirm(); return; }
+    msg.textContent = message;
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    function close() {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+      ok.onclick = null; cancel.onclick = null; modal.onclick = null;
+    }
+    cancel.onclick = close;
+    modal.onclick = function (e) { if (e.target === modal) close(); };
+    ok.onclick = function () { close(); onConfirm(); };
+  }
+
+  if (link) {
+    link.addEventListener('click', function (e) {
+      if (link.classList.contains('disabled') || link.dataset.ready !== '1') { e.preventDefault(); return; }
+      var params = buildParams();
+      if (!params) { e.preventDefault(); return; }
+      e.preventDefault();
+      var downloadUrl = APP + '/evaluations/excel/export/download?' + params.toString();
+      var countUrl = APP + '/evaluations/excel/export/count?' + params.toString();
+      var originalText = link.textContent;
+      link.classList.add('disabled');
+      link.textContent = '???? ??????...';
+      fetch(countUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json().catch(function(){ return {ok:false,message:'????? ????? ?????????.'}; }); })
+        .then(function (data) {
+          link.textContent = originalText;
+          updateLink();
+          if (!data || !data.ok) { alert((data && data.message) ? data.message : '????? ???? ??? ??????? ???????.'); return; }
+          var total = parseInt(data.total_available, 10) || 0;
+          var exported = parseInt(data.exported_rows, 10) || 0;
+          var capped = !!data.capped;
+          if (capped && total > exported) {
+            showExportModal('???? ????? ' + exported + ' ?? ??? ' + total + ' ??? (????? ???? ?????? ??????). ?? ???? ?????????', function () {
+              window.location.href = downloadUrl;
+            });
+            return;
+          }
+          window.location.href = downloadUrl;
+        })
+        .catch(function () {
+          link.textContent = originalText;
+          updateLink();
+          alert('????? ?????? ?? ??? ??????? ??????. ???? ??? ????.');
+        });
+    });
   }
 
   function onStrategyChange() { syncStrategyUI(); updateLink(); }
 
   if (tpl) tpl.addEventListener('change', function () { syncProgramBlock(); syncStrategyUI(); updateLink(); });
   if (branch) branch.addEventListener('change', function () {
-    fillDepartments(dept, branch.value, 'كل الأقسام');
+    fillDepartments(dept, branch.value, '?? ???????');
     dept.disabled = !branch.value || (getStrategy()==='executing' && isProgramType());
-    if (progBranch && progBranch.value && progBranch.value !== branch.value) {
-      progBranch.value = branch.value;
-      fillDepartments(progDept, progBranch.value, 'كل الأقسام');
-      progDept.value = '';
-      fillPrograms();
-    }
     updateLink();
   });
   if (dept) dept.addEventListener('change', updateLink);
   if (programScope) programScope.addEventListener('change', function () { syncProgramBlock(); updateLink(); });
   if (program) program.addEventListener('change', updateLink);
   if (progBranch) progBranch.addEventListener('change', function () {
-    fillDepartments(progDept, progBranch.value, 'كل الأقسام');
+    fillDepartments(progDept, progBranch.value, '?? ???????');
     progDept.value = '';
     progDept.disabled = !progBranch.value;
     fillPrograms();
@@ -397,7 +453,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
   if (rows) rows.addEventListener('input', updateLink);
   document.querySelectorAll('input[name="prefill_strategy"]').forEach(function(r){ r.addEventListener('change', onStrategyChange); });
 
-  fillDepartments(dept, '', 'كل الأقسام');
+    fillDepartments(dept, '', 'كل الأقسام');
   fillDepartments(progDept, '', 'كل الأقسام');
   syncProgramBlock();
   syncStrategyUI();

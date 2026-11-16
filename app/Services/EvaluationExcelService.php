@@ -50,6 +50,12 @@ final class EvaluationExcelService
     }
 
     /** تخطيط القالب — يستخدمه المستورد لقراءة ملف التصدير دون افتراضات ثابتة. */
+    /** Phase 3 (A4/Q7): count available/exportable rows for the selected strategy and filters. */
+    public function countExportRows(int $templateId, ?int $branchId = null, ?int $departmentId = null, int $maxRows = 100, array $options = []): array
+    {
+        return $this->builder->countExport($templateId, $branchId, $departmentId, $maxRows, $options);
+    }
+
     public function templateLayout(int $templateId, ?int $branchId = null, ?int $departmentId = null, array $options = []): array
     {
         return $this->builder->layout($templateId, $branchId, $departmentId, $options);
