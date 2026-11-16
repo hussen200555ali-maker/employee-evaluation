@@ -162,11 +162,11 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
           </label>
           <label class="cd043-radio" data-strategy="previous_evals">
             <input type="radio" name="prefill_strategy" value="previous_evals">
-            <div><div class="t">3) تعبئة حسب التقييمات السابقة</div><div class="d">كل التقييمات السابقة المطابقة (كل تقييم في صف مستقل). <b>(Phase 2)</b></div></div>
+            <div><div class="t">3) تعبئة حسب التقييمات السابقة</div><div class="d">كل التقييمات السابقة المطابقة (كل تقييم في صف مستقل بسياقه التاريخي).</div></div>
           </label>
           <label class="cd043-radio" data-strategy="executing" id="cd043-radio-executing">
             <input type="radio" name="prefill_strategy" value="executing">
-            <div><div class="t">4) تعبئة حسب الجهة المنفذة</div><div class="d">للدورات/الورش فقط وفق البرنامج والجهة المنفذة. <b>(Phase 2)</b></div></div>
+            <div><div class="t">4) تعبئة حسب الجهة المنفذة</div><div class="d">للدورات/الورش: وفق البرنامج والفرع/القسم المنفذ (تُعطّل فلاتر الموظف).</div></div>
           </label>
         </div>
         <div id="cd043-prefill-warning" class="cd043-warning">
@@ -184,7 +184,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
         <input type="number" id="cd043-rows" value="100" min="<?= max(50, (int)($limits['min_rows'] ?? 50)) ?>" max="<?= (int)($limits['max_rows'] ?? 2000) ?>" step="1">
       </div>
       <div class="cd043-fld">
-        <div class="cd043-hint">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صفاً. عند تجاوز المتاح سيتم الاقتصاص وفق ترتيب حتمي (تنبيه تأكيد تفصيلي في Phase 3).</div>
+        <div class="cd043-hint">الحد الأدنى <?= (int)$limits['min_rows'] ?> والحد الأقصى <?= (int)$limits['max_rows'] ?> صفاً. عند تجاوز المتاح سيتم الاقتصاص وفق ترتيب حتمي (تنبيه تأكيد تفصيلي/Modal في Phase 3).</div>
       </div>
     </div>
   </div>
@@ -291,6 +291,7 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     var s = getStrategy();
     warning.style.display = (s === 'org' || s === 'previous_evals' || s === 'executing') ? 'block' : 'none';
     syncEmployeeScopeFilters();
+    syncProgramBlock();
   }
 
   function fillPrograms() {
@@ -317,16 +318,22 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
 
   function syncProgramBlock() {
     var isProgram = isProgramType();
+    var strategy = getStrategy();
+    var optExec = isProgram && strategy === 'executing';
     programScopeWrap.style.display = isProgram ? '' : 'none';
     var single = isProgram && programScope.value === 'single';
+    var showExecFilters = isProgram && (single || optExec);
     programWrap.style.display = single ? '' : 'none';
-    progBranchWrap.style.display = single ? '' : 'none';
-    progDeptWrap.style.display = single ? '' : 'none';
-    progBranch.disabled = !single;
-    progDept.disabled = !single || !progBranch.value;
+    progBranchWrap.style.display = showExecFilters ? '' : 'none';
+    progDeptWrap.style.display = showExecFilters ? '' : 'none';
+    progBranch.disabled = !showExecFilters;
+    progDept.disabled = !showExecFilters || !progBranch.value;
+    if (showExecFilters) {
+      fillDepartments(progDept, progBranch.value, 'كل الأقسام');
+      progDept.disabled = !progBranch.value;
+    }
     if (single) {
       fillPrograms();
-      if (!progBranch.value && branch.value) { progBranch.value = branch.value; progDept.disabled = !progBranch.value; fillPrograms(); }
     } else {
       if (program) program.disabled = true;
     }

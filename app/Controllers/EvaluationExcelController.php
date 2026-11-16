@@ -330,7 +330,7 @@ final class EvaluationExcelController extends Controller
             $maxRows = (int) ($_GET['max_rows'] ?? 100);
             $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
 
-            // Smart Prefill (Phase 1): blank | org (previous_evals/executing reserved for Phase 2)
+            // Smart Prefill: blank | org (Phase 1) | previous_evals | executing (Phase 2)
             $prefillStrategy = trim((string) ($_GET['prefill_strategy'] ?? 'blank'));
             $allowedStrategies = ['blank', 'org', 'previous_evals', 'executing'];
             if (!in_array($prefillStrategy, $allowedStrategies, true)) {
@@ -339,9 +339,6 @@ final class EvaluationExcelController extends Controller
             if ($prefillStrategy === 'executing' && !$isProgram) {
                 $prefillStrategy = 'blank';
             }
-            if (in_array($prefillStrategy, ['previous_evals', 'executing'], true)) {
-                throw new RuntimeException('هذا الخيار سيتوفر في المرحلة الثانية (Phase 2) من ميزة التعبئة الذكية.');
-            }
 
             $this->assertScopeExists($branchId, $departmentId);
 
@@ -349,9 +346,18 @@ final class EvaluationExcelController extends Controller
             $executingDeptId = $this->optionalId($_GET['executing_department_id'] ?? null);
             $this->assertScopeExists($executingBranchId, $executingDeptId);
 
+            // Q1/Q5: option 4 (executing) ignores employee branch/department filters; executing/program filters are primary.
+            $effectiveBranchId = $branchId;
+            $effectiveDeptId = $departmentId;
+            if ($prefillStrategy === 'executing' && $isProgram) {
+                $effectiveBranchId = null;
+                $effectiveDeptId = null;
+            }
+
             $options = [
                 'prefill_strategy' => $prefillStrategy,
                 'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
+                'program_scope' => $programScope,
                 'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
                 'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
                 'user_id' => (int) Auth::id(),
@@ -361,7 +367,9 @@ final class EvaluationExcelController extends Controller
                 $options['program_title'] = (string) ($_GET['program_title'] ?? '');
             }
 
-            $book = $this->excel->buildTemplate($templateId, $employeeId, $branchId, $departmentId, $maxRows, $options);
+            $book = $this->excel->buildTemplate($templateId, $employeeId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
+
+            $book = $this->excel->buildTemplate($templateId, $employeeId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
 
             $tmpFile = tempnam(sys_get_temp_dir(), 'cd043_export_');
             if ($tmpFile === false) {

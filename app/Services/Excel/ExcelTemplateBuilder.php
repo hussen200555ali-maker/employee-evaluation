@@ -711,8 +711,12 @@ final class ExcelTemplateBuilder
             $this->prefillOrgRows($sheet, $layout, $branchId, $departmentId, $start, $end, $options);
             return;
         }
-        if (in_array($strategy, ['previous_evals', 'executing'], true)) {
-            // Phase 2 (controller blocks for now)
+        if ($strategy === 'previous_evals') {
+            $this->prefillPreviousEvalRows($sheet, $layout, $branchId, $departmentId, $start, $end, $options);
+            return;
+        }
+        if ($strategy === 'executing') {
+            $this->prefillExecutingRows($sheet, $layout, $branchId, $departmentId, $start, $end, $options);
             return;
         }
 
@@ -958,6 +962,199 @@ final class ExcelTemplateBuilder
             ];
         }
         return $map;
+    }
+
+    /**
+     * Phase 2 / Option 3 (Previous Evals): each evaluation is one row with its historical context (Q3/Q4).
+     * Employee org filters (branch/department of employee) apply as per spec matrix.
+     */
+    private function prefillPreviousEvalRows(Worksheet $sheet, array $layout, ?int $branchId, ?int $departmentId, int $start, int $end, array $options): void
+    {
+        $rows = $this->fetchPreviousEvaluationRows($layout, $branchId, $departmentId, $start, $end, $options);
+        $this->writeEvaluationRows($sheet, $layout, $rows, $start, $end);
+    }
+
+    /**
+     * Phase 2 / Option 4 (Executing Scope, course/workshop): rows from evaluations matching
+     * program + executing branch/department filters (Q1/Q5: employee branch/dept filters disabled).
+     * Row context/program fields come from the evaluation's historical context (Q3/Q4).
+     */
+    private function prefillExecutingRows(Worksheet $sheet, array $layout, ?int $branchId, ?int $departmentId, int $start, int $end, array $options): void
+    {
+        $rows = $this->fetchExecutingEvaluationRows($layout, $start, $end, $options);
+        $this->writeEvaluationRows($sheet, $layout, $rows, $start, $end);
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $evalRows
+     */
+    private function writeEvaluationRows(Worksheet $sheet, array $layout, array $evalRows, int $start, int $end): void
+    {
+        if ($evalRows === []) {
+            return;
+        }
+        $isProgram = in_array((string) ($layout['target_type'] ?? ''), ['employee_in_course', 'employee_in_workshop'], true);
+        $evalIds = array_values(array_unique(array_filter(array_map(static fn($r) => (int) ($r['id'] ?? 0), $evalRows))));
+        $answersByEval = $this->fetchEvaluationAnswersMap($evalIds);
+        $rowNum = $start;
+        foreach ($evalRows as $ev) {
+            if ($rowNum > $end) { break; }
+            $values = $this->buildValuesFromEvaluationRow($layout, $ev, $answersByEval, $isProgram);
+            $this->writeRow($sheet, $layout, $rowNum, $values);
+            $rowNum++;
+        }
+    }
+
+    /**
+     * Build export row values from a joined evaluation record.
+     * Q3/Q4: program/context fields are taken from the evaluation's historical context (joined program fields).
+     * Employee identity/branch/department come from joined employee record (current employee org fields).
+     */
+    private function buildValuesFromEvaluationRow(array $layout, array $ev, array $answersByEval, bool $isProgram): array
+    {
+        $evalId = (int) ($ev['id'] ?? 0);
+        $values = [
+            'employee_name' => (string) ($ev['emp_full_name'] ?? $ev['employee_name'] ?? ''),
+            'employee_code' => (string) ($ev['emp_code'] ?? $ev['employee_code'] ?? ''),
+            'employee_branch' => (string) ($ev['emp_branch_name'] ?? $ev['branch_name'] ?? ''),
+            'employee_department' => (string) ($ev['emp_department_name'] ?? $ev['department_name'] ?? ''),
+            'evaluation_date' => $this->formatDateForExcel((string) ($ev['evaluation_date'] ?? '')),
+            'evaluator_name' => (string) ($ev['evaluator_name'] ?? ''),
+            'evaluator_title' => (string) ($ev['evaluator_title'] ?? ''),
+            'notes' => (string) ($ev['notes'] ?? ''),
+            'overall_grade' => (string) ($ev['final_grade_label'] ?? ''),
+        ];
+
+        if ($isProgram) {
+            $values['program_title'] = (string) ($ev['program_title'] ?? '');
+            $values['program_branch'] = (string) ($ev['program_branch_name'] ?? '');
+            $values['program_department'] = (string) ($ev['program_department_name'] ?? '');
+            $values['program_start'] = $this->formatDateForExcel((string) ($ev['program_start_date'] ?? ''));
+            $values['program_end'] = $this->formatDateForExcel((string) ($ev['program_end_date'] ?? ''));
+            $values['program_responsible'] = (string) ($ev['program_responsible'] ?? '');
+        }
+
+        foreach (($answersByEval[$evalId] ?? []) as $sectionId => $ans) {
+            $sid = (int) $sectionId;
+            $values['section_' . $sid] = (string) ($ans['raw_value'] ?? '');
+            $noteVal = trim((string) ($ans['notes'] ?? ''));
+            if ($noteVal !== '') {
+                $values['notes_' . $sid] = $noteVal;
+            }
+        }
+        return $values;
+    }
+
+    /**
+     * Option 3: all previous evaluations for template in employee org scope.
+     * - Employee branch/department filters apply (employees).
+     * - Program types: if program_id provided, restrict to that program context; else include all matching eval contexts.
+     * - Rows carry historical context from evaluation (Q3/Q4).
+     */
+    private function fetchPreviousEvaluationRows(array $layout, ?int $branchId, ?int $departmentId, int $start, int $end, array $options): array
+    {
+        $pdo = $this->database->getPdo();
+        $templateId = (int) ($layout['template_id'] ?? 0);
+        $targetType = (string) ($layout['target_type'] ?? 'employee');
+        $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+        $limit = max(0, $end - $start + 1);
+        if ($templateId <= 0 || $limit <= 0) {
+            return [];
+        }
+
+        $where = ['ev.template_id = :tid'];
+        $params = ['tid' => $templateId];
+
+        // Employee org scope filters apply (matrix)
+        if ($departmentId !== null && $departmentId > 0) {
+            $where[] = 'e.department_id = :dept';
+            $params['dept'] = $departmentId;
+        } elseif ($branchId !== null && $branchId > 0) {
+            $where[] = 'e.branch_id = :branch';
+            $params['branch'] = $branchId;
+        }
+
+        $programId = isset($options['program_id']) ? (int) $options['program_id'] : 0;
+        if ($isProgram && $programId > 0) {
+            $where[] = 'ev.context_id = :pid';
+            $params['pid'] = $programId;
+        }
+
+        $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
+                       ev.evaluator_name, ev.evaluator_title, ev.context_id, ev.context_type,
+                       e.emp_code, e.full_name AS emp_full_name, e.branch_name AS emp_branch_name, e.department_name AS emp_department_name,
+                       tp.title AS program_title, tb.name AS program_branch_name, td.name AS program_department_name,
+                       tp.start_date AS program_start_date, tp.end_date AS program_end_date, tp.responsible_person AS program_responsible
+                FROM evaluations ev
+                INNER JOIN employees e ON e.id = ev.evaluated_employee_id
+                LEFT JOIN training_programs tp ON tp.id = ev.context_id
+                LEFT JOIN branches tb ON tb.id = tp.executing_branch_id
+                LEFT JOIN departments td ON td.id = tp.executing_department_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY e.full_name ASC, e.id ASC, ev.evaluation_date DESC, ev.id DESC
+                LIMIT ' . (int) $limit;
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Option 4 (executing scope, course/workshop): evaluations whose linked program matches
+     * executing branch/department (and optional program) filters. Employee org filters disabled (Q1/Q5).
+     * Rows carry historical context from evaluation (Q3/Q4).
+     */
+    private function fetchExecutingEvaluationRows(array $layout, int $start, int $end, array $options): array
+    {
+        $targetType = (string) ($layout['target_type'] ?? 'employee');
+        $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+        if (!$isProgram) {
+            return [];
+        }
+        $pdo = $this->database->getPdo();
+        $templateId = (int) ($layout['template_id'] ?? 0);
+        $limit = max(0, $end - $start + 1);
+        if ($templateId <= 0 || $limit <= 0) {
+            return [];
+        }
+
+        $where = ['ev.template_id = :tid', 'ev.context_id IS NOT NULL'];
+        $params = ['tid' => $templateId];
+
+        $programId = isset($options['program_id']) ? (int) $options['program_id'] : 0;
+        if ($programId > 0) {
+            $where[] = 'ev.context_id = :pid';
+            $params['pid'] = $programId;
+        }
+
+        $execBranch = isset($options['executing_branch_id']) ? (int) $options['executing_branch_id'] : 0;
+        $execDept = isset($options['executing_department_id']) ? (int) $options['executing_department_id'] : 0;
+        if ($execBranch > 0) {
+            $where[] = 'tp.executing_branch_id = :ebid';
+            $params['ebid'] = $execBranch;
+        }
+        if ($execDept > 0) {
+            $where[] = 'tp.executing_department_id = :edid';
+            $params['edid'] = $execDept;
+        }
+
+        $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
+                       ev.evaluator_name, ev.evaluator_title, ev.context_id, ev.context_type,
+                       e.emp_code, e.full_name AS emp_full_name, e.branch_name AS emp_branch_name, e.department_name AS emp_department_name,
+                       tp.title AS program_title, tb.name AS program_branch_name, td.name AS program_department_name,
+                       tp.start_date AS program_start_date, tp.end_date AS program_end_date, tp.responsible_person AS program_responsible
+                FROM evaluations ev
+                INNER JOIN employees e ON e.id = ev.evaluated_employee_id
+                INNER JOIN training_programs tp ON tp.id = ev.context_id
+                LEFT JOIN branches tb ON tb.id = tp.executing_branch_id
+                LEFT JOIN departments td ON td.id = tp.executing_department_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY tp.start_date DESC, tp.id DESC, e.full_name ASC, e.id ASC, ev.evaluation_date DESC, ev.id DESC
+                LIMIT ' . (int) $limit;
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     private function formatDateForExcel(string $date): string
