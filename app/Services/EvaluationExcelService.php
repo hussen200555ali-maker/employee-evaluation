@@ -923,7 +923,7 @@ final class EvaluationExcelService
                 return $q->fetch()!==false;
             } catch(\Throwable $e) { return false; }
         }
-        if($section['evaluation_type']==='text'){ return mb_strlen($value)<=4000; }
+        if(in_array($section['evaluation_type'],['text','textarea','descriptive'],true)){ return mb_strlen($value)<=4000; }
         if(in_array($section['evaluation_type'],['grade','multiple_choice'],true)){
             $options=json_decode((string)($section['evaluation_options']??'[]'),true);
             if(!is_array($options)||$options===[]){ return false; }
@@ -1136,13 +1136,14 @@ final class EvaluationExcelService
     }
     private function sectionHint(array $section): string
     {
-        return match($section['evaluation_type']){
-            'numeric'=>'رقم بين '.($section['min_value']??0).' و '.($section['max_value']??100),
+        $type = (string)($section['evaluation_type'] ?? '');
+        if (in_array($type, ['text','textarea','descriptive'], true)) { return 'نص حتى 4000 حرف'; }
+        return match($type){
+            'numeric'=>'قيمة بين '.($section['min_value']??0).' و '.($section['max_value']??100),
             'percentage'=>'نسبة 0-100',
             'grade','multiple_choice'=>'اختر من القائمة',
             'boolean'=>'نعم أو لا',
-            'text'=>'نص حتى 4000 حرف',
-            'scale'=>'قيمة رقمية',
+            'scale'=>'سلم تقدير',
             default=>'',
         };
     }
