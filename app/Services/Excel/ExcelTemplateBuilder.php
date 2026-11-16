@@ -14,6 +14,8 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Conditional;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageMargins;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use RuntimeException;
 
@@ -162,6 +164,9 @@ final class ExcelTemplateBuilder
             $index++;
         };
 
+        // Display-only serial column (not part of import; helper columns are ignored by layout-driven import)
+        $add(['key' => 'row_serial', 'kind' => 'helper', 'label' => 'م', 'group' => '', 'required' => false, 'section_type' => null, 'hint' => 'مسلسل مرجعي (لا يُستورد)']);
+
         if ($isProgram) {
             $add(['key' => 'program_title', 'kind' => 'fixed', 'label' => 'اسم البرنامج *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'اختر ' . $contextLabel . ' من القائمة']);
             $add(['key' => 'program_branch', 'kind' => 'fixed', 'label' => 'الفرع المنفذ *', 'group' => '', 'required' => true, 'section_type' => null, 'hint' => 'فرع تنفيذ ' . $contextLabel]);
@@ -308,32 +313,33 @@ final class ExcelTemplateBuilder
 
         // ── صف 1: تعليمة واحدة (تحوي معرف القالب لربط الاستيراد) ──
         $scopeNote = in_array($layout['target_type'], ['employee_in_course', 'employee_in_workshop'], true)
-            ? ' كل صف = موظف داخل ' . $contextLabel . ' مع رأس برنامج كامل.'
-            : ' كل صف = موظف واحد وتقييم واحد.';
-        $instruction = 'قالب تقييم — ' . $layout['template_name'] . ' [' . $layout['target_type'] . ']'
-            . ' | معرف القالب: ' . $templateId
-            . ' | المقيّم: ' . $evaluatorEmployeeId
-            . ' | الصفوف: ' . $maxRows
-            . ' |' . $scopeNote
-            . ' املأ الصفوف الصفراء فقط ولا تغيّر ترتيب الأعمدة.';
+            ? ' ?? ?? = ????? ???? ???? ' . $contextLabel . ' ????.'
+            : ' ?? ?? = ????? ???? ????.';
+        $instruction = '???? ???????: ' . $layout['template_name'] . ' [' . $layout['target_type'] . ']'
+            . ' | ???? ??????: ' . $templateId
+            . ' | ???????: ' . $evaluatorEmployeeId
+            . ' | ???? ??????: ' . $maxRows
+            . ' ?? |' . $scopeNote
+            . ' ?? ????? ???? ???????/???????? ?? ????? ???????. ???? "?" ????? ??? ???????.';
         $sheet->setCellValue('A1', $instruction);
         $sheet->mergeCells('A1:' . $lastCol . '1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(10)->getColor()->setRGB('0F5B50');
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(false);
-        $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E8F5E9');
-        $sheet->getRowDimension(1)->setRowHeight(26);
 
-        // ── صفوف 2-3: الثوابت والذيل مدمجة، ومجموعات المعايير في صف 2 ──
+        // Header rows 2-3 (labels/groups) and row 4 (hints)
         foreach ($columns as $col) {
             $letter = $col['letter'];
-            if ($col['kind'] === 'fixed' || $col['kind'] === 'tail') {
-                $sheet->setCellValue($letter . '2', $col['label']);
+            $kind = (string) $col['kind'];
+            $label = (string) ($col['label'] ?? '');
+            $isHeaderCol = in_array($kind, ['fixed', 'tail'], true) || ($kind === 'helper' && $label !== '');
+            if ($isHeaderCol) {
+                $sheet->setCellValue($letter . '2', $label);
                 $sheet->mergeCells($letter . '2:' . $letter . '3');
             }
+            $sheet->setCellValue($letter . '4', (string) ($col['hint'] ?? ''));
         }
+
         $groupCols = [];
         foreach ($columns as $i => $col) {
-            if ($col['kind'] === 'section' || $col['kind'] === 'notes' || $col['kind'] === 'overall_grade') {
+            if (in_array($col['kind'], ['section', 'notes', 'overall_grade'], true)) {
                 $groupCols[$col['group']][] = $i;
             }
         }
@@ -343,104 +349,147 @@ final class ExcelTemplateBuilder
                 continue;
             }
             $idxs = $groupCols[$name];
-            $start = Coordinate::stringFromColumnIndex(min($idxs) + 1);
-            $end = Coordinate::stringFromColumnIndex(max($idxs) + 1);
-            $weightText = $name === 'التقدير العام' ? '' : ' (' . number_format((float) $group['weight'], 0) . '%)';
-            $sheet->setCellValue($start . '2', $name . $weightText);
-            if ($start !== $end) {
-                $sheet->mergeCells($start . '2:' . $end . '2');
+            $startCol = Coordinate::stringFromColumnIndex(min($idxs) + 1);
+            $endCol = Coordinate::stringFromColumnIndex(max($idxs) + 1);
+            $weightText = ($name === '??????? ?????' || (float) ($group['weight'] ?? 0) <= 0)
+                ? ''
+                : ' (' . number_format((float) $group['weight'], 0) . '%)';
+            $sheet->setCellValue($startCol . '2', $name . $weightText);
+            if ($startCol !== $endCol) {
+                $sheet->mergeCells($startCol . '2:' . $endCol . '2');
             }
         }
-        // صف 3: أسماء الأقسام + الملاحظات + التقدير العام
         foreach ($columns as $col) {
             if (in_array($col['kind'], ['section', 'notes', 'overall_grade'], true)) {
-                $label = (string) $col['label'];
-                if ($col['kind'] === 'section' && $col['section_type'] !== null) {
+                $label = (string) ($col['label'] ?? '');
+                if ($col['kind'] === 'section' && !empty($col['section_type'])) {
                     $label .= ' [' . $this->typeLabel((string) $col['section_type']) . ']';
                 }
                 $sheet->setCellValue($col['letter'] . '3', $label);
             }
-            // تلميحات صف 4
-            $sheet->setCellValue($col['letter'] . '4', (string) ($col['hint'] ?? ''));
         }
 
-        // ── تنسيق الترويسة ──
+        // Styling by ranges (performance): instruction, headers, hints, borders
+        $fullHeaderRange = 'A1:' . $lastCol . '4';
+        $headerRowsRange = 'A2:' . $lastCol . '3';
+        $hintRange = 'A4:' . $lastCol . '4';
+        $sheet->getStyle($fullHeaderRange)->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(11)->getColor()->setRGB('0F5B50');
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E8F5E9');
+        $sheet->getRowDimension(1)->setRowHeight(28);
+
         $fixedEndIndex = 0;
         $criteriaStartIndex = count($columns) + 1;
         $tailStartIndex = count($columns) - count($layout['tail_columns']) + 1;
         foreach ($columns as $i => $col) {
             $pos = $i + 1;
-            if (in_array($col['kind'], ['fixed', 'helper'], true)) { $fixedEndIndex = max($fixedEndIndex, $pos); }
+            $label = (string) ($col['label'] ?? '');
+            if (in_array($col['kind'], ['fixed'], true) || ($col['kind'] === 'helper' && $label !== '') || ($col['kind'] === 'helper' && $label === '' && $i < $tailStartIndex - 1)) { $fixedEndIndex = max($fixedEndIndex, $pos); }
             if (in_array($col['kind'], ['section', 'notes', 'overall_grade'], true)) { $criteriaStartIndex = min($criteriaStartIndex, $pos); }
         }
         if ($fixedEndIndex < 1) { $fixedEndIndex = 1; }
+        $criteriaStartIndex = min($criteriaStartIndex, max(1, $tailStartIndex - 1));
         $fixedEnd = Coordinate::stringFromColumnIndex($fixedEndIndex);
-        $sheet->getStyle('A2:' . $fixedEnd . '3')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle('A2:' . $fixedEnd . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
-        $sheet->getStyle('A2:' . $fixedEnd . '3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $tailStart = Coordinate::stringFromColumnIndex($tailStartIndex);
-        $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('374151');
-        $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $criteriaStart = Coordinate::stringFromColumnIndex(min($criteriaStartIndex, $tailStartIndex - 1));
-        $criteriaEnd = Coordinate::stringFromColumnIndex($tailStartIndex - 1);
-        $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getFont()->setBold(true)->setSize(9)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
-        $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $sheet->getStyle($criteriaStart . '3:' . $criteriaEnd . '3')->getFont()->setBold(true)->setSize(8)->getColor()->setRGB('0F5B50');
-        $sheet->getStyle($criteriaStart . '3:' . $criteriaEnd . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D1E7DD');
-        $sheet->getStyle($criteriaStart . '3:' . $criteriaEnd . '3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $sheet->getStyle('A2:' . $lastCol . '3')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
-        $sheet->getStyle('A4:' . $lastCol . '4')->getFont()->setSize(7)->setItalic(true)->getColor()->setRGB('6B7280');
-        $sheet->getStyle('A4:' . $lastCol . '4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $sheet->getStyle('A4:' . $lastCol . '4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
-        $sheet->getRowDimension(2)->setRowHeight(26);
-        $sheet->getRowDimension(3)->setRowHeight(34);
-        $sheet->getRowDimension(4)->setRowHeight(24);
+        $criteriaStart = Coordinate::stringFromColumnIndex($criteriaStartIndex);
+        $criteriaEnd = Coordinate::stringFromColumnIndex(max($criteriaStartIndex, $tailStartIndex - 1));
 
-        // ── خلايا البيانات (5 → 5+maxRows-1) ──
+        $sheet->getStyle($headerRowsRange)->getFont()->setBold(true)->setSize(10)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle($headerRowsRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle('A2:' . $fixedEnd . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
+        $sheet->getStyle($tailStart . '2:' . $lastCol . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('374151');
+        if ($criteriaStartIndex < $tailStartIndex) {
+            $sheet->getStyle($criteriaStart . '2:' . $criteriaEnd . '2')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F766E');
+            $sheet->getStyle($criteriaStart . '3:' . $criteriaEnd . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('DDF3EE');
+            $sheet->getStyle($criteriaStart . '3:' . $criteriaEnd . '3')->getFont()->setSize(9.5)->getColor()->setRGB('0B5D52');
+        }
+        $sheet->getStyle($headerRowsRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0B5D52');
+
+        $sheet->getStyle($hintRange)->getFont()->setSize(9)->setItalic(true)->getColor()->setRGB('5B6B7A');
+        $sheet->getStyle($hintRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getStyle($hintRange)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F3F6F8');
+        $sheet->getStyle($hintRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('D6DEE6');
+        $sheet->getRowDimension(2)->setRowHeight(28);
+        $sheet->getRowDimension(3)->setRowHeight(36);
+        $sheet->getRowDimension(4)->setRowHeight(26);
+
+        // Serial (?) column styling in header (range-based)
+        $serialColObj = $this->findColumn($layout, 'row_serial');
+        if ($serialColObj !== null) {
+            $sLetter = $serialColObj['letter'];
+            $sheet->getStyle($sLetter . '2:' . $sLetter . '3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('334155');
+            $sheet->getStyle($sLetter . '2:' . $sLetter . '4')->getFont()->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle($sLetter . '4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('64748B');
+        }
+
+        // Data range base styling (range-based, not per-cell loops)
         $range = 'A' . $dataStart . ':' . $lastCol . $dataEnd;
-        $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF9C4');
-        $sheet->getStyle($range)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
+        $sheet->getStyle($range)->getFont()->setSize(11)->getColor()->setRGB('102A43');
+        $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF9E6');
+        $sheet->getStyle($range)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E5E7EB');
+        $sheet->getStyle($range)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
         $sheet->getStyle('A1:' . $lastCol . '4')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
 
-        // ── التعبئة المسبقة (اختيارية) ──
+        // Prefill data rows
         $mode = (string) ($options['mode'] ?? 'prefill');
         if ($mode !== 'empty') {
             $this->prefillRows($sheet, $layout, $branchId, $departmentId, $dataStart, $dataEnd, $options);
         }
 
+        // Display-only serial numbers (1..N), reference column (not imported)
+        if ($serialColObj !== null) {
+            $sLetter = $serialColObj['letter'];
+            for ($r = $dataStart; $r <= $dataEnd; $r++) {
+                $sheet->setCellValue($sLetter . $r, $r - $dataStart + 1);
+            }
+            $serialRange = $sLetter . $dataStart . ':' . $sLetter . $dataEnd;
+            $sheet->getStyle($serialRange)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('EEF2F6');
+            $sheet->getStyle($serialRange)->getFont()->setBold(true)->getColor()->setRGB('334E68');
+            $sheet->getStyle($serialRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle($serialRange)->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        }
+
         // BUG-004: helper columns (hidden) map branch name -> safe ID for dependent dropdowns
         $this->applyBranchHelperColumns($sheet, $layout, $dataStart, $dataEnd);
 
-        // ── التحقق من صحة الإدخال ──
+        // Validations, formats, conditional formatting
         $this->applyValidations($sheet, $layout, $branches, $departmentsByBranch, $gradeLabels, $programTitles, $dataStart, $dataEnd);
         $this->applyDuplicateFormatting($sheet, $layout, $dataStart, $dataEnd);
         $this->applyDateFormats($sheet, $layout, $dataStart, $dataEnd);
         $this->applyDepartmentMismatchFormatting($sheet, $layout, $dataStart, $dataEnd);
 
-        // ── ورقة Lists مخفية (أسماء فقط، بلا معرّفات تقنية) ──
+        // Lists sheet (hidden, named ranges)
         $this->buildListsSheet($book, $branches, $departmentsByBranch, $gradeLabels, $programTitles);
 
-        // ── العرض والحماية بلا كلمة سر ──
+        // Column widths (defaults) and view
         $this->applyColumnWidths($sheet, $layout);
-        $sheet->freezePane('A' . $dataStart);
+        $freezeAt = ($serialColObj !== null) ? (Coordinate::stringFromColumnIndex(2) . $dataStart) : ('A' . $dataStart); // keep serial visible
+        $sheet->freezePane($freezeAt);
         $sheet->getProtection()->setSheet(true);
-        // SRS §12: حماية بلا كلمة سر — تعيين سلسلة فارغة كبصمة يمنع كتابة password في XML.
+        // SRS ?12: must remain unlocked for data entry; no sheet password in XML.
         $sheet->getProtection()->setHashValue('');
         $sheet->getProtection()->setSort(false);
         $sheet->getProtection()->setInsertRows(false);
         $sheet->getProtection()->setFormatCells(false);
+        // Allow users to resize/format column widths in the protected sheet for usability and printing.
+        $sheet->getProtection()->setFormatColumns(false);
+
+        // Professional print setup (RTL, fit-to-width, repeat headers, footer)
+        $this->applyPrintSetup($sheet, $layout, $dataStart, $dataEnd, $lastCol);
 
         $book->getProperties()
-            ->setCreator('نظام تقييم الموظفين')
-            ->setTitle('قالب تقييم — ' . $layout['template_name'])
-            ->setDescription('معرف القالب: ' . $templateId . ' | المقيّم: ' . $evaluatorEmployeeId);
+            ->setCreator('???? ????? ????????')
+            ->setTitle('???? ??????? - ' . $layout['template_name'])
+            ->setDescription('???? ??????: ' . $templateId . ' | ???????: ' . $evaluatorEmployeeId)
+            ->setCustomProperty('TemplateId', $templateId);
 
         $book->setActiveSheetIndex(0);
         return $book;
     }
+
 
     /**
      * وصف هيكل القالب للوحة المعاينة في شاشة الاستيراد.
@@ -1672,6 +1721,36 @@ final class ExcelTemplateBuilder
     // أدوات مساعدة
     // ────────────────────────────────────────────────────────────────
 
+
+    private function applyPrintSetup(Worksheet $sheet, array $layout, int $dataStart, int $dataEnd, string $lastCol): void
+    {
+        $sheet->setRightToLeft(true); // ensure RTL layout for Arabic printing/viewing
+
+        $pageSetup = $sheet->getPageSetup();
+        $pageSetup->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
+        $pageSetup->setPaperSize(PageSetup::PAPERSIZE_A4);
+        $pageSetup->setFitToWidth(1);
+        $pageSetup->setFitToHeight(0); // as many pages tall as needed
+        $pageSetup->setRowsToRepeatAtTopByStartAndEnd(1, 4);
+        $pageSetup->setHorizontalCentered(true);
+
+        // Print the full template grid area (headers + allocated data rows)
+        $sheet->getPageSetup()->setPrintArea('A1:' . $lastCol . $dataEnd);
+
+        $margins = $sheet->getPageMargins();
+        $margins->setTop(0.5);
+        $margins->setBottom(0.6);
+        $margins->setLeft(0.3);
+        $margins->setRight(0.3);
+        $margins->setHeader(0.2);
+        $margins->setFooter(0.3);
+
+        $title = (string) ($layout['template_name'] ?? '???? ???????');
+        $safeTitle = str_replace(['&', '"'], ['?', "'"], $title);
+        $sheet->getHeaderFooter()->setOddFooter('&R' . $safeTitle . ' | ????? ???????: &D &T&C???? &P ?? &N');
+        $sheet->setShowGridlines(false);
+        $sheet->setPrintGridlines(true);
+    }
     private function applyColumnWidths(Worksheet $sheet, array $layout): void
     {
         foreach ($layout['columns'] as $idx => $col) {
@@ -1679,7 +1758,11 @@ final class ExcelTemplateBuilder
             $kind = (string) $col['kind'];
             $key = (string) $col['key'];
             if ($kind === 'helper') {
-                $sheet->getColumnDimension($letter)->setWidth(2);
+                if ($key === 'row_serial') {
+                    $sheet->getColumnDimension($letter)->setWidth(6.5);
+                } else {
+                    $sheet->getColumnDimension($letter)->setWidth(2);
+                }
                 continue;
             }
             if ($kind === 'fixed') {
@@ -1744,19 +1827,20 @@ final class ExcelTemplateBuilder
     {
         $key = (string) $col['key'];
         return match ($key) {
-            'employee_name' => 'أحمد العتيبي',
+            'row_serial' => '1',
+            'employee_name' => '???? ??????',
             'employee_code' => 'EMP-101',
-            'employee_branch', 'program_branch' => (string) ($branches[0]['name'] ?? 'الرياض'),
-            'employee_department', 'program_department' => (string) ($departments[0] ?? 'تقنية المعلومات'),
-            'program_title' => (string) ($layout['program']['title'] ?? 'إدارة المشاريع'),
+            'employee_branch', 'program_branch' => (string) ($branches[0]['name'] ?? '????? ???????'),
+            'employee_department', 'program_department' => (string) ($departments[0] ?? '?????'),
+            'program_title' => (string) ($layout['program']['title'] ?? '?????? ??????'),
             'program_start' => date('Y-m-d', strtotime('-10 days')),
             'program_end' => date('Y-m-d', strtotime('-3 days')),
-            'program_responsible' => 'أ. سارة القحطاني',
-            'overall_grade' => 'ممتاز',
+            'program_responsible' => '???????',
+            'overall_grade' => '???',
             'evaluation_date' => date('Y-m-d'),
-            'evaluator_name' => 'عبدالله السبيعي',
-            'evaluator_title' => 'مدير قسم',
-            'notes' => 'أداء ممتاز',
+            'evaluator_name' => '??? ???????',
+            'evaluator_title' => '?????? ???????',
+            'notes' => '???????',
             default => $this->sampleSectionValue($col),
         };
     }

@@ -116,13 +116,21 @@ final class EvaluationExcelService
             $seenEmpCodes = [];
             $seenNames = [];
             // CD-043: القراءة من تخطيط الباني (صف البيانات يبدأ من 5، والأعمدة ليست ثابتة بين الأنواع).
+            // layout-driven: ignore helper/display-only columns (e.g. serial) when detecting empty rows
             $layout = $this->builder->layout($templateId);
             $dataStartRow = (int) $layout['data_start_row'];
+            $helperIndices = [];
+            foreach (($layout['columns'] ?? []) as $col) {
+                if (($col['kind'] ?? '') === 'helper') {
+                    $helperIndices[(int) ($col['index'] ?? -1)] = true;
+                }
+            }
             $dataRows = array_slice($allRows, $dataStartRow - 1);
             $excelRowNumber = $dataStartRow;
             foreach ($dataRows as $row) {
                 $isEmptyRow = true;
-                foreach ($row as $cell) {
+                foreach ($row as $idx => $cell) {
+                    if (isset($helperIndices[(int) $idx])) { continue; }
                     if (trim((string) $cell) !== '') { $isEmptyRow = false; break; }
                 }
                 if ($isEmptyRow) { $excelRowNumber++; continue; }
@@ -999,10 +1007,19 @@ final class EvaluationExcelService
     }
     private function extractTemplateId(Worksheet $sheet, Spreadsheet $book): int
     {
-        $title=(string)$sheet->getCell('A1')->getValue();
-        if(preg_match('/معرف القالب:\s*(\d+)/u',$title,$matches)){ return (int)$matches[1]; }
-        $props=$book->getProperties()->getCustomProperties();
-        foreach($props as $propName){ if($propName==='TemplateId'){ return (int)$book->getProperties()->getCustomPropertyValue($propName); } }
+        $title = (string) $sheet->getCell('A1')->getValue();
+        if (preg_match('/????\s*??????\s*:\s*(\d+)/u', $title, $matches)) {
+            return (int) $matches[1];
+        }
+        if (preg_match('/Template\s*ID\s*:\s*(\d+)/iu', $title, $matches)) {
+            return (int) $matches[1];
+        }
+        $props = $book->getProperties()->getCustomProperties();
+        foreach ($props as $propName) {
+            if ($propName === 'TemplateId') {
+                return (int) $book->getProperties()->getCustomPropertyValue($propName);
+            }
+        }
         return 0;
     }
     private function getTemplateOrFail(int $templateId): array
