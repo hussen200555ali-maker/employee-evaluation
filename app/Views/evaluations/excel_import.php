@@ -297,68 +297,84 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
   function renderPreview(tplId){
     var st = CD042_STRUCTURES[tplId];
     if(!st || !previewEl) return;
-    var cols = st.columns || [];
+    // أعمدة العرض فقط (استبعاد الأعمدة التقنية المساعدة) لضمان تطابق عدد خلايا الترويسة والجسم ديناميكياً لأي قالب
+    var allCols = st.columns || [];
+    var cols = allCols.filter(function(c){ return c && c.kind !== 'helper'; });
     var html = '<div class="xf-table-wrap xf-table-wrap--structure"><table class="xl"><thead>';
+
+    // صف 1: أحرف الأعمدة مع دمج حسب المجموعة المتتابعة
     html += '<tr><th class="col-ltr" style="min-width:36px">#</th>';
     var i = 0;
     while (i < cols.length) {
       var span = 1;
-      if (cols[i].group) {
-        while (i + span < cols.length && cols[i+span].group === cols[i].group) span++;
+      var grpKey = cols[i].group || '';
+      if (grpKey) {
+        while (i + span < cols.length && (cols[i+span].group || '') === grpKey) span++;
       }
-      var letters = cols[i].letter + (span>1 ? '–' + cols[i+span-1].letter : '');
+      var letters = cols[i].letter + (span > 1 ? '–' + cols[i+span-1].letter : '');
       html += '<th class="col-ltr" colspan="' + span + '">' + letters + '</th>';
       i += span;
     }
     html += '</tr>';
+
+    // صف 2: عناوين ثابتة/ذيل (rowspan=2) أو مجموعات معايير؛ وأي نوع غير متوقع يُعامل كـ rowspan=2 آمن
     html += '<tr><th class="rn"></th>';
     i = 0;
     while (i < cols.length) {
       var c = cols[i];
-      if (c.kind === 'fixed' || c.kind === 'tail') {
-        html += '<th class="' + (c.kind==='tail'?'gnotes':'emp') + '" rowspan="2">' + esc(c.label) + '</th>';
-        i++;
-      } else if (c.kind === 'section' || c.kind === 'overall_grade') {
-        var grp = c.group || (c.kind==='overall_grade' ? 'التقدير العام' : '');
+      if (c.kind === 'section' || c.kind === 'overall_grade') {
+        var grp = c.group || (c.kind === 'overall_grade' ? 'التقدير العام' : '');
         var span = 1;
         while (i + span < cols.length && ((cols[i+span].kind === 'section' || cols[i+span].kind === 'overall_grade') && (cols[i+span].group || '') === grp)) span++;
         var crit = (st.criteria || []).filter(function(x){return x.name===grp;})[0];
-        var wtxt = crit ? ('الوزن ' + Math.round(crit.weight) + '٪') : '';
+        var wtxt = (crit && crit.weight) ? ('الوزن ' + Math.round(crit.weight) + '٪') : '';
         html += '<th class="crit" colspan="' + span + '">' + esc(grp) + (wtxt ? '<span class="w" style="display:block;font-size:.75rem;opacity:.92">' + wtxt + '</span>' : '') + '</th>';
         i += span;
-      } else { i++; }
+      } else {
+        var headCls = (c.kind === 'tail') ? 'gnotes' : 'emp';
+        html += '<th class="' + headCls + '" rowspan="2">' + esc(c.label || '') + '</th>';
+        i++;
+      }
     }
-    html += '</tr><tr><th class="rn"></th>';
+    html += '</tr>';
+
+    // صف 3: تفاصيل أعمدة المعايير/الأقسام فقط (بما يطابق أعمدة الجسم)
+    html += '<tr><th class="rn"></th>';
     cols.forEach(function(c){
       if (c.kind === 'section' || c.kind === 'overall_grade') {
         var tag = '';
-        var t = c.section_type;
+        var t = c.section_type || (c.kind === 'overall_grade' ? 'overall_grade' : '');
         if (t === 'percentage') tag = 'نسبة 0–100';
         else if (t === 'numeric') tag = 'رقمي';
         else if (t === 'boolean') tag = 'نعم/لا';
         else if (t === 'grade' || t === 'multiple_choice') tag = 'قائمة';
         else if (t === 'textarea' || t === 'text' || t === 'descriptive') tag = 'نص';
+        else if (t === 'notes') tag = 'ملاحظة';
         else if (t === 'overall_grade' || c.kind === 'overall_grade') tag = 'تقدير';
-        var req = (c.label || '').indexOf('*')>=0 ? ' *' : '';
-        html += '<th class="sec">' + esc((c.label||'').replace(' *','')) + req + (tag ? '<span class="tag" style="display:block;font-size:.72rem;opacity:.9;margin-top:2px">' + tag + '</span>' : '') + '</th>';
+        var rawLabel = (c.label || '');
+        var req = (rawLabel.indexOf('*') >= 0) ? ' *' : '';
+        html += '<th class="sec">' + esc(rawLabel.replace(' *','')) + req + (tag ? '<span class="tag" style="display:block;font-size:.72rem;opacity:.9;margin-top:2px">' + tag + '</span>' : '') + '</th>';
       }
     });
     html += '</tr></thead><tbody>';
+
     (st.sample_rows || []).forEach(function(row, idx){
-      var isNew = (idx === (st.sample_rows.length-1));
+      var isNew = (idx === (st.sample_rows.length - 1));
       html += '<tr>';
-      html += '<td class="rn">' + (3+idx) + '</td>';
+      html += '<td class="rn">' + (3 + idx) + '</td>';
       cols.forEach(function(c){
-        var v = row[c.letter];
+        var v = row ? row[c.letter] : '';
         var cls = isNew ? 'new' : 'd';
         if (isImportantCol(c)) cls += ' num';
         var t = c.section_type;
-        if (c.kind === 'fixed' && ((c.key||'').indexOf('branch')!==-1 || (c.key||'').indexOf('department')!==-1)) cls += ' dd';
+        var key = c.key || '';
+        if (c.kind === 'fixed' && (key.indexOf('branch') !== -1 || key.indexOf('department') !== -1)) cls += ' dd';
         if (c.kind === 'section' && (t === 'boolean' || t === 'grade' || t === 'multiple_choice')) cls += ' dd';
         html += '<td class="' + cls + '">' + esc(v) + '</td>';
       });
       html += '</tr>';
     });
+
     html += '</tbody></table></div>';
     previewEl.innerHTML = html;
   }
