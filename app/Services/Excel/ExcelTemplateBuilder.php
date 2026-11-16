@@ -382,6 +382,7 @@ final class ExcelTemplateBuilder
         $this->applyValidations($sheet, $layout, $branches, $departmentsByBranch, $gradeLabels, $programTitles, $dataStart, $dataEnd);
         $this->applyDuplicateFormatting($sheet, $layout, $dataStart, $dataEnd);
         $this->applyDateFormats($sheet, $layout, $dataStart, $dataEnd);
+        $this->applyDepartmentMismatchFormatting($sheet, $layout, $dataStart, $dataEnd);
 
         // ── ورقة Lists مخفية (أسماء فقط، بلا معرّفات تقنية) ──
         $this->buildListsSheet($book, $branches, $departmentsByBranch, $gradeLabels, $programTitles);
@@ -1011,6 +1012,40 @@ final class ExcelTemplateBuilder
             if ($col !== null) {
                 $sheet->getStyle($col['letter'] . $start . ':' . $col['letter'] . $end)->getNumberFormat()->setFormatCode('yyyy-mm-dd');
             }
+        }
+    }
+
+    /**
+     * UX: Highlight department cells when selected department does not belong to the selected branch.
+     * Uses Safe ID helper + Branch_N named ranges (BUG-004). Macro-free visual warning before import.
+     */
+    private function applyDepartmentMismatchFormatting(Worksheet $sheet, array $layout, int $start, int $end): void
+    {
+        $pairs = [
+            ['dept' => 'program_department', 'helper' => 'program_branch_safe_id'],
+            ['dept' => 'employee_department', 'helper' => 'employee_branch_safe_id'],
+        ];
+        foreach ($pairs as $pair) {
+            $deptCol = $this->findColumn($layout, $pair['dept']);
+            $helperCol = $this->findColumn($layout, $pair['helper']);
+            if ($deptCol === null || $helperCol === null) {
+                continue;
+            }
+            $d = $deptCol['letter'];
+            $h = $helperCol['letter'];
+            $formula = 'AND($' . $d . $start . '<>"",$' . $h . $start . '<>"",ISERROR(MATCH($' . $d . $start . ',INDIRECT($' . $h . $start . '),0)))';
+            $cond = new Conditional();
+            $cond->setConditionType(Conditional::CONDITION_EXPRESSION);
+            $cond->setOperatorType(Conditional::OPERATOR_NONE);
+            $cond->addCondition($formula);
+            $cond->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FECACA');
+            $cond->getStyle()->getFont()->getColor()->setRGB('991B1B');
+            $cond->setStopIfTrue(false);
+
+            $range = $d . $start . ':' . $d . $end;
+            $existing = $sheet->getStyle($range)->getConditionalStyles();
+            $existing[] = $cond;
+            $sheet->getStyle($range)->setConditionalStyles($existing);
         }
     }
 
