@@ -54,6 +54,12 @@
 
 .branch-cell,.dept-cell{font-size:14px;color:var(--muted);white-space:nowrap;}
 
+.eval-type-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.eval-type-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent;white-space:nowrap;line-height:1.4;}
+.eval-type-badge.employee{background:#ecfeff;color:#155e75;border-color:#a5f3fc;}
+.eval-type-badge.course{background:#eff6ff;color:#1e40af;border-color:#bfdbfe;}
+.eval-type-badge.workshop{background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;}
+.eval-type-badge.skill{background:#fff7ed;color:#9a3412;border-color:#fed7aa;}
 .count-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(59,130,246,.08);color:#3b82f6;border-radius:20px;padding:5px 14px;font-size:14px;font-weight:800;}
 
 .score-ring-xs{width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;position:relative;background:conic-gradient(var(--ring-color,var(--brand)) calc(var(--score)*3.6deg),#eef2f7 0deg);box-shadow:0 2px 8px rgba(13,94,82,.1);transition:transform .3s;}
@@ -157,9 +163,10 @@
                         $grouped[$tpl->target_type][] = $tpl;
                     }
                     $groupLabels = [
-                        'employee_in_course' => 'دورات',
-                        'employee_in_workshop' => 'ورش',
-                        'skill' => 'مهاري',
+                        'employee' => '????',
+                        'employee_in_course' => '????',
+                        'employee_in_workshop' => '????',
+                        'skill' => '?????',
                     ];
                     foreach ($grouped as $type => $tpls):
                         $label = $groupLabels[$type] ?? $type;
@@ -209,9 +216,19 @@
                         $ringColor = $score !== null ? ($score >= 80 ? 'var(--brand)' : ($score >= 50 ? 'var(--gold)' : '#ef4444')) : '#cbd5e1';
                     ?>
                     <tr>
-                        <td>
+                                                <td>
                             <span class="emp-cell-name"><?php echo htmlspecialchars($employee->full_name); ?></span>
-                            <span class="emp-cell-pos"><?php echo htmlspecialchars($employee->position_title ?? 'غير محدد'); ?> · #<?php echo htmlspecialchars($employee->emp_code); ?></span>
+                            <span class="emp-cell-pos"><?php echo htmlspecialchars($employee->position_title ?? '??? ????'); ?> ? #<?php echo htmlspecialchars($employee->emp_code); ?></span>
+                            <?php
+                              $typeMap = ['employee'=>['????','fas fa-user','employee'],'course'=>['????','fas fa-graduation-cap','course'],'workshop'=>['????','fas fa-chalkboard-teacher','workshop'],'skill'=>['?????','fas fa-bullseye','skill']];
+                              $rawTypes = array_filter(array_unique(explode(',', (string)($employee->eval_types ?? ''))));
+                              if (!empty($rawTypes)): ?>
+                                <div class="eval-type-badges">
+                                  <?php foreach ($rawTypes as $rt): $m = $typeMap[$rt] ?? null; if(!$m) continue; ?>
+                                    <span class="eval-type-badge <?php echo $m[2]; ?>"><i class="<?php echo $m[1]; ?>"></i> <?php echo $m[0]; ?></span>
+                                  <?php endforeach; ?>
+                                </div>
+                              <?php endif; ?>
                         </td>
                         <td class="branch-cell"><?php echo htmlspecialchars($employee->branch_name ?? '—'); ?></td>
                         <td class="dept-cell"><?php echo htmlspecialchars($employee->department_name ?? '—'); ?></td>
@@ -244,7 +261,7 @@
                 <?php
                 $cp = $pagination['currentPage'];
                 $tp = $pagination['totalPages'];
-                $baseUrl = APP_URL . '/evaluations?' . http_build_query(array_filter(['search' => $filters['search'] ?? '', 'branch_id' => $filters['branch_id'] ?? '', 'department_id' => $filters['department_id'] ?? '']));
+                $baseUrl = APP_URL . '/evaluations?' . http_build_query(array_filter(['search' => $filters['search'] ?? '', 'branch_id' => $filters['branch_id'] ?? '', 'department_id' => $filters['department_id'] ?? '', 'template_id' => $filters['template_id'] ?? '']));
                 $sep = strpos($baseUrl, '?') !== false ? '&' : '?';
                 ?>
                 <a href="<?php echo $baseUrl . $sep . 'page=' . max(1, $cp - 1); ?>" class="page-btn arrow <?php echo $cp <= 1 ? 'disabled' : ''; ?>"><i class="fas fa-chevron-right"></i></a>

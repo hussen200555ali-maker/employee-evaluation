@@ -88,10 +88,10 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
     // CD-040.6 (revised): classify EXCLUSIVELY by target_type.
     $targetKey = $template['target_type'] ?? 'employee';
     $typeLabels = [
-      'employee'             => ['فردي', 'eval-type-annual', 'fas fa-user'],
-      'employee_in_course'   => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'],
-      'employee_in_workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
-      'skill'                => ['مهاري', 'eval-type-skill', 'fas fa-bullseye'],
+      'employee'             => ['????', 'eval-type-annual', 'fas fa-user'],
+      'employee_in_course'   => ['????', 'eval-type-course', 'fas fa-graduation-cap'],
+      'employee_in_workshop' => ['????', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
+      'skill'                => ['?????', 'eval-type-skill', 'fas fa-bullseye'],
     ];
     $typeInfo = $typeLabels[$targetKey] ?? $typeLabels['employee'];
   ?>
@@ -124,6 +124,13 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
         <div class="info-cell"><label><i class="fas fa-users"></i> القسم</label><span><?php echo htmlspecialchars($evaluation->department_name); ?></span></div>
       </div></div>
     </div>
+
+    <?php if (empty($program) && ($template['target_type'] ?? '') === 'employee'): ?>
+    <div class="section">
+      <div class="section-head"><div class="section-num">?</div><h2>???? ???????</h2><div class="line"></div></div>
+      <div class="program-card"><div class="program-grid"><div class="program-cell" style="grid-column:1/-1;"><span class="empty">????? ???? ? ??? ????? ???????/????/????.</span></div></div></div>
+    </div>
+    <?php endif; ?>
 
     <?php if (!empty($program)): ?>
     <div class="section">

@@ -51,14 +51,14 @@ class EvaluationController extends Controller {
         $departmentModel = new \App\Models\Department();
         $departments = $departmentModel->getAll();
 
-        // CD-040.7: templates (course/workshop/skill) that have at least one evaluation
+        // Templates (including individual) that have at least one evaluation for filtering
         $db = \App\Core\Database::getInstance();
         $db->query("SELECT t.id, t.template_name, t.target_type, COUNT(e.id) AS eval_count
                     FROM form_templates t
                     JOIN evaluations e ON e.template_id = t.id
-                    WHERE t.target_type IN ('employee_in_course','employee_in_workshop','skill')
+                    WHERE t.target_type IN ('employee','employee_in_course','employee_in_workshop','skill')
                     GROUP BY t.id, t.template_name, t.target_type
-                    ORDER BY t.target_type, t.template_name");
+                    ORDER BY FIELD(t.target_type,'employee','employee_in_course','employee_in_workshop','skill'), t.template_name");
         $templatesWithEvals = $db->fetchAll();
 
         $data = [

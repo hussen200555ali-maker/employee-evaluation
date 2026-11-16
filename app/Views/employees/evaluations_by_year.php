@@ -189,11 +189,11 @@ $minScore = $scores ? min($scores) : null;
             $typeCounts[$tk] = ($typeCounts[$tk] ?? 0) + 1;
           }
           $typeTabs = [
-            'all'                  => ['الكل', 'fas fa-layer-group'],
-            'employee'             => ['فردي', 'fas fa-user'],
-            'employee_in_course'   => ['دورة', 'fas fa-graduation-cap'],
-            'employee_in_workshop' => ['ورشة', 'fas fa-chalkboard-teacher'],
-            'skill'                => ['مهاري', 'fas fa-bullseye'],
+            'all'                  => ['????', 'fas fa-layer-group'],
+            'employee'             => ['????', 'fas fa-user'],
+            'employee_in_course'   => ['????', 'fas fa-graduation-cap'],
+            'employee_in_workshop' => ['????', 'fas fa-chalkboard-teacher'],
+            'skill'                => ['?????', 'fas fa-bullseye'],
           ];
         ?>
         <?php foreach ($typeTabs as $k => $t): if (!empty($typeCounts[$k]) || $k === 'all'): ?>
@@ -205,19 +205,19 @@ $minScore = $scores ? min($scores) : null;
           <?php $score = is_numeric($eval->final_score) ? (float)$eval->final_score : 0; $scoreClamped = max(0,min(100,$score)); $hijri = convertToHijri($eval->evaluation_date);
             $targetKey = $eval->target_type ?? 'employee';
             $typeMap = [
-              'employee'             => ['فردي', 'eval-type-annual', 'fas fa-user'],
-              'employee_in_course'   => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'],
-              'employee_in_workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
-              'skill'                => ['مهاري', 'eval-type-skill', 'fas fa-bullseye'],
+              'employee'             => ['????', 'eval-type-annual', 'fas fa-user'],
+              'employee_in_course'   => ['????', 'eval-type-course', 'fas fa-graduation-cap'],
+              'employee_in_workshop' => ['????', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
+              'skill'                => ['?????', 'eval-type-skill', 'fas fa-bullseye'],
             ];
-            $ti = $typeMap[$targetKey] ?? ['غير محدد', 'eval-type-annual', 'fas fa-layer-group'];
+            $ti = $typeMap[$targetKey] ?? ['????', 'eval-type-annual', 'fas fa-layer-group'];
           ?>
           <div class="eval-card" data-eval-id="<?php echo $eval->id; ?>" data-template="<?php echo htmlspecialchars($eval->template_name); ?>" data-eval-type="<?php echo $targetKey; ?>">
             <div class="eval-card-head">
               <h5 title="<?php echo htmlspecialchars($eval->template_name); ?>"><?php echo htmlspecialchars($eval->template_name); ?></h5>
               <span class="date-badge" dir="ltr"><?php echo date('Y/m/d', strtotime($eval->evaluation_date)); ?></span>
             </div>
-            <div style="padding:8px 12px 0;"><span class="eval-type-badge <?php echo $ti[1]; ?>"><i class="<?php echo $ti[2]; ?>"></i> <?php echo $ti[0]; ?></span><?php if (!empty($eval->context_type) && !empty($eval->context_id)): ?> <a class="program-link" href="<?php echo APP_URL . '/training/programs/' . (int)$eval->context_id; ?>"><i class="fas fa-external-link-alt"></i> عرض البرنامج</a><?php endif; ?></div>
+            <div style="padding:8px 12px 0;"><span class="eval-type-badge <?php echo $ti[1]; ?>"><i class="<?php echo $ti[2]; ?>"></i> <?php echo $ti[0]; ?></span><?php if (in_array($targetKey, ['employee_in_course','employee_in_workshop'], true) && !empty($eval->context_id)): ?> <a class="program-link" href="<?php echo APP_URL . '/training/programs/' . (int)$eval->context_id; ?>"><i class="fas fa-external-link-alt"></i> ??? ????????</a><?php elseif ($targetKey === 'employee'): ?> <span class="program-link" style="color:#94a3b8;font-weight:600;cursor:default;text-decoration:none;"><i class="fas fa-minus-circle"></i> ??? ????? ???????</span><?php endif; ?></div>
             <div class="eval-card-body">
               <div class="score-ring" style="--score:<?php echo $scoreClamped; ?>"><span><?php echo rtrim(rtrim(number_format($score,1), '0'), '.'); ?>%</span></div>
               <div class="progress"><div class="progress-bar" style="width:<?php echo $scoreClamped; ?>%"></div></div>

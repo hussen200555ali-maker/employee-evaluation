@@ -519,6 +519,7 @@ public function getAnnualSummaryWithActualDate($employeeId) {
     public function getTypeBreakdown($employeeId) {
         $sql = "SELECT
                     CASE
+                        WHEN t.target_type = 'employee' THEN 'employee'
                         WHEN t.target_type = 'skill' THEN 'skill'
                         WHEN t.target_type IN ('employee_in_workshop','workshop') THEN 'workshop'
                         WHEN t.target_type IN ('employee_in_course','course') THEN 'course'

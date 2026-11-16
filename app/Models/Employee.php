@@ -375,7 +375,22 @@ public function search($query, $limit = 10, $offset = 0) {
                     d.name as department_name,
                     COUNT(eval.id) as evaluations_count,
                     MAX(eval.evaluation_date) as last_evaluation_date,
-                    AVG(eval.final_score) as average_score
+                    AVG(eval.final_score) as average_score,
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT
+                            CASE
+                                WHEN ft2.target_type = 'skill' THEN 'skill'
+                                WHEN ft2.target_type IN ('employee_in_workshop','workshop') THEN 'workshop'
+                                WHEN ft2.target_type IN ('employee_in_course','course') THEN 'course'
+                                WHEN ft2.target_type = 'employee' THEN 'employee'
+                                ELSE ft2.target_type
+                            END
+                            ORDER BY ft2.target_type SEPARATOR ','
+                        )
+                        FROM evaluations ev2
+                        LEFT JOIN form_templates ft2 ON ft2.id = ev2.template_id
+                        WHERE ev2.evaluated_employee_id = e.id
+                    ) as eval_types
                 FROM 
                     employees e
                 LEFT JOIN 
