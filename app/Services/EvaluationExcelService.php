@@ -887,6 +887,11 @@ final class EvaluationExcelService
         if($ts!==false) return date('Y-m-d',$ts);
         return null;
     }
+    /** CD-043 P3: proxy عام لـ validateSingleRow (يُستخدم من ExcelImportValidator). */
+    public function validateImportRow(array &$payload, int $evaluatorEmployeeId, array $seenEmpCodes, array $seenNames, array $branchMap, array $departmentMap, array $sections): array
+    {
+        return $this->validateSingleRow($payload, $evaluatorEmployeeId, $seenEmpCodes, $seenNames, $branchMap, $departmentMap, $sections);
+    }
     private function validateSingleRow(array &$payload, int $evaluatorEmployeeId, array $seenEmpCodes, array $seenNames, array $branchMap, array $departmentMap, array $sections): array
     {
         $errors=[];
@@ -1558,7 +1563,25 @@ final class EvaluationExcelService
         }
         $q=$pdo->prepare('SELECT e.*, b.name AS branch_name, d.name AS department_name FROM employees e LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id WHERE e.full_name=:name LIMIT 1');
         $q->execute(['name'=>$fullName]);
-        return $q->fetch(PDO::FETCH_ASSOC);
+        $r=$q->fetch(PDO::FETCH_ASSOC);
+        if($r!==false) return $r;
+        // CD-043 P3: مطابقة after تطبيع الاسم (§10.2 حالة 12) — fallback.
+        return $this->findEmployeeByNameNormalized($fullName, $branchName, $departmentName);
+    }
+    private function findEmployeeByNameNormalized(string $fullName, string $branchName='', string $departmentName=''): array|false
+    {
+        $pdo=$this->database->getPdo();
+        $sql='SELECT e.*, b.name AS branch_name, d.name AS department_name FROM employees e LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id WHERE 1=1';
+        $params=[];
+        if($branchName!==''){ $sql.=' AND (b.name=:branch OR b.name IS NULL)'; $params['branch']=$branchName; }
+        if($departmentName!==''){ $sql.=' AND (d.name=:dept OR d.name IS NULL)'; $params['dept']=$departmentName; }
+        $q=$pdo->prepare($sql); $q->execute($params);
+        foreach($q->fetchAll(PDO::FETCH_ASSOC) as $row){
+            if(\App\Services\Excel\EmployeeMatcher::namesEqual($fullName, (string)($row['full_name']??''))){
+                return $row;
+            }
+        }
+        return false;
     }
     private function findEmployeesByName(string $fullName): array
     {
