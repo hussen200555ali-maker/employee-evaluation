@@ -32,8 +32,9 @@ foreach ($templates as $tpl) {
     $templatesByType[$tpl->target_type][] = $tpl;
 }
 $availableTypes = array_values(array_intersect($typeOrder, array_keys($templatesByType)));
+$hasActiveTemplates = count($templates) > 0 && count($availableTypes) > 0;
 ?>
-<link rel="stylesheet" href="<?= APP_URL ?>/public/css/excel-flow.css?v=1.0">
+<link rel="stylesheet" href="<?= APP_URL ?>/public/css/excel-flow.css?v=1.1">
 
 <div class="xf-page">
   <div class="xf-container">
@@ -41,7 +42,7 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
       <div class="xf-page-header__row">
         <div>
           <h1 class="xf-page-header__title"><i class="fas fa-file-import" aria-hidden="true"></i> استيراد تقييمات Excel</h1>
-          <p class="xf-page-header__sub">تنزيل/مطابقة القالب، رفع الملف، معاينة النتائج والتحقق، ثم اعتماد الاستيراد ضمن تدفق مؤسسي آمن.</p>
+          <p class="xf-page-header__sub">رفع ملف Excel، معاينة النتائج والتحقق، ثم اعتماد الاستيراد ضمن تدفق واضح وآمن.</p>
         </div>
         <div class="xf-page-header__meta">
           <span class="xf-chip"><i class="fas fa-shield-alt"></i> تحقق قبل الالتزام</span>
@@ -50,24 +51,60 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
       </div>
     </header>
 
-    <ol class="xf-steps" aria-label="خطوات الاستيراد">
-      <li class="xf-step <?= $preview === null ? 'is-active' : '' ?>"><span class="xf-step__num">1</span> القالب والرفع</li>
-      <li class="xf-step <?= $preview !== null ? 'is-active' : '' ?>"><span class="xf-step__num">2</span> المعاينة والتحقق</li>
-      <li class="xf-step"><span class="xf-step__num">3</span> اعتماد الاستيراد</li>
-    </ol>
-
-    <?php if ($preview === null): ?>
-      <div class="xf-callout xf-callout--info" style="margin-bottom:14px">
-        <i class="fas fa-info-circle"></i>
-        <div><strong>ملاحظة:</strong> يمكن إضافة موظفين جدد عبر الملف عند استيفاء الحقول المطلوبة (الاسم أو الرقم الوظيفي، والفرع/القسم حسب القالب). استخدم القالب المطابق لتجنب أخطاء البنية.</div>
-      </div>
-
-      <section class="xf-card">
-        <div class="xf-card__header">
-          <h2 class="xf-card__title"><i class="fas fa-table"></i> معاينة هيكل القوالب</h2>
-          <div class="xf-muted" style="font-size:.8rem">استعرض الأعمدة والمتطلبات حسب نوع القالب قبل التعبئة</div>
+    <?php if (!$hasActiveTemplates && $preview === null): ?>
+      <section class="xf-card xf-empty-state" role="status" aria-live="polite">
+        <div class="xf-card__body">
+          <div class="xf-empty-state__inner">
+            <div class="xf-empty-state__icon"><i class="fas fa-folder-open" aria-hidden="true"></i></div>
+            <h2 class="xf-empty-state__title">لا توجد قوالب تقييم نشطة حالياً</h2>
+            <p class="xf-empty-state__text">لا توجد قوالب تقييم نشطة حالياً. يرجى التوجه إلى شاشة إدارة القوالب لإنشاء قالب أولاً.</p>
+            <a href="<?= APP_URL ?>/templates" class="xf-btn xf-btn--primary"><i class="fas fa-cogs"></i> الانتقال إلى إدارة القوالب</a>
+          </div>
         </div>
-        <div class="xf-tabs" id="cd042-tabs"></div>
+      </section>
+
+    <?php elseif ($preview === null): ?>
+      <ol class="xf-steps" aria-label="خطوات الاستيراد">
+        <li class="xf-step is-active"><span class="xf-step__num">1</span> رفع الملف</li>
+        <li class="xf-step"><span class="xf-step__num">2</span> معاينة الهيكل (مرجع)</li>
+        <li class="xf-step"><span class="xf-step__num">3</span> المعاينة والاعتماد</li>
+      </ol>
+
+      <!-- الصف 1: منطقة الرفع (Hero) -->
+      <section class="xf-card xf-hero-upload" aria-labelledby="xf-upload-title">
+        <div class="xf-card__header xf-card__header--center">
+          <h2 class="xf-card__title" id="xf-upload-title"><i class="fas fa-cloud-upload-alt"></i> رفع ملف التقييم للمعاينة</h2>
+        </div>
+        <div class="xf-card__body">
+          <p class="xf-section-desc xf-text-center">ارفع ملف Excel (.xlsx) المبني على القالب المعتمد للتحقق من البيانات قبل أي اعتماد. هذه هي الخطوة الأساسية لبدء الاستيراد.</p>
+          <form method="post" action="<?= APP_URL ?>/evaluations/excel/preview" enctype="multipart/form-data" id="cd042-upload-form">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+            <label class="xf-upload xf-upload--hero" id="cd042-zone" for="cd042-file">
+              <div class="xf-upload__icon"><i class="fas fa-file-excel"></i></div>
+              <p class="xf-upload__title">اسحب ملف XLSX هنا أو انقر للاختيار</p>
+              <p class="xf-upload__sub">الامتداد المدعوم: <strong>.xlsx</strong> فقط · الحد الأقصى: <strong>20 ميجابايت</strong> · يُفضّل استخدام القالب المُصدَّر من النظام لضمان التوافق</p>
+              <input type="file" id="cd042-file" name="workbook" accept=".xlsx" required hidden>
+            </label>
+            <div class="xf-fileinfo xf-text-center" id="cd042-fileinfo" aria-live="polite"></div>
+            <div class="xf-hero-actions">
+              <a href="<?= APP_URL ?>/evaluations/excel/export" class="xf-btn xf-btn--secondary"><i class="fas fa-file-export"></i> الحصول على قالب (التصدير)</a>
+              <button type="submit" class="xf-btn xf-btn--primary xf-btn--lg" id="cd042-preview-btn"><i class="fas fa-search"></i> <span class="xf-btn-label">معاينة والتحقق</span></button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <div class="xf-section-divider" role="separator" aria-hidden="true"></div>
+
+      <!-- الصف 2: معاينة هيكل القوالب (مرجع مساند) -->
+      <section class="xf-card xf-support-card" aria-labelledby="xf-structure-title">
+        <div class="xf-card__header">
+          <div>
+            <h2 class="xf-card__title" id="xf-structure-title"><i class="fas fa-table"></i> معاينة هيكل القوالب (مرجع)</h2>
+            <p class="xf-card__subtitle">استعرض الأعمدة والمتطلبات حسب نوع القالب النشط قبل التعبئة</p>
+          </div>
+        </div>
+        <div class="xf-tabs xf-tabs--prominent" id="cd042-tabs" role="tablist" aria-label="أنواع القوالب النشطة"></div>
         <div class="xf-legend">
           <span class="xf-legend__item"><span class="xf-swatch" style="background:#334e68"></span> حقول تعريف/ثابتة</span>
           <span class="xf-legend__item"><span class="xf-swatch" style="background:#0f766e"></span> معيار/مجموعة</span>
@@ -77,42 +114,9 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
           <span class="xf-legend__item"><span class="xf-swatch" style="background:#fffaf0"></span> صف مثال</span>
         </div>
         <div class="xf-card__body xf-card__body--flush">
-          <div id="cd042-preview" class="xf-table-wrap xf-table-wrap--preview" style="padding:10px 12px"></div>
+          <div id="cd042-preview" class="xf-table-wrap xf-table-wrap--preview xf-table-wrap--structure" aria-live="polite"></div>
         </div>
       </section>
-
-      <div class="xf-grid">
-        <section class="xf-card xf-col-6">
-          <div class="xf-card__header">
-            <h2 class="xf-card__title"><i class="fas fa-file-download"></i> الحصول على القالب</h2>
-          </div>
-          <div class="xf-card__body">
-            <p class="xf-section-desc">لضمان توافق البنية والاعتمادات (القوائم، النطاق، عدد الصفوف، واستراتيجيات التعبئة)، استخدم شاشة التصدير المعتمدة.</p>
-            <a href="<?= APP_URL ?>/evaluations/excel/export" class="xf-btn xf-btn--secondary"><i class="fas fa-external-link-alt"></i> فتح شاشة التصدير</a>
-          </div>
-        </section>
-
-        <section class="xf-card xf-col-6">
-          <div class="xf-card__header">
-            <h2 class="xf-card__title"><i class="fas fa-cloud-upload-alt"></i> رفع الملف للمعاينة</h2>
-          </div>
-          <div class="xf-card__body">
-            <form method="post" action="<?= APP_URL ?>/evaluations/excel/preview" enctype="multipart/form-data" id="cd042-upload-form">
-              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-              <label class="xf-upload" id="cd042-zone" for="cd042-file">
-                <div class="xf-upload__icon"><i class="fas fa-file-excel"></i></div>
-                <p class="xf-upload__title">اسحب ملف XLSX هنا أو انقر للاختيار</p>
-                <p class="xf-upload__sub">الامتداد .xlsx فقط · الحد الأقصى 20 ميجابايت · يُفضّل استخدام القالب المُصدَّر من النظام</p>
-                <input type="file" id="cd042-file" name="workbook" accept=".xlsx" required hidden>
-              </label>
-              <div class="xf-fileinfo" id="cd042-fileinfo"></div>
-              <div class="xf-actions" style="margin-top:12px;justify-content:flex-end">
-                <button type="submit" class="xf-btn xf-btn--primary" id="cd042-preview-btn"><i class="fas fa-search"></i> <span class="xf-btn-label">معاينة والتحقق</span></button>
-              </div>
-            </form>
-          </div>
-        </section>
-      </div>
 
     <?php else: ?>
       <?php
@@ -121,7 +125,14 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
         $invalid = (int)($preview['invalid'] ?? 0);
         $newEmp = (int)($preview['new_employees'] ?? 0);
       ?>
-      <div class="xf-stats">
+      <ol class="xf-steps" aria-label="خطوات الاستيراد">
+        <li class="xf-step"><span class="xf-step__num">1</span> رفع الملف</li>
+        <li class="xf-step is-active"><span class="xf-step__num">2</span> المعاينة والتحقق</li>
+        <li class="xf-step <?= ($invalid === 0 && $valid > 0) ? 'is-active' : '' ?>"><span class="xf-step__num">3</span> الاعتماد</li>
+      </ol>
+
+      <!-- الصف 3: النتائج (تظهر فقط بعد الرفع) -->
+      <div class="xf-stats" role="group" aria-label="ملخص نتائج المعاينة">
         <div class="xf-stat xf-stat--neutral">
           <div class="xf-stat__icon"><i class="fas fa-list"></i></div>
           <div><div class="xf-stat__value"><?= $total ?></div><div class="xf-stat__label">إجمالي الصفوف</div></div>
@@ -154,11 +165,11 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
 
       <section class="xf-card">
         <div class="xf-card__header">
-          <h2 class="xf-card__title"><i class="fas fa-clipboard-list"></i> نتائج المعاينة</h2>
-          <div class="xf-muted" style="font-size:.8rem">يتم تمييز الصفوف والأعمدة المهمة لتسهيل المراجعة</div>
+          <h2 class="xf-card__title"><i class="fas fa-clipboard-list"></i> نتائج المعاينة التفصيلية</h2>
+          <div class="xf-muted" style="font-size:.875rem">ترويسة مثبتة أثناء التمرير مع تمييز الأعمدة والصفوف المهمة</div>
         </div>
         <div class="xf-card__body xf-card__body--flush">
-          <div class="xf-table-wrap" style="max-height:65vh">
+          <div class="xf-table-wrap xf-table-wrap--results">
             <table class="xf-table">
               <thead>
                 <tr>
@@ -170,7 +181,7 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
                   <th class="col-important">القسم</th>
                   <th class="col-important">تاريخ التقييم</th>
                   <th>مقتطف/درجات</th>
-                  <th style="min-width:260px">النتيجة والملاحظات</th>
+                  <th style="min-width:280px">النتيجة والملاحظات</th>
                 </tr>
               </thead>
               <tbody>
@@ -224,7 +235,7 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
         <form method="post" action="<?= APP_URL ?>/evaluations/excel/commit/<?= (int)($preview['batch_id'] ?? 0) ?>" id="cd042-commit-form">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
           <div class="xf-sticky-bar">
-            <div class="xf-sticky-bar__note"><i class="fas fa-lock"></i> القالب المعتمد: تم التحقق من البنية — سيتم استيراد <strong><?= $valid ?></strong> صفاً صالحاً فقط.</div>
+            <div class="xf-sticky-bar__note"><i class="fas fa-lock"></i> تم التحقق من البنية والبيانات — سيتم اعتماد <strong><?= $valid ?></strong> صفاً صالحاً.</div>
             <div class="xf-actions__group">
               <a href="<?= APP_URL ?>/evaluations/excel/import" class="xf-btn xf-btn--secondary"><i class="fas fa-redo"></i> إعادة الرفع</a>
               <button type="submit" class="xf-btn xf-btn--success" id="cd042-commit-btn"><i class="fas fa-check-double"></i> <span class="xf-btn-label">تأكيد واعتماد الاستيراد</span></button>
@@ -233,7 +244,7 @@ $availableTypes = array_values(array_intersect($typeOrder, array_keys($templates
         </form>
       <?php else: ?>
         <div class="xf-sticky-bar">
-          <div class="xf-sticky-bar__note"><i class="fas fa-info-circle"></i> لا يمكن الاعتماد لوجود أخطاء أو عدم وجود صفوف صالحة. قم بتصحيح الملف وأعد المعاينة.</div>
+          <div class="xf-sticky-bar__note"><i class="fas fa-info-circle"></i> لا يمكن الاعتماد لوجود أخطاء أو عدم توفر صفوف صالحة. صحّح الملف ثم أعد المعاينة.</div>
           <div class="xf-actions__group">
             <a href="<?= APP_URL ?>/evaluations/excel/import" class="xf-btn xf-btn--primary"><i class="fas fa-arrow-right"></i> العودة وإعادة الرفع</a>
           </div>
@@ -257,6 +268,7 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
   CD042_TEMPLATES.forEach(function(t){ (byType[t.type]=byType[t.type]||[]).push(t); });
   var tabsEl = document.getElementById('cd042-tabs');
   var previewEl = document.getElementById('cd042-preview');
+  // optional legacy elements (kept for safety)
   var tplSel = document.getElementById('cd042-tpl');
   var brSel = document.getElementById('cd042-br');
   var deptSel = document.getElementById('cd042-dept');
@@ -286,8 +298,8 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     var st = CD042_STRUCTURES[tplId];
     if(!st || !previewEl) return;
     var cols = st.columns || [];
-    var html = '<div class="xf-table-wrap"><table class="xl"><thead>';
-    html += '<tr><th class="col-ltr" style="min-width:34px">#</th>';
+    var html = '<div class="xf-table-wrap xf-table-wrap--structure"><table class="xl"><thead>';
+    html += '<tr><th class="col-ltr" style="min-width:36px">#</th>';
     var i = 0;
     while (i < cols.length) {
       var span = 1;
@@ -312,11 +324,9 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
         while (i + span < cols.length && ((cols[i+span].kind === 'section' || cols[i+span].kind === 'overall_grade') && (cols[i+span].group || '') === grp)) span++;
         var crit = (st.criteria || []).filter(function(x){return x.name===grp;})[0];
         var wtxt = crit ? ('الوزن ' + Math.round(crit.weight) + '٪') : '';
-        html += '<th class="crit" colspan="' + span + '">' + esc(grp) + (wtxt ? '<span class="w" style="display:block;font-size:.7rem;opacity:.9">' + wtxt + '</span>' : '') + '</th>';
+        html += '<th class="crit" colspan="' + span + '">' + esc(grp) + (wtxt ? '<span class="w" style="display:block;font-size:.75rem;opacity:.92">' + wtxt + '</span>' : '') + '</th>';
         i += span;
-      } else {
-        i++;
-      }
+      } else { i++; }
     }
     html += '</tr><tr><th class="rn"></th>';
     cols.forEach(function(c){
@@ -330,7 +340,7 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
         else if (t === 'textarea' || t === 'text' || t === 'descriptive') tag = 'نص';
         else if (t === 'overall_grade' || c.kind === 'overall_grade') tag = 'تقدير';
         var req = (c.label || '').indexOf('*')>=0 ? ' *' : '';
-        html += '<th class="sec">' + esc((c.label||'').replace(' *','')) + req + (tag ? '<span class="tag" style="display:block;font-size:.68rem;opacity:.85">' + tag + '</span>' : '') + '</th>';
+        html += '<th class="sec">' + esc((c.label||'').replace(' *','')) + req + (tag ? '<span class="tag" style="display:block;font-size:.72rem;opacity:.9;margin-top:2px">' + tag + '</span>' : '') + '</th>';
       }
     });
     html += '</tr></thead><tbody>';
@@ -354,50 +364,49 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
   }
 
   function showType(type){
-    document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
-    document.querySelectorAll('.ptab').forEach(function(t){ if(t.getAttribute('data-type')===type) t.classList.add('active'); });
+    document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active'); t.setAttribute('aria-selected','false');});
+    document.querySelectorAll('.ptab').forEach(function(t){ if(t.getAttribute('data-type')===type){ t.classList.add('active'); t.setAttribute('aria-selected','true'); } });
     var list = byType[type] || [];
-    if (list.length && tplSel) {
-      tplSel.value = list[0].id;
-      var wrapPrev = document.getElementById('cd042-type-tpl-wrap');
-      if (list.length > 1) {
-        var selHtml = '<div style="padding:10px 14px;background:#f8fafc;border-bottom:1px solid #d9e2ec;font-size:.84rem;display:flex;align-items:center;gap:10px"><label style="font-weight:700;color:#334e68">القالب:</label><select id="cd042-type-tpl" class="xf-select" style="max-width:420px;min-height:36px;padding:4px 10px">';
-        list.forEach(function(t){ selHtml += '<option value="' + t.id + '">' + esc(t.name) + '</option>'; });
-        selHtml += '</select></div>';
-        if (wrapPrev) wrapPrev.remove();
-        var wrap = document.createElement('div');
-        wrap.id = 'cd042-type-tpl-wrap';
-        wrap.innerHTML = selHtml;
-        previewEl.parentNode.insertBefore(wrap, previewEl);
-        document.getElementById('cd042-type-tpl').addEventListener('change', function(){ tplSel.value = this.value; renderPreview(parseInt(this.value)); updateDl(); });
-      } else {
-        if (wrapPrev) wrapPrev.remove();
-      }
-      renderPreview(list[0].id);
-      updateDl();
-    } else if (previewEl) {
-      previewEl.innerHTML = '<div style="padding:18px;color:#627d98;font-size:.9rem">لا تتوفر معاينة هيكل لهذا النوع حالياً.</div>';
+    if (!list.length || !previewEl) return;
+    if (tplSel) tplSel.value = list[0].id;
+    var wrapPrev = document.getElementById('cd042-type-tpl-wrap');
+    if (list.length > 1) {
+      var selHtml = '<div class="xf-inline-select"><label for="cd042-type-tpl" class="xf-inline-label">القالب:</label><select id="cd042-type-tpl" class="xf-select xf-select--sm">';
+      list.forEach(function(t){ selHtml += '<option value="' + t.id + '">' + esc(t.name) + '</option>'; });
+      selHtml += '</select></div>';
+      if (wrapPrev) wrapPrev.remove();
+      var wrap = document.createElement('div');
+      wrap.id = 'cd042-type-tpl-wrap';
+      wrap.innerHTML = selHtml;
+      previewEl.parentNode.insertBefore(wrap, previewEl);
+      var typeSel = document.getElementById('cd042-type-tpl');
+      if (typeSel) typeSel.addEventListener('change', function(){ if(tplSel) tplSel.value = this.value; renderPreview(parseInt(this.value)); updateDl(); });
+    } else {
+      if (wrapPrev) wrapPrev.remove();
     }
+    renderPreview(list[0].id);
+    updateDl();
   }
 
+  // Build tabs ONLY for active template types
   if (tabsEl) {
     var firstType = null;
     CD042_TYPE_ORDER.forEach(function(type){
-      if (CD042_TYPE_LABELS[type]) {
-        if (!firstType && byType[type] && byType[type].length) firstType = type;
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'ptab xf-tab' + ((!byType[type] || !byType[type].length) ? ' disabled' : '');
-        btn.setAttribute('data-type', type);
-        btn.innerHTML = '<i class="fas ' + (CD042_TYPE_ICONS[type] || 'fa-file') + '" aria-hidden="true"></i> ' + esc(CD042_TYPE_LABELS[type] || type);
-        if (byType[type] && byType[type].length) {
-          btn.addEventListener('click', function(){ showType(type); });
-        }
-        tabsEl.appendChild(btn);
-      }
+      if (!CD042_TYPE_LABELS[type]) return;
+      var list = byType[type] || [];
+      if (!list.length) return; // hide empty types completely
+      if (!firstType) firstType = type;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ptab xf-tab';
+      btn.setAttribute('data-type', type);
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', 'false');
+      btn.innerHTML = '<i class="fas ' + (CD042_TYPE_ICONS[type] || 'fa-file') + '" aria-hidden="true"></i><span>' + esc(CD042_TYPE_LABELS[type] || type) + '</span>';
+      btn.addEventListener('click', function(){ showType(type); });
+      tabsEl.appendChild(btn);
     });
-    if (firstType) showType(firstType);
-    else if (CD042_TYPE_ORDER.length) showType(CD042_TYPE_ORDER[0]);
+    if (firstType) { showType(firstType); }
   }
 
   if (brSel) brSel.addEventListener('change', function(){
@@ -409,7 +418,7 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
     }
     updateDl();
   });
-  if (tplSel) tplSel.addEventListener('change', function(){ renderPreview(parseInt(this.value)); updateDl(); });
+  if (tplSel) tplSel.addEventListener('change', function(){ var v=parseInt(this.value); if(v) renderPreview(v); updateDl(); });
   if (maxInp) maxInp.addEventListener('input', updateDl);
   if (deptSel) deptSel.addEventListener('change', updateDl);
   updateDl();
@@ -460,7 +469,7 @@ var CD042_TYPE_ORDER = <?= json_encode($typeOrder) ?>;
   var uploadForm = document.getElementById('cd042-upload-form');
   if (uploadForm) {
     uploadForm.addEventListener('submit', function(){
-      setBtnLoading(document.getElementById('cd042-preview-btn'), true, 'جارٍ تحليل الملف...');
+      setBtnLoading(document.getElementById('cd042-preview-btn'), true, 'جارٍ تحليل الملف والتحقق...');
     });
   }
   var commitForm = document.getElementById('cd042-commit-form');

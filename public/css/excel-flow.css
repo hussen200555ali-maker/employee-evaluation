@@ -211,4 +211,64 @@
 
 /* Utilities */
 .xf-hidden{display:none !important}
-.xf-mt-2{margin-top:8px}.xf-mb-0{margin-bottom:0}
+.xf-mt-2{margin-top:8px}.xf-mb-0{margin-bottom:0}
+/* ===== Import UX refinements (v1.1) ===== */
+.xf-card__header--center{justify-content:center;text-align:center}
+.xf-card__subtitle{margin:4px 0 0;color:var(--xf-muted);font-size:.875rem;font-weight:600;line-height:1.6}
+.xf-text-center{text-align:center}
+
+/* Hero upload */
+.xf-hero-upload{max-width:860px;margin:0 auto 18px;border:1px solid #cfe3de;box-shadow:0 10px 30px rgba(11,93,82,.08)}
+.xf-hero-upload .xf-card__body{padding:22px 22px 20px}
+.xf-upload--hero{padding:34px 20px;border-width:2px;border-radius:16px;background:linear-gradient(180deg,#fcfffe,#f3faf8)}
+.xf-upload--hero .xf-upload__icon{width:64px;height:64px;font-size:1.5rem;border-radius:16px}
+.xf-upload--hero .xf-upload__title{font-size:1.15rem}
+.xf-upload--hero .xf-upload__sub{font-size:.9rem;max-width:720px;margin:6px auto 0}
+.xf-hero-actions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:16px}
+.xf-btn--lg{min-height:46px;padding:10px 22px;font-size:.95rem}
+
+/* Supporting section & divider */
+.xf-support-card{margin-top:0}
+.xf-section-divider{height:1px;background:linear-gradient(90deg,transparent,#cfdce8 15%,#cfdce8 85%,transparent);margin:6px auto 18px;max-width:860px}
+
+/* Tabs typography & clarity */
+.xf-tabs--prominent{padding:12px 14px;gap:8px}
+.xf-tab,.ptab{font-size:.9rem;min-height:40px;padding:8px 14px;gap:8px;display:inline-flex;align-items:center}
+.xf-tab i,.ptab i{font-size:.85rem}
+.xf-inline-select{padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--xf-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.xf-inline-label{font-weight:700;color:#334e68;font-size:.9rem}
+.xf-select--sm{max-width:420px;min-height:38px;padding:6px 10px;font-size:.9rem}
+
+/* Tables readability */
+.xf-table{font-size:.875rem}
+.xf-table th,.xf-table td{font-size:.875rem}
+#cd042-preview table.xl{font-size:.875rem}
+#cd042-preview table.xl th,#cd042-preview table.xl td{font-size:.875rem;padding:7px 9px}
+#cd042-preview table.xl th .tag{font-size:.75rem}
+.xf-table-wrap--structure{padding:12px 14px}
+.xf-table-wrap--results{max-height:65vh}
+
+/* Empty state */
+.xf-empty-state{max-width:760px;margin:10px auto 0}
+.xf-empty-state__inner{padding:36px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.xf-empty-state__icon{width:84px;height:84px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(180deg,#eef6f4,#e6f4f1);color:var(--xf-primary);font-size:2rem;margin-bottom:4px;border:1px solid #cfe3de}
+.xf-empty-state__title{margin:0;font-size:1.25rem;font-weight:800;color:var(--xf-text)}
+.xf-empty-state__text{margin:0 0 8px;font-size:1rem;color:var(--xf-muted);line-height:1.9;max-width:620px}
+
+/* Steps slightly clearer */
+.xf-step{font-size:.84rem}
+
+/* Responsive refinements */
+@media (max-width: 992px){
+  .xf-hero-upload{max-width:100%}
+  .xf-hero-actions{flex-direction:column-reverse;align-items:stretch}
+  .xf-hero-actions .xf-btn{width:100%}
+}
+@media (max-width: 640px){
+  .xf-hero-upload .xf-card__body{padding:16px 14px}
+  .xf-upload--hero{padding:24px 14px}
+  .xf-upload--hero .xf-upload__title{font-size:1.05rem}
+  .xf-tab,.ptab{font-size:.875rem;flex:1 1 auto;justify-content:center}
+  .xf-legend{gap:8px 12px}
+  .xf-empty-state__inner{padding:26px 12px}
+}
