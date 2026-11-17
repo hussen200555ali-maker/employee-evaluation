@@ -88,10 +88,10 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
     // CD-040.6 (revised): classify EXCLUSIVELY by target_type.
     $targetKey = $template['target_type'] ?? 'employee';
     $typeLabels = [
-      'employee'             => ['????', 'eval-type-annual', 'fas fa-user'],
-      'employee_in_course'   => ['????', 'eval-type-course', 'fas fa-graduation-cap'],
-      'employee_in_workshop' => ['????', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
-      'skill'                => ['?????', 'eval-type-skill', 'fas fa-bullseye'],
+      'employee'             => ['فردي', 'eval-type-annual', 'fas fa-user'],
+      'employee_in_course'   => ['دورة', 'eval-type-course', 'fas fa-graduation-cap'],
+      'employee_in_workshop' => ['ورشة', 'eval-type-workshop', 'fas fa-chalkboard-teacher'],
+      'skill'                => ['مهاري', 'eval-type-skill', 'fas fa-bullseye'],
     ];
     $typeInfo = $typeLabels[$targetKey] ?? $typeLabels['employee'];
   ?>
@@ -113,26 +113,12 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
   </header>
 
   <div style="padding:14px 18px 10px;">
+    <?php if (empty($program) && (($template['target_type'] ?? '') === 'employee')): ?>
     <div class="section">
-      <div class="section-head"><div class="section-num">١</div><h2>بيانات الموظف المُقيَّم</h2><div class="line"></div></div>
-      <div class="info-card"><div class="info-grid">
-        <div class="info-cell"><label><i class="fas fa-user"></i> اسم الموظف</label><span><?php echo htmlspecialchars($evaluation->employee_name); ?></span></div>
-        <div class="info-cell"><label><i class="fas fa-hashtag"></i> الرقم الوظيفي</label><span dir="ltr"><?php echo htmlspecialchars($evaluation->employee_code); ?></span></div>
-        <div class="info-cell"><label><i class="fas fa-tag"></i> الكنية / الصفة</label><span><?php echo htmlspecialchars($evaluation->nickname ?: '— لا يوجد —'); ?></span></div>
-        <div class="info-cell"><label><i class="fas fa-briefcase"></i> المنصب</label><span><?php echo htmlspecialchars($evaluation->position_name ?: '—'); ?></span></div>
-        <div class="info-cell"><label><i class="fas fa-building"></i> الفرع</label><span><?php echo htmlspecialchars($evaluation->branch_name); ?></span></div>
-        <div class="info-cell"><label><i class="fas fa-users"></i> القسم</label><span><?php echo htmlspecialchars($evaluation->department_name); ?></span></div>
-      </div></div>
+      <div class="section-head"><div class="section-num">—</div><h2>سياق التقييم</h2><div class="line"></div></div>
+      <div class="program-card"><div class="program-grid"><div class="program-cell" style="grid-column:1/-1;"><span class="empty">تقييم فردي — غير مرتبط ببرنامج/دورة/ورشة.</span></div></div></div>
     </div>
-
-    <?php if (empty($program) && ($template['target_type'] ?? '') === 'employee'): ?>
-    <div class="section">
-      <div class="section-head"><div class="section-num">?</div><h2>???? ???????</h2><div class="line"></div></div>
-      <div class="program-card"><div class="program-grid"><div class="program-cell" style="grid-column:1/-1;"><span class="empty">????? ???? ? ??? ????? ???????/????/????.</span></div></div></div>
-    </div>
-    <?php endif; ?>
-
-    <?php if (!empty($program)): ?>
+    <?php elseif (!empty($program)): ?>
     <div class="section">
       <div class="section-head"><div class="section-num">٢</div><h2>بيانات البرنامج التدريبي</h2><div class="line"></div></div>
       <div class="program-card">

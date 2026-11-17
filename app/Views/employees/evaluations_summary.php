@@ -204,27 +204,27 @@ if (!empty($evaluationsByYear)) {
         </div>
         <?php endif; ?>
     </div>
-    <!-- ????? ????? ????????? -->
+    <!-- تفصيل أنواع التقييمات -->
     <?php if (!empty($typeBreakdown)): ?>
     <?php
       $typeMeta = [
-        'employee' => ['????', 'fas fa-user', '#0d9488', 'eval-type-individual'],
-        'annual' => ['????', 'fas fa-calendar', '#10b981', 'eval-type-annual'],
-        'periodic' => ['????', 'fas fa-repeat', '#eab308', 'eval-type-periodic'],
-        'course' => ['????', 'fas fa-graduation-cap', '#3b82f6', 'eval-type-course'],
-        'workshop' => ['????', 'fas fa-chalkboard-teacher', '#8b5cf6', 'eval-type-workshop'],
-        'skill' => ['?????', 'fas fa-bullseye', '#f97316', 'eval-type-skill'],
+        'employee' => ['فردي', 'fas fa-user', '#0d9488', 'eval-type-individual'],
+        'annual' => ['سنوي', 'fas fa-calendar', '#10b981', 'eval-type-annual'],
+        'periodic' => ['دوري', 'fas fa-repeat', '#eab308', 'eval-type-periodic'],
+        'course' => ['دورة', 'fas fa-graduation-cap', '#3b82f6', 'eval-type-course'],
+        'workshop' => ['ورشة', 'fas fa-chalkboard-teacher', '#8b5cf6', 'eval-type-workshop'],
+        'skill' => ['مهاري', 'fas fa-bullseye', '#f97316', 'eval-type-skill'],
       ];
     ?>
     <div class="kpi-strip" style="margin-top:0;">
       <?php foreach ($typeBreakdown as $tb):
-        $tm = $typeMeta[$tb->eval_type] ?? ['????', 'fas fa-layer-group', '#64748b', 'eval-type-annual'];
+        $tm = $typeMeta[$tb->eval_type] ?? ['أخرى', 'fas fa-layer-group', '#64748b', 'eval-type-annual'];
       ?>
       <div class="kpi-card">
         <div class="kpi-icon-wrap" style="background:<?php echo $tm[2]; ?>1a;color:<?php echo $tm[2]; ?>;"><i class="<?php echo $tm[1]; ?>"></i></div>
         <div class="kpi-val" style="color:<?php echo $tm[2]; ?>;"><?php echo (int)$tb->cnt; ?></div>
-        <div class="kpi-lbl">??????? <?php echo htmlspecialchars($tm[0]); ?></div>
-        <div class="kpi-sub">????? <?php echo $tb->avg_score !== null ? $tb->avg_score . '%' : '?'; ?></div>
+        <div class="kpi-lbl">تقييمات <?php echo htmlspecialchars($tm[0]); ?></div>
+        <div class="kpi-sub">متوسط <?php echo $tb->avg_score !== null ? $tb->avg_score . '%' : '—'; ?></div>
       </div>
       <?php endforeach; ?>
     </div>

@@ -49,13 +49,13 @@
 
 .modern-table tbody td{padding:14px 16px;border-bottom:1px solid #f1f5f9;font-size:16px;color:var(--text);vertical-align:middle;height:58px;}
 
-.emp-cell-name{font-weight:800;font-size:17px;color:var(--text);display:block;}
-.emp-cell-pos{font-size:13px;color:var(--muted);display:block;margin-top:2px;}
+.emp-cell-name{unicode-bidi:plaintext;direction:auto;font-weight:800;font-size:17px;color:var(--text);display:block;}
+.emp-cell-pos{unicode-bidi:plaintext;direction:auto;font-size:13px;color:var(--muted);display:block;margin-top:2px;}
 
 .branch-cell,.dept-cell{font-size:14px;color:var(--muted);white-space:nowrap;}
 
-.eval-type-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
-.eval-type-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent;white-space:nowrap;line-height:1.4;}
+.eval-type-badges{display:inline-flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center;}
+.eval-type-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent;white-space:nowrap;line-height:1.5;}
 .eval-type-badge.employee{background:#ecfeff;color:#155e75;border-color:#a5f3fc;}
 .eval-type-badge.course{background:#eff6ff;color:#1e40af;border-color:#bfdbfe;}
 .eval-type-badge.workshop{background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;}
@@ -154,7 +154,7 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label for="template_id"><i class="fas fa-graduation-cap"></i> شارك في (دورة/ورشة/مهاري)</label>
+                <label for="template_id"><i class="fas fa-graduation-cap"></i> قالب/نوع التقييم (فردي/دورة/ورشة/مهاري)</label>
                 <select id="template_id" name="template_id" onchange="this.form.submit()">
                     <option value="">الكل</option>
                     <?php
@@ -163,10 +163,10 @@
                         $grouped[$tpl->target_type][] = $tpl;
                     }
                     $groupLabels = [
-                        'employee' => '????',
-                        'employee_in_course' => '????',
-                        'employee_in_workshop' => '????',
-                        'skill' => '?????',
+                        'employee' => 'فردي',
+                        'employee_in_course' => 'دورة',
+                        'employee_in_workshop' => 'ورشة',
+                        'skill' => 'مهاري',
                     ];
                     foreach ($grouped as $type => $tpls):
                         $label = $groupLabels[$type] ?? $type;
@@ -218,9 +218,9 @@
                     <tr>
                                                 <td>
                             <span class="emp-cell-name"><?php echo htmlspecialchars($employee->full_name); ?></span>
-                            <span class="emp-cell-pos"><?php echo htmlspecialchars($employee->position_title ?? '??? ????'); ?> ? #<?php echo htmlspecialchars($employee->emp_code); ?></span>
+                            <span class="emp-cell-pos"><?php echo htmlspecialchars($employee->position_title ?? 'غير محدد'); ?> · #<?php echo htmlspecialchars($employee->emp_code); ?></span>
                             <?php
-                              $typeMap = ['employee'=>['????','fas fa-user','employee'],'course'=>['????','fas fa-graduation-cap','course'],'workshop'=>['????','fas fa-chalkboard-teacher','workshop'],'skill'=>['?????','fas fa-bullseye','skill']];
+                              $typeMap = ['employee'=>['فردي','fas fa-user','employee'],'course'=>['دورة','fas fa-graduation-cap','course'],'workshop'=>['ورشة','fas fa-chalkboard-teacher','workshop'],'skill'=>['مهاري','fas fa-bullseye','skill']];
                               $rawTypes = array_filter(array_unique(explode(',', (string)($employee->eval_types ?? ''))));
                               if (!empty($rawTypes)): ?>
                                 <div class="eval-type-badges">
