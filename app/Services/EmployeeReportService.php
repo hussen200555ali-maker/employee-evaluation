@@ -50,8 +50,11 @@ class EmployeeReportService
                 ?: $this->averagesEngine->gradeLabelForScore($record->final_score, $scale);
             // CD-040.6 (a2'): derive type from target_type (not raw evaluation_type).
             // evaluations.evaluation_type is LEGACY FALLBACK only.
+            // BUG-H: target_type='employee' is its own type (تقييم فردي عام), never "annual".
             $targetType = $record->target_type ?? null;
-            if ($targetType === 'skill') {
+            if ($targetType === 'employee') {
+                $derivedType = 'employee';
+            } elseif ($targetType === 'skill') {
                 $derivedType = 'skill';
             } elseif (in_array($targetType, ['employee_in_course', 'course'], true)) {
                 $derivedType = 'course';
@@ -65,7 +68,8 @@ class EmployeeReportService
         }
 
         $averages = [];
-        foreach (['overall', 'annual', 'periodic', 'course', 'workshop'] as $type) {
+        // BUG-H: "employee" (فردي عام) is a first-class type, calculated separately from annual/periodic.
+        foreach (['overall', 'employee', 'annual', 'periodic', 'course', 'workshop', 'skill'] as $type) {
             $matchingRecords = $type === 'overall'
                 ? $records
                 : array_values(array_filter(
@@ -102,7 +106,7 @@ class EmployeeReportService
     private function evaluationTypeLabel(?string $type): string
     {
         return match ($type) {
-            'employee' => 'فردي',
+            'employee' => 'تقييم فردي عام',
             'annual' => 'سنوي',
             'periodic' => 'دوري',
             'course' => 'دورة',

@@ -7,6 +7,9 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
     padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-family:'Cairo'; font-size:13px;
 }
 .report-search-bar input { flex:1; min-width:200px; }
+.report-search-bar input[type="date"] { flex:0 0 auto; min-width:150px; }
+.report-search-bar .date-range { display:flex; align-items:center; gap:8px; color:#6c757d; font-size:12px; }
+.report-search-bar .date-range label { display:flex; align-items:center; gap:6px; }
 .report-search-bar select[hidden] { display:none !important; }
 .report-search-bar .btn-search { background:#0c2823; color:#c8943f; border:none; padding:10px 24px; border-radius:8px; cursor:pointer; font-weight:700; }
 .emp-result-card {
@@ -39,11 +42,23 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 .modal-footer form { margin:0; }
 .modal-footer .btn-confirm { background:#0c2823; color:#c8943f; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:700; font-size:13px; }
 .modal-footer .btn-cancel { background:#e8e8e8; color:#6c757d; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; font-size:13px; }
+.scope-note {
+    display:flex; align-items:center; gap:8px; background:#f5f0e8; border:1px solid #e6dcc8;
+    border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#0c2823;
+}
+.scope-note i { color:#c8943f; }
 </style>
 
 <div class="container-fluid">
     <h2><?= htmlspecialchars($pageTitle ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
     <hr>
+
+    <?php if (!empty($scopeLabel) && (($scope['mode'] ?? 'all') !== 'all')): ?>
+        <div class="scope-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>نطاق بحثك محدد بـ <?= htmlspecialchars((string)$scopeLabel, ENT_QUOTES, 'UTF-8') ?>.</span>
+        </div>
+    <?php endif; ?>
 
     <!-- Search + Cascading Filters -->
     <form method="GET" action="<?= APP_URL ?>/reports/create" class="report-search-bar">
@@ -64,8 +79,19 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                 </option>
             <?php endforeach; ?>
         </select>
+        <select name="eval_type" aria-label="نوع التقييم">
+            <option value="">كل الأنواع</option>
+            <option value="employee" <?= ($evalType ?? '') === 'employee' ? 'selected' : '' ?>>فردي</option>
+            <option value="course" <?= ($evalType ?? '') === 'course' ? 'selected' : '' ?>>دورة</option>
+            <option value="workshop" <?= ($evalType ?? '') === 'workshop' ? 'selected' : '' ?>>ورشة</option>
+            <option value="skill" <?= ($evalType ?? '') === 'skill' ? 'selected' : '' ?>>مهاري</option>
+        </select>
+        <div class="date-range">
+            <label>من <input type="date" name="date_from" value="<?= htmlspecialchars($dateFrom ?? '', ENT_QUOTES, 'UTF-8') ?>" aria-label="من تاريخ"></label>
+            <label>إلى <input type="date" name="date_to" value="<?= htmlspecialchars($dateTo ?? '', ENT_QUOTES, 'UTF-8') ?>" aria-label="إلى تاريخ"></label>
+        </div>
         <input type="text" name="q" value="<?= htmlspecialchars($search ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="ابحث بالاسم أو الرقم الوظيفي...">
-        <button type="submit" class="btn-search">🔍 بحث</button>
+        <button type="submit" class="btn-search"><i class="fas fa-search"></i> بحث</button>
     </form>
 
     <?php if (!empty($results)): ?>
@@ -91,23 +117,23 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
                                 data-emp-id="<?= (int)$emp->id ?>"
                                 data-emp-name="<?= htmlspecialchars($emp->full_name, ENT_QUOTES, 'UTF-8') ?>"
                                 data-emp-code="<?= htmlspecialchars($emp->emp_code, ENT_QUOTES, 'UTF-8') ?>">
-                            📄 إصدار تقرير
+                            <i class="fas fa-file-alt"></i> إصدار تقرير
                         </button>
                     <?php else: ?>
                         <span class="badge-no-data">لا توجد تقييمات</span>
-                        <a class="btn-print" href="<?= APP_URL ?>/reports/print/<?= (int)$emp->id ?>">📄⬇ طباعة إفادة PDF</a>
+                        <a class="btn-print" href="<?= APP_URL ?>/reports/print/<?= (int)$emp->id ?>"><i class="fas fa-file-pdf"></i> طباعة إفادة PDF</a>
                     <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>
-    <?php elseif (($search ?? '') !== '' || ($branchId ?? 0) > 0 || ($deptId ?? 0) > 0): ?>
+    <?php elseif (($search ?? '') !== '' || ($branchId ?? 0) > 0 || ($deptId ?? 0) > 0 || ($evalType ?? '') !== '' || ($dateFrom ?? '') !== '' || ($dateTo ?? '') !== ''): ?>
         <div style="text-align:center; padding:40px; color:#999;">
-            <div style="font-size:40px; margin-bottom:12px;">🔍</div>
+            <div style="font-size:40px; margin-bottom:12px;"><i class="fas fa-search"></i></div>
             لا توجد نتائج مطابقة للبحث.
         </div>
     <?php else: ?>
         <div style="text-align:center; padding:40px; color:#999;">
-            <div style="font-size:40px; margin-bottom:12px;">📋</div>
+            <div style="font-size:40px; margin-bottom:12px;"><i class="fas fa-clipboard-list"></i></div>
             ابدأ بالبحث عن موظف لإصدار تقرير.
         </div>
     <?php endif; ?>
@@ -116,18 +142,18 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 <!-- Confirmation Modal -->
 <div id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-box">
-        <div class="modal-header" id="modalTitle">⚠ تنبيه — إصدار تقرير رسمي</div>
+        <div class="modal-header" id="modalTitle"><i class="fas fa-exclamation-triangle"></i> تنبيه — إصدار تقرير رسمي</div>
         <div class="modal-body">
             <p>أنت على وشك إصدار تقرير رسمي للموظف: <strong id="modalEmpName"></strong></p>
-            <div class="warn-box">⚠ إصدار التقرير يعني حفظ نسخة ثابتة لا يمكن تعديلها أو حذفها. سيُحفظ برقم تسلسلي في السجل المؤرشف.</div>
+            <div class="warn-box"><i class="fas fa-exclamation-circle"></i> إصدار التقرير يعني حفظ نسخة ثابتة لا يمكن تعديلها أو حذفها. سيُحفظ برقم تسلسلي في السجل المؤرشف.</div>
         </div>
         <div class="modal-footer">
             <form method="POST" action="<?= APP_URL ?>/reports/generate" id="modalForm">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="employee_id" id="modalEmpId" value="0">
-                <button type="submit" class="btn-confirm">✓ تأكيد الإصدار</button>
+                <button type="submit" class="btn-confirm"><i class="fas fa-check"></i> تأكيد الإصدار</button>
             </form>
-            <button type="button" class="btn-cancel" onclick="closeModal()">✕ إلغاء</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()"><i class="fas fa-times"></i> إلغاء</button>
         </div>
     </div>
 </div>

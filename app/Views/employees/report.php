@@ -23,12 +23,15 @@ $averages = $report['averages'] ?? [];
 // CD-040.6 (a2'): derive from target_type (not raw evaluation_type).
 $typeOf = static function ($r) use ($getVal) {
     $target = $getVal($r, 'target_type', null);
+    // BUG-H: individual general evaluations are their own type, never "annual".
+    if ($target === 'employee') return 'employee';
     if ($target === 'employee_in_course' || $target === 'course') return 'course';
     if ($target === 'employee_in_workshop' || $target === 'workshop') return 'workshop';
     return (string)($getVal($r, 'evaluation_type', 'annual') ?: 'annual');
 };
 $courseRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'course'));
 $workshopRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'workshop'));
+$individualRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'employee'));
 $annualRecords = array_values(array_filter($records, fn($r) => in_array($typeOf($r), ['annual', 'periodic'])));
 ?>
 <!DOCTYPE html>
@@ -38,6 +41,7 @@ $annualRecords = array_values(array_filter($records, fn($r) => in_array($typeOf(
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>مسند تقييم — <?= $e($snapshot->report_number) ?></title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="<?= APP_URL ?>/public/libs/fontawesome/css/all.min.css">
 <style>
 /* === Page Background === */
 body { margin:0; padding:0; background:#e2e8f0; font-family:'Cairo',sans-serif; }
@@ -132,12 +136,12 @@ table.sig td { padding:14px 8px; text-align:center; font-size:9px; color:#999; b
         <span><?= $e($snapshot->created_at) ?> · <?= $e($data['created_by']['username'] ?? '') ?></span>
     </div>
     <div class="tb-actions">
-        <a class="tb-btn tb-back" href="<?= APP_URL ?>/reports/archive">↩ السجل</a>
-        <a class="tb-btn tb-back" href="<?= APP_URL ?>/employees/profile/<?= $employeeId ?>">↩ الملف</a>
-        <a class="tb-btn tb-pdf" href="<?= $reportUrl ?>/export/pdf">📄 PDF</a>
-        <a class="tb-btn tb-excel" href="<?= $reportUrl ?>/export/xlsx">📊 Excel</a>
-        <a class="tb-btn tb-word" href="<?= $reportUrl ?>/export/docx">📝 Word</a>
-        <button class="tb-btn tb-print" onclick="window.print()">🖨 طباعة</button>
+        <a class="tb-btn tb-back" href="<?= APP_URL ?>/reports/archive"><i class="fas fa-undo"></i> السجل</a>
+        <a class="tb-btn tb-back" href="<?= APP_URL ?>/employees/profile/<?= $employeeId ?>"><i class="fas fa-user"></i> الملف</a>
+        <a class="tb-btn tb-pdf" href="<?= $reportUrl ?>/export/pdf"><i class="fas fa-file-pdf"></i> PDF</a>
+        <a class="tb-btn tb-excel" href="<?= $reportUrl ?>/export/xlsx"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="tb-btn tb-word" href="<?= $reportUrl ?>/export/docx"><i class="fas fa-file-word"></i> Word</a>
+        <button class="tb-btn tb-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
     </div>
 </div>
 
@@ -197,6 +201,20 @@ table.sig td { padding:14px 8px; text-align:center; font-size:9px; color:#999; b
         </tbody></table>
         <?php endif; ?>
 
+        <!-- Individual Evaluations Section (Conditional) -->
+        <?php if (!empty($individualRecords)): ?>
+        <div class="section-title">التقييمات الفردية</div>
+        <p style="font-size:9px;color:#6c757d;margin:3px 0;">عدد التقييمات الفردية: (<?= count($individualRecords) ?>)</p>
+        <table class="data"><thead><tr><th>التاريخ</th><th>القالب</th><th>الدرجة / 100</th><th>التقدير</th></tr></thead><tbody>
+            <?php foreach ($individualRecords as $rec):
+                $score = $getVal($rec, 'final_score') ?? $getVal($rec, 'grade_value');
+            ?>
+            <tr><td><?= $e($getVal($rec, 'evaluation_date')) ?></td><td><?= $e($getVal($rec, 'template_name')) ?></td><td><?= $score !== null && $score !== '' ? number_format((float)$score, 2) : '—' ?></td><td><?= $e($getVal($rec, 'grade_label')) ?></td></tr>
+            <?php endforeach; ?>
+            <tr class="footer-row"><td colspan="3" style="text-align:left;">التقدير العام للتقييمات الفردية</td><td><?= $e($averages['employee']['grade_label'] ?? '—') ?></td></tr>
+        </tbody></table>
+        <?php endif; ?>
+
         <!-- Annual Evaluations Section (Conditional) -->
         <?php if (!empty($annualRecords)): ?>
         <div class="section-title">التقييمات السنوية</div>
@@ -213,7 +231,7 @@ table.sig td { padding:14px 8px; text-align:center; font-size:9px; color:#999; b
         <?php endif; ?>
 
         <!-- Empty State -->
-        <?php if (empty($courseRecords) && empty($workshopRecords) && empty($annualRecords)): ?>
+        <?php if (empty($courseRecords) && empty($workshopRecords) && empty($individualRecords) && empty($annualRecords)): ?>
         <div class="empty-state">لا توجد تقييمات مسجلة لهذا الموظف حتى الآن.</div>
         <?php endif; ?>
 

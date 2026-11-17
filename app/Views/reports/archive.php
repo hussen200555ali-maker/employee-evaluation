@@ -42,11 +42,23 @@ $pageUrl = static function (int $targetPage) use ($queryBase): string {
 .stat-box.hl { background:#0c2823; border-color:#c8943f; }
 .stat-box.hl .val { color:#c8943f; }
 .stat-box.hl .lbl { color:rgba(255,255,255,0.5); }
+.scope-note {
+    display:flex; align-items:center; gap:8px; background:#f5f0e8; border:1px solid #e6dcc8;
+    border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#0c2823;
+}
+.scope-note i { color:#c8943f; }
 </style>
 
 <div class="container-fluid">
     <h2><?= htmlspecialchars($pageTitle ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
     <hr>
+
+    <?php if (!empty($scopeLabel) && (($scope['mode'] ?? 'all') !== 'all')): ?>
+        <div class="scope-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>تظهر لك تقارير <?= htmlspecialchars((string)$scopeLabel, ENT_QUOTES, 'UTF-8') ?> فقط.</span>
+        </div>
+    <?php endif; ?>
 
     <!-- Stats -->
     <div class="stats-row">
@@ -72,7 +84,7 @@ $pageUrl = static function (int $targetPage) use ($queryBase): string {
             <?php endforeach; ?>
         </select>
         <input type="text" name="q" value="<?= htmlspecialchars($search ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="بحث برقم المرجع، اسم الموظف، أو الرقم الوظيفي...">
-        <button type="submit" class="btn-go">🔍 بحث</button>
+        <button type="submit" class="btn-go"><i class="fas fa-search"></i> بحث</button>
     </form>
 
     <!-- Table -->
@@ -100,12 +112,12 @@ $pageUrl = static function (int $targetPage) use ($queryBase): string {
                         <td><?= htmlspecialchars($snap->created_by ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
                             <div class="actions-cell">
-                                <a href="<?= APP_URL ?>/employees/profile/<?= (int)$snap->employee_id ?>/reports/<?= (int)$snap->id ?>" class="btn-view">👁 عرض</a>
-                                <button type="button" class="btn-export-dd" data-menu-id="export-<?= (int)$snap->id ?>">⬇ تصدير ▾</button>
+                                <a href="<?= APP_URL ?>/employees/profile/<?= (int)$snap->employee_id ?>/reports/<?= (int)$snap->id ?>" class="btn-view"><i class="fas fa-eye"></i> عرض</a>
+                                <button type="button" class="btn-export-dd" data-menu-id="export-<?= (int)$snap->id ?>"><i class="fas fa-download"></i> تصدير</button>
                                 <div class="export-menu" id="export-<?= (int)$snap->id ?>">
-                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/pdf">📄 تصدير PDF</a>
-                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/xlsx">📊 تصدير Excel</a>
-                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/docx">📝 تصدير Word</a>
+                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/pdf"><i class="fas fa-file-pdf"></i> تصدير PDF</a>
+                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/xlsx"><i class="fas fa-file-excel"></i> تصدير Excel</a>
+                                    <a href="<?= APP_URL ?>/reports/export/<?= (int)$snap->id ?>/docx"><i class="fas fa-file-word"></i> تصدير Word</a>
                                 </div>
                             </div>
                         </td>
@@ -115,7 +127,7 @@ $pageUrl = static function (int $targetPage) use ($queryBase): string {
                 <tr>
                     <td colspan="7">
                         <div class="empty-state">
-                            <div class="icon">📋</div>
+                            <div class="icon"><i class="fas fa-folder-open"></i></div>
                             <div class="text">لا توجد تقارير صادرة حالياً</div>
                             <div class="hint">عند إصدار تقارير، ستظهر هنا في السجل المؤرشف</div>
                         </div>

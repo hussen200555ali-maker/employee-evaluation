@@ -130,12 +130,27 @@ final class ReportExportService
         $sheet->setCellValue("A{$row}", 'المؤشر');
         $sheet->setCellValue("B{$row}", 'المتوسط');
         $sheet->setCellValue("C{$row}", 'التقدير');
-        $labels = ['overall' => 'المتوسط العام', 'annual' => 'التقييم السنوي', 'periodic' => 'التقييم الدوري', 'course' => 'تقييمات الدورات', 'workshop' => 'تقييمات الورش'];
+        $labels = [
+            'overall' => 'المتوسط العام',
+            'employee' => 'تقييم فردي عام',
+            'annual' => 'التقييم السنوي',
+            'periodic' => 'التقييم الدوري',
+            'course' => 'تقييمات الدورات',
+            'workshop' => 'تقييمات الورش',
+            'skill' => 'التقييمات المهارية',
+        ];
         $row++;
         foreach ($labels as $key => $label) {
+            // Snapshots issued before BUG-H do not carry every averages key: keep export tolerant.
+            $summary = $averages[$key] ?? [];
+            $average = $summary['average'] ?? null;
             $this->setText($sheet, "A{$row}", $label);
-            $sheet->setCellValue("B{$row}", $averages[$key]['average']);
-            $this->setText($sheet, "C{$row}", $averages[$key]['grade_label'] ?? '');
+            if ($average === null) {
+                $this->setText($sheet, "B{$row}", '—');
+            } else {
+                $sheet->setCellValue("B{$row}", (float)$average);
+            }
+            $this->setText($sheet, "C{$row}", $summary['grade_label'] ?? '—');
             $row++;
         }
 
@@ -396,13 +411,16 @@ final class ReportExportService
         $groups = [
             'course' => ['title' => 'الدورات التدريبية', 'records' => [], 'summary' => null],
             'workshop' => ['title' => 'الورش', 'records' => [], 'summary' => null],
+            'employee' => ['title' => 'التقييمات الفردية', 'records' => [], 'summary' => null],
             'annual' => ['title' => 'التقييمات السنوية', 'records' => [], 'summary' => null],
             'descriptive' => ['title' => 'التقييمات الوصفية', 'records' => [], 'summary' => null],
         ];
 
         foreach ($records as $record) {
             $target = (string)$this->recordValue($record, 'target_type', '');
-            if ($target === 'employee_in_course' || $target === 'course') {
+            if ($target === 'employee') {
+                $type = 'employee';
+            } elseif ($target === 'employee_in_course' || $target === 'course') {
                 $type = 'course';
             } elseif ($target === 'employee_in_workshop' || $target === 'workshop') {
                 $type = 'workshop';
@@ -417,6 +435,8 @@ final class ReportExportService
                 $groups['course']['records'][] = $record;
             } elseif ($type === 'workshop') {
                 $groups['workshop']['records'][] = $record;
+            } elseif ($type === 'employee') {
+                $groups['employee']['records'][] = $record;
             } else {
                 $groups['annual']['records'][] = $record;
             }

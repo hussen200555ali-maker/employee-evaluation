@@ -5,6 +5,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Flash;
 use App\Services\ReportExportService;
+use App\Services\ReportScopeService;
 use App\Services\ReportSnapshotService;
 use Throwable;
 
@@ -26,6 +27,12 @@ final class EmployeeReportController extends Controller
         if (!Auth::validateCsrfToken($_POST['csrf_token'] ?? $_POST['_token'] ?? null)) {
             Flash::set('رمز الحماية غير صالح أو منتهي. يرجى تحديث الصفحة والمحاولة مرة أخرى.', 'danger');
             $this->redirect('/employees/profile/' . max(1, $employeeId));
+            return;
+        }
+
+        // Phase 1 security: direct POST cannot bypass the organizational scope.
+        if (!(new ReportScopeService())->canAccessEmployee($employeeId)) {
+            (new ErrorController())->forbidden('reports.view');
             return;
         }
 
@@ -54,6 +61,11 @@ final class EmployeeReportController extends Controller
     public function show($employeeId, $snapshotId): void
     {
         Auth::enforce('employees.profile');
+        // Phase 1 security: direct snapshot links cannot bypass the organizational scope.
+        if (!(new ReportScopeService())->canAccessEmployee((int)$employeeId)) {
+            (new ErrorController())->forbidden('reports.view');
+            return;
+        }
         $snapshot = $this->snapshots->findForEmployee((int)$employeeId, (int)$snapshotId);
         if ($snapshot === null) {
             (new ErrorController())->notFound();
@@ -72,6 +84,11 @@ final class EmployeeReportController extends Controller
         Auth::enforce('employees.profile');
         if (!in_array($format, ['pdf', 'xlsx', 'docx'], true)) {
             (new ErrorController())->notFound();
+            return;
+        }
+        // Phase 1 security: direct export links cannot bypass the organizational scope.
+        if (!(new ReportScopeService())->canAccessEmployee((int)$employeeId)) {
+            (new ErrorController())->forbidden('reports.view');
             return;
         }
         $snapshot = $this->snapshots->findForEmployee((int)$employeeId, (int)$snapshotId);
