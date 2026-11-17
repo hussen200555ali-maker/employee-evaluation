@@ -305,7 +305,7 @@ final class ExcelTemplateBuilder
         $sheet = $book->getActiveSheet();
         $sheet->setTitle(self::MAIN_SHEET);
         $sheet->setRightToLeft(true);
-        $sheet->getDefaultRowDimension()->setRowHeight(26);
+        $sheet->getDefaultRowDimension()->setRowHeight(25); // comfortable default for wrapped data rows
 
         $columns = $layout['columns'];
         $lastCol = Coordinate::stringFromColumnIndex(count($columns));
@@ -474,8 +474,9 @@ final class ExcelTemplateBuilder
         $sheet->getProtection()->setSort(false);
         $sheet->getProtection()->setInsertRows(false);
         $sheet->getProtection()->setFormatCells(false);
-        // Allow users to resize/format column widths in the protected sheet for usability and printing.
+        // Allow users to resize/format column widths and row heights in the protected sheet for usability and printing.
         $sheet->getProtection()->setFormatColumns(false);
+        $sheet->getProtection()->setFormatRows(false);
 
         // Professional print setup (RTL, fit-to-width, repeat headers, footer)
         $this->applyPrintSetup($sheet, $layout, $dataStart, $dataEnd, $lastCol);
