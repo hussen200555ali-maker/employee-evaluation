@@ -8,6 +8,7 @@ use App\Core\Flash;
 use App\Models\Branch;
 use App\Models\GradingScale;
 use App\Models\Template;
+use App\Models\TrainingCatalog;
 use App\Models\TrainingProgram;
 use App\Services\EvaluationExcelService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -289,11 +290,24 @@ final class EvaluationExcelController extends Controller
             (new TrainingProgram())->all('workshop')
         ));
         $limits = $this->excel->exportLimits();
+        // Phase 2 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): catalog-based programs (names only) for strategies (1,2,3).
+        $catalogPrograms = array_map(static function ($c): array {
+            return [
+                'id' => (int) $c->id,
+                'type' => (string) ($c->type ?? 'both'),
+                'title' => (string) ($c->name ?? ''),
+                'status' => (string) ($c->status ?? 'active'),
+                'is_catalog' => true,
+                'branch_id' => 0,
+                'dept_id' => 0,
+            ];
+        }, (new TrainingCatalog())->all());
         $this->view('evaluations/excel_export', [
             'pageTitle' => 'تصدير قالب Excel',
             'templates' => $templates,
             'branches' => $branches,
             'programs' => $programs,
+            'catalog_programs' => $catalogPrograms,
             'limits' => $limits,
         ]);
     }
@@ -352,12 +366,22 @@ final class EvaluationExcelController extends Controller
                 'prefill_strategy' => $prefillStrategy,
                 'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
                 'program_scope' => $programScope,
+                // Phase 2 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): program list source.
+                // - executing (option 4): execution records (training_programs instances).
+                // - blank/org/previous_evals (options 1,2,3): catalog-based programs (names only; context empty).
+                'program_source' => ($prefillStrategy === 'executing') ? 'execution' : 'catalog',
                 'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
                 'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
                 'user_id' => (int) Auth::id(),
             ];
             if ($programId !== null) {
-                $options['program_id'] = $programId;
+                if ((string) ($options['program_source'] ?? 'execution') === 'catalog') {
+                    // Catalog-based program selected (options 1,2,3): no execution context yet.
+                    // Context fields must stay empty for the user to fill later; import creates new instance.
+                    $options['program_id'] = 0;
+                } else {
+                    $options['program_id'] = $programId;
+                }
                 $options['program_title'] = (string) ($_GET['program_title'] ?? '');
             }
 
@@ -439,12 +463,22 @@ final class EvaluationExcelController extends Controller
                 'prefill_strategy' => $prefillStrategy,
                 'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
                 'program_scope' => $programScope,
+                // Phase 2 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): program list source.
+                // - executing (option 4): execution records (training_programs instances).
+                // - blank/org/previous_evals (options 1,2,3): catalog-based programs (names only; context empty).
+                'program_source' => ($prefillStrategy === 'executing') ? 'execution' : 'catalog',
                 'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
                 'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
                 'user_id' => (int) Auth::id(),
             ];
             if ($programId !== null) {
-                $options['program_id'] = $programId;
+                if ((string) ($options['program_source'] ?? 'execution') === 'catalog') {
+                    // Catalog-based program selected (options 1,2,3): no execution context yet.
+                    // Context fields must stay empty for the user to fill later; import creates new instance.
+                    $options['program_id'] = 0;
+                } else {
+                    $options['program_id'] = $programId;
+                }
                 $options['program_title'] = (string) ($_GET['program_title'] ?? '');
             }
 

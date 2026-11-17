@@ -3,6 +3,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 $templates = $templates ?? [];
 $branches = $branches ?? [];
 $programs = $programs ?? [];
+$catalog_programs = $catalog_programs ?? [];
 $limits = $limits ?? ['min_rows' => 50, 'max_rows' => 2000, 'max_file_size_mb' => 50];
 $programTypes = ['employee_in_course', 'employee_in_workshop'];
 ?>
@@ -230,6 +231,17 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
           'dept_id' => isset($p['executing_department_id']) ? (int)$p['executing_department_id'] : 0,
       ];
   }, $programs), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  var CATALOG_PROGRAMS = <?= json_encode(array_map(static function ($c) {
+      return [
+          'id' => (int)$c['id'],
+          'type' => (string)($c['type'] ?? 'both'),
+          'title' => (string)($c['title'] ?? ''),
+          'status' => (string)($c['status'] ?? 'active'),
+          'is_catalog' => true,
+          'branch_id' => 0,
+          'dept_id' => 0,
+      ];
+  }, $catalog_programs ?? []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
   var BRANCHES = <?= json_encode(array_reduce($branches, static function ($carry, $b) {
       $carry[(int)$b->id] = array_map(static fn($d) => ['id' => (int)$d->id, 'name' => (string)$d->name], $b->departments ?? []);
       return $carry;
@@ -305,19 +317,33 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     syncProgramBlock();
   }
 
-  function fillPrograms() {
-    if (!program) return;
+  function getProgramSource() {
+    // APPR-EXCEL-EXPORT-REFACTOR-V1.0 Phase 2: program list source switch.
+    // - Option 4 (executing): execution records (training_programs instances).
+    // - Options (1,2,3) (blank/org/previous_evals): catalog-based programs (names only, context empty).
+    return (getStrategy() === 'executing') ? 'execution' : 'catalog';
+  }
+  function getFilteredPrograms() {
     var type = programType();
     var bId = progBranch && progBranch.value ? parseInt(progBranch.value, 10) : 0;
     var dId = progDept && progDept.value ? parseInt(progDept.value, 10) : 0;
+    var src = getProgramSource();
+    var list = (src === 'catalog') ? (CATALOG_PROGRAMS || []) : (PROGRAMS || []);
+    return list.filter(function (p) {
+      if (p.type !== type) return false;
+      // Catalog entries are names-only (no execution context) → no program-level branch/dept filtering.
+      if (src === 'execution') {
+        if (bId && p.branch_id !== bId) return false;
+        if (dId && p.dept_id !== dId) return false;
+      }
+      return true;
+    });
+  }
+  function fillPrograms() {
+    if (!program) return;
     var current = program.value;
     program.innerHTML = '<option value="">— اختر برنامجاً —</option>';
-    PROGRAMS.filter(function (p) {
-      if (p.type !== type) return false;
-      if (bId && p.branch_id !== bId) return false;
-      if (dId && p.dept_id !== dId) return false;
-      return true;
-    }).forEach(function (p) {
+    getFilteredPrograms().forEach(function (p) {
       var o = document.createElement('option');
       o.value = String(p.id);
       o.textContent = p.title;
@@ -359,10 +385,21 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       params.set('program_scope', programScope ? programScope.value : 'all');
       if (programScope && programScope.value === 'single') {
         if (!program || !program.value) return null;
-        params.set('program_id', program.value);
+        if (getProgramSource() === 'catalog') {
+          // Options (1,2,3): catalog-based program selected → context fields stay empty (import creates instance later).
+          var catId = String(program.value);
+          var catTitle = '';
+          (CATALOG_PROGRAMS || []).forEach(function (c) { if (String(c.id) === catId && catTitle === '') { catTitle = c.title; } });
+          params.set('program_id', catId);
+          params.set('program_title', catTitle);
+        } else {
+          params.set('program_id', program.value);
+        }
       }
-      if (progBranch && progBranch.value) params.set('executing_branch_id', progBranch.value);
-      if (progDept && progDept.value) params.set('executing_department_id', progDept.value);
+      if (getProgramSource() === 'execution') {
+        if (progBranch && progBranch.value) params.set('executing_branch_id', progBranch.value);
+        if (progDept && progDept.value) params.set('executing_department_id', progDept.value);
+      }
     }
     var minRows = parseInt(rows.getAttribute('min'), 10) || 50;
     var maxRows = parseInt(rows.getAttribute('max'), 10) || 2000;

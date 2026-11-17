@@ -19,12 +19,8 @@ use RuntimeException;
 final class EvaluationExcelService
 {
     private const MAX_FILE_SIZE = 20 * 1024 * 1024;
-    private const DEFAULT_MAX_ROWS = 100;
     private const MAX_ROWS_LIMIT = 2000;
-    private const MAX_ROWS = 100;
         private const SHEET_NAME = 'التقييمات';
-    private const LOOKUP_SHEET = '__lookup';
-    private const SHEET_PASSWORD = 'local-evaluation-single';
     private Database $database;
     private ExcelTemplateBuilder $builder;
     public function __construct(?Database $database = null)
@@ -1164,157 +1160,9 @@ final class EvaluationExcelService
             default=>'',
         };
     }
-    private function applyDropdowns(Worksheet $sheet, array $branches, array $departments, array $sections, int $startRow, int $endRow, int $tailStartCol, array $sectionColMap = []): void
-    {
-        $branchList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$branches)).'"';
-        $helperCol=$this->colLetter($tailStartCol + 4);
-        for($row=$startRow;$row<=$endRow;$row++){
-            $bv=$sheet->getCell('D'.$row)->getDataValidation(); $bv->setType(DataValidation::TYPE_LIST); $bv->setErrorStyle(DataValidation::STYLE_STOP); $bv->setAllowBlank(true); $bv->setShowDropDown(true); $bv->setFormula1($branchList); $bv->setShowErrorMessage(true); $bv->setErrorTitle('فرع غير صالح'); $bv->setError('اختر فرعاً من القائمة.');
-            $dv=$sheet->getCell('E'.$row)->getDataValidation(); $dv->setType(DataValidation::TYPE_LIST); $dv->setErrorStyle(DataValidation::STYLE_STOP); $dv->setAllowBlank(true); $dv->setShowDropDown(true); $dv->setFormula1('INDIRECT("Dept_"&'.$helperCol.$row.')'); $dv->setShowErrorMessage(true); $dv->setErrorTitle('قسم غير صالح'); $dv->setError('اختر قسماً تابعاً للفرع المختار في نفس الصف.');
-        }
-        foreach($sections as $idx=>$section){
-            // CD-042: use sectionColMap if available (accounts for notes columns)
-            $colNum = !empty($sectionColMap) ? ($sectionColMap[$idx] ?? (6 + $idx)) : (6 + $idx);
-            $colLetter=$this->colLetter($colNum);
-            $range=$colLetter.$startRow.':'.$colLetter.$endRow;
-            if($section['evaluation_type']==='numeric'){
-                $min=$section['min_value']??0; $max=$section['max_value']??100;
-                $sheet->getStyle($range)->getNumberFormat()->setFormatCode('0.00');
-                for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_DECIMAL); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setOperator(DataValidation::OPERATOR_BETWEEN); $v->setFormula1((string)$min); $v->setFormula2((string)$max); $v->setShowErrorMessage(true); $v->setErrorTitle('قيمة خارج النطاق'); $v->setError('أدخل رقماً بين '.$min.' و '.$max.'.'); }
-            } elseif($section['evaluation_type']==='percentage'){
-                $sheet->getStyle($range)->getNumberFormat()->setFormatCode('0');
-                for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_WHOLE); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setOperator(DataValidation::OPERATOR_BETWEEN); $v->setFormula1('0'); $v->setFormula2('100'); $v->setShowErrorMessage(true); $v->setErrorTitle('نسبة غير صالحة'); $v->setError('أدخل نسبة بين 0 و 100.'); }
-            } elseif(in_array($section['evaluation_type'],['grade','multiple_choice'],true)){
-                $options=json_decode((string)($section['evaluation_options']??'[]'),true);
-                $labels=[];
-                if(is_array($options)){ foreach($options as $opt){ if(is_array($opt)&&isset($opt['label'])){ $labels[]=(string)$opt['label']; } elseif(is_string($opt)){ $labels[]=$opt; } } }
-                if($labels!==[]){
-                    $listFormula='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$labels)).'"';
-                    for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_LIST); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setShowDropDown(true); $v->setFormula1($listFormula); $v->setShowErrorMessage(true); $v->setErrorTitle('تقدير غير صالح'); $v->setError('اختر من القائمة: '.implode('، ',$labels)); }
-                }
-            } elseif($section['evaluation_type']==='boolean'){
-                for($row=$startRow;$row<=$endRow;$row++){ $v=$sheet->getCell($colLetter.$row)->getDataValidation(); $v->setType(DataValidation::TYPE_LIST); $v->setErrorStyle(DataValidation::STYLE_STOP); $v->setAllowBlank(true); $v->setShowDropDown(true); $v->setFormula1('"نعم,لا"'); $v->setShowErrorMessage(true); $v->setErrorTitle('قيمة غير صالحة'); $v->setError('اختر: نعم أو لا.'); }
-            }
-        }
-        $dateCol=$this->colLetter($tailStartCol+1);
-        for($row=$startRow;$row<=$endRow;$row++){
-            $v=$sheet->getCell($dateCol.$row)->getDataValidation();
-            $v->setType(DataValidation::TYPE_CUSTOM);
-            $v->setErrorStyle(DataValidation::STYLE_INFORMATION);
-            $v->setAllowBlank(false);
-            $v->setShowDropDown(false);
-            $v->setFormula1('LEN('.$dateCol.$row.')>0');
-            $v->setShowErrorMessage(false);
-            $v->setShowInputMessage(true);
-            $v->setPromptTitle('تاريخ التقييم');
-            $v->setPrompt('يقبل YYYY-MM-DD أو DD-MM-YYYY مثال 2026-05-20 أو 20-05-2026');
-        }
-    }
-    private function applyTrainingDropdowns(Worksheet $sheet, array $branches, array $departments, int $startRow, int $endRow): void
-    {
-        $branchList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$branches)).'"';
-        $deptList='"'.implode(',',array_map(fn($v)=>str_replace('"','""',$v),$departments)).'"';
-        for($row=$startRow;$row<=$endRow;$row++){
-            $bv=$sheet->getCell('B'.$row)->getDataValidation(); $bv->setType(DataValidation::TYPE_LIST); $bv->setErrorStyle(DataValidation::STYLE_STOP); $bv->setAllowBlank(true); $bv->setShowDropDown(true); $bv->setFormula1($branchList); $bv->setShowErrorMessage(true); $bv->setErrorTitle('فرع غير صالح'); $bv->setError('اختر فرعاً من القائمة.');
-            $cv=$sheet->getCell('C'.$row)->getDataValidation(); $cv->setType(DataValidation::TYPE_LIST); $cv->setErrorStyle(DataValidation::STYLE_STOP); $cv->setAllowBlank(true); $cv->setShowDropDown(true); $cv->setFormula1($deptList); $cv->setShowErrorMessage(true); $cv->setErrorTitle('قسم غير صالح'); $cv->setError('اختر قسماً من القائمة.');
-        }
-    }
-    private function applyDuplicateFormatting(Worksheet $sheet, int $startRow, int $endRow): void
-    {
-        $condA=new Conditional(); $condA->setConditionType(Conditional::CONDITION_EXPRESSION); $condA->setOperatorType(Conditional::OPERATOR_NONE); $condA->addCondition('COUNTIF($A$'.$startRow.':$A$'.$endRow.',A'.$startRow.')>1'); $condA->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FECACA'); $condA->getStyle()->getFont()->getColor()->setRGB('991B1B'); $condA->setStopIfTrue(false);
-        $condB=new Conditional(); $condB->setConditionType(Conditional::CONDITION_EXPRESSION); $condB->setOperatorType(Conditional::OPERATOR_NONE); $condB->addCondition('AND($A'.$startRow.'="",COUNTIF($B$'.$startRow.':$B$'.$endRow.',B'.$startRow.')>1)'); $condB->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FECACA'); $condB->getStyle()->getFont()->getColor()->setRGB('991B1B'); $condB->setStopIfTrue(false);
-        $sheet->getStyle('A'.$startRow.':A'.$endRow)->setConditionalStyles([$condA]);
-        $sheet->getStyle('B'.$startRow.':B'.$endRow)->setConditionalStyles([$condB]);
-    }
-    private function applyDateFormatting(Worksheet $sheet, int $startRow, int $endRow, int $tailStartCol): void
-    {
-        $dateCol=$this->colLetter($tailStartCol+1);
-        $sheet->getStyle($dateCol.$startRow.':'.$dateCol.$endRow)->getNumberFormat()->setFormatCode('yyyy-mm-dd');
-    }
-    /**
-     * بناء ورقة __lookup المخفية مع نطاقات Dept_{branchId} للفلترة الديناميكية.
-     * الورقة مقفلة ومخفية ولا تدخل نطاق الطباعة — تُستخدم عبر INDIRECT في العمود E.
-     * @param Spreadsheet $book المصنف الحالي
-     * @return void
-     */
-    private function buildLookupSheet(Spreadsheet $book): void
-    {
-        $lookup=$book->createSheet();
-        $lookup->setTitle(self::LOOKUP_SHEET);
-        $lookup->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
-        $pdo=$this->database->getPdo();
-        $branches=$pdo->query('SELECT id, name FROM branches ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
-        $lookup->setCellValue('A1', 'branch_id');
-        $lookup->setCellValue('B1', 'branch_name');
-        $row=2;
-        foreach($branches as $br){
-            $lookup->setCellValue('A'.$row, (int)$br['id']);
-            $lookup->setCellValue('B'.$row, (string)$br['name']);
-            $row++;
-        }
-        $colIdx=3;
-        foreach($branches as $br){
-            $bid=(int)$br['id'];
-            $depts=$pdo->prepare('SELECT name FROM departments WHERE branch_id=:bid ORDER BY name');
-            $depts->execute(['bid'=>$bid]);
-            $names=$depts->fetchAll(PDO::FETCH_COLUMN);
-            if($names===[]){
-                $colLetter=$this->colLetter($colIdx);
-                $lookup->setCellValue($colLetter.'1', 'Dept_'.$bid);
-                $book->addNamedRange(new NamedRange('Dept_'.$bid, $lookup, $colLetter.'2:'.$colLetter.'2'));
-                $lookup->setCellValue($colLetter.'2', '');
-                $colIdx++;
-                continue;
-            }
-            $colLetter=$this->colLetter($colIdx);
-            $lookup->setCellValue($colLetter.'1', 'Dept_'.$bid);
-            $r=2;
-            foreach($names as $nm){
-                $lookup->setCellValue($colLetter.$r, (string)$nm);
-                $r++;
-            }
-            $book->addNamedRange(new NamedRange('Dept_'.$bid, $lookup, $colLetter.'2:'.$colLetter.($r-1)));
-            $colIdx++;
-        }
-        $lookup->getProtection()->setSheet(true);
-        $lookup->getProtection()->setPassword(self::SHEET_PASSWORD);
-    }
-    private function getPrefillEmployees(?int $branchId, ?int $departmentId, int $limit = 100): array
-    {
-        $pdo=$this->database->getPdo();
-        $limit=max(1, min($limit, self::MAX_ROWS_LIMIT));
-        $sql='SELECT e.emp_code, e.full_name, e.nickname, b.name AS branch_name, d.name AS department_name FROM employees e LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id WHERE e.is_active=1';
-        $params=[];
-        if($departmentId!==null && $departmentId>0){ $sql.=' AND e.department_id=:dept'; $params['dept']=$departmentId; }
-        elseif($branchId!==null && $branchId>0){ $sql.=' AND e.branch_id=:branch'; $params['branch']=$branchId; }
-        else { return []; }
-        $sql.=' ORDER BY e.full_name ASC LIMIT '.(int)$limit;
-        $stmt=$pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
     private function colLetter(int $colIndex): string
     {
         $letter=''; while($colIndex>0){ $colIndex--; $letter=chr(65+($colIndex%26)).$letter; $colIndex=(int)($colIndex/26); } return $letter;
     }
 
-    /**
-     * CD-042: Write a criterion header (merged across its sections + notes columns)
-     */
-    private function writeCriterionHeader(Worksheet $sheet, int $startCol, int $endCol, string $cName, float $weight): void
-    {
-        $startLetter = $this->colLetter($startCol);
-        $endLetter = $this->colLetter($endCol);
-        $weightText = number_format($weight, 0) . '%';
-        $criterionLabel = $cName . ' (' . $weightText . ')';
-        $sheet->setCellValue($startLetter . '3', $criterionLabel);
-        if ($endCol > $startCol) {
-            $sheet->mergeCells($startLetter . '3:' . $endLetter . '3');
-        }
-        $range = $startLetter . '3:' . $endLetter . '3';
-        $sheet->getStyle($range)->getFont()->setBold(true)->setSize(9)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F5B50');
-        $sheet->getStyle($range)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('0F5B50');
-    }
 }

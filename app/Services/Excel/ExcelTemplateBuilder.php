@@ -705,6 +705,26 @@ final class ExcelTemplateBuilder
     private function resolveSingleProgram(string $targetType, array $options): ?array
     {
         $type = $targetType === 'employee_in_workshop' ? 'workshop' : 'course';
+        // Options (1,2,3) with catalog-based program selection (no execution instance yet):
+        // catalog holds program names only; execution fields are left empty for the user to fill later.
+        $strategy = (string) ($options['prefill_strategy'] ?? '');
+        if (in_array($strategy, ['blank', 'org', 'previous_evals'], true)) {
+            $catalogTitle = trim((string) ($options['program_title'] ?? ''));
+            if ($catalogTitle === '') {
+                return null;
+            }
+            return [
+                'id' => 0,
+                'type' => $type,
+                'title' => $catalogTitle,
+                'branch_name' => '',
+                'department_name' => '',
+                'start_date' => '',
+                'end_date' => '',
+                'responsible' => '',
+                'catalog_id' => null,
+            ];
+        }
         $pdo = $this->database->getPdo();
         $sql = 'SELECT tp.*, b.name AS branch_name, d.name AS department_name
                 FROM training_programs tp
@@ -743,6 +763,38 @@ final class ExcelTemplateBuilder
         if (is_array($layout['program'])) {
             return [(string) $layout['program']['title']];
         }
+        // Source of truth by strategy:
+        // - Option 4 (executing): actual training_programs execution records (existing behavior).
+        // - Options (1,2,3) (blank/org/previous_evals): catalog program names (unique, not yet executed).
+        $strategy = (string) ($options['prefill_strategy'] ?? '');
+        if ($strategy === 'executing') {
+            $type = $layout['target_type'] === 'employee_in_workshop' ? 'workshop' : 'course';
+            $pdo = $this->database->getPdo();
+            $sql = 'SELECT DISTINCT title FROM training_programs WHERE type = :type';
+            $params = ['type' => $type];
+            $executingBranchId = ($branchId !== null && $branchId > 0)
+                ? $branchId
+                : (!empty($options['executing_branch_id']) ? (int) $options['executing_branch_id'] : null);
+            $deptId = !empty($options['executing_department_id']) ? (int) $options['executing_department_id'] : $departmentId;
+            if ($executingBranchId !== null && $executingBranchId > 0) {
+                $sql .= ' AND executing_branch_id = :bid';
+                $params['bid'] = $executingBranchId;
+            }
+            if ($deptId !== null && $deptId > 0) {
+                $sql .= ' AND executing_department_id = :edid';
+                $params['edid'] = $deptId;
+            }
+            $sql .= ' ORDER BY title';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            return array_values(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+        }
+        if (in_array($strategy, ['blank', 'org', 'previous_evals'], true)) {
+            // Options (1,2,3): catalog-based program names (unique, not yet executed).
+            // Catalog is the source of program names; execution fields are filled by the user later.
+            return $this->getCatalogProgramTitles();
+        }
+        // Fallback: existing behavior (legacy / training flows).
         $type = $layout['target_type'] === 'employee_in_workshop' ? 'workshop' : 'course';
         $pdo = $this->database->getPdo();
         $sql = 'SELECT DISTINCT title FROM training_programs WHERE type = :type';
@@ -762,6 +814,19 @@ final class ExcelTemplateBuilder
         $sql .= ' ORDER BY title';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
+        return array_values(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+    }
+
+    /**
+     * Phase 1 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): catalog-based program names (unique).
+     * Source for smart-prefill options (1,2,3) when a program has not been executed yet.
+     * @return array<int,string>
+     */
+    private function getCatalogProgramTitles(): array
+    {
+        // training_catalogs: design column is `name` (legacy `title` ingested here).
+        $stmt = $this->database->getPdo()->prepare('SELECT DISTINCT name FROM training_catalogs ORDER BY name ASC');
+        $stmt->execute();
         return array_values(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
     }
     private function getEvaluatorInfo(int $employeeId): array
@@ -898,6 +963,12 @@ final class ExcelTemplateBuilder
             return;
         }
 
+        // Phase 1/3 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): catalog-based program selected (options 1,2,3).
+        // Catalog programs are names-only and not executed yet → no previous evals exist (logical).
+        // Export must use basic employee data with completely empty context fields (user fills them later in Excel).
+        $programSource = (string) ($options['program_source'] ?? 'execution');
+        $hasCatalogContext = $isProgram && ($programSource === 'catalog') && !empty(trim((string) ($options['program_title'] ?? '')));
+
         // Employee org scope (option 2): filter by employee branch/department
         $empParams = [];
         $empWhere = 'e.is_active = 1';
@@ -925,7 +996,10 @@ final class ExcelTemplateBuilder
         $employeeIds = array_values(array_map(static fn($r) => (int) $r['id'], $employees));
         $programId = isset($options['program_id']) ? (int) $options['program_id'] : 0;
 
-        $latestByEmp = $this->fetchLatestEvaluationsForEmployees($templateId, $employeeIds, $isProgram, $programId);
+        // Phase 1/3 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): catalog-based program → no previous evals → basic employee data only.
+        $latestByEmp = $hasCatalogContext
+            ? []
+            : $this->fetchLatestEvaluationsForEmployees($templateId, $employeeIds, $isProgram, $programId);
         $evalIds = array_values(array_unique(array_filter(array_map(static fn($r) => (int) ($r['id'] ?? 0), $latestByEmp))));
         $answersByEval = $this->fetchEvaluationAnswersMap($evalIds);
 
@@ -1148,6 +1222,12 @@ final class ExcelTemplateBuilder
             return [];
         }
 
+        // Phase 1 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): catalog-based program (options 1,2,3) → no execution context → no previous evals (logical).
+        $programSource = (string) ($options['program_source'] ?? 'execution');
+        if ($isProgram && $programSource === 'catalog' && !empty(trim((string) ($options['program_title'] ?? '')))) {
+            return [];
+        }
+
         $where = ['ev.template_id = :tid'];
         $params = ['tid' => $templateId];
 
@@ -1271,6 +1351,10 @@ final class ExcelTemplateBuilder
         $targetType = (string) ($layout['target_type'] ?? 'employee');
         $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
         if ($templateId <= 0) { return 0; }
+
+        // Phase 1 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): catalog-based program (options 1,2,3) → no previous evals → 0 rows.
+        $programSource = (string) ($options['program_source'] ?? 'execution');
+        if ($isProgram && $programSource === 'catalog' && !empty(trim((string) ($options['program_title'] ?? '')))) { return 0; }
 
         $where = ['ev.template_id = :tid'];
         $params = ['tid' => $templateId];
