@@ -19,6 +19,22 @@ use App\Services\ReportSnapshotService;
  */
 final class ReportsController extends Controller
 {
+    /** @var string[] */
+    private const ARCHIVE_TYPES = ['employee', 'periodic', 'course', 'workshop', 'skill'];
+
+    /** @var int[] */
+    private const ARCHIVE_PER_PAGE = [10, 15, 25, 50];
+
+    /** @var array<string,string> */
+    private const ARCHIVE_SORTS = [
+        'newest'    => 'rs.id DESC',
+        'oldest'    => 'rs.id ASC',
+        'report_no' => 'rs.report_number DESC',
+        'name_asc'  => "JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) ASC",
+        'name_desc' => "JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) DESC",
+        'branch'    => "JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name')) ASC",
+    ];
+
     /**
      * Page 1: Create report — search employee + cascading filters + issue report.
      */
@@ -108,11 +124,11 @@ final class ReportsController extends Controller
     {
         Auth::enforce('employees.profile');
 
-        $search   = trim((string)($_GET['q'] ?? ''));
-        $branchId = (int)($_GET['branch_id'] ?? 0);
-        $year     = (int)($_GET['year'] ?? 0);
-        $page     = max(1, (int)($_GET['page'] ?? 1));
-        $perPage  = 15;
+        $filters = $this->normalizeArchiveFilters($_GET);
+        $filters['view'] = in_array((string)($_GET['view'] ?? 'list'), ['list', 'employee'], true)
+            ? (string)($_GET['view'] ?? 'list')
+            : 'list';
+        $page = max(1, (int)($_GET['page'] ?? 1));
 
         // Phase 1 security: archive respects the same organizational scope.
         $scopeService = new ReportScopeService();
@@ -122,41 +138,129 @@ final class ReportsController extends Controller
             return;
         }
         if ($scope['mode'] !== ReportScopeService::MODE_ALL) {
-            $branchId = (int)($scope['branch_id'] ?? 0);
+            $scopeBranchId = (int)($scope['branch_id'] ?? 0);
+            if ($scopeBranchId > 0) {
+                $filters['branch_id'] = $scopeBranchId;
+            }
         }
 
-        [$snapshots, $totalCount] = $this->searchSnapshots($search, $branchId, $year, $page, $perPage);
+        $employeeRows = [];
+        $snapshots = [];
+        if ($filters['view'] === 'employee') {
+            [$employeeRows, $totalCount] = $this->searchEmployeesArchive($filters, $page, $filters['per_page']);
+        } else {
+            [$snapshots, $totalCount] = $this->searchSnapshots($filters, $page, $filters['per_page']);
+        }
+        $totalPages = (int)ceil($totalCount / $filters['per_page']);
+        if ($totalPages > 0 && $page > $totalPages) {
+            $page = $totalPages;
+            if ($filters['view'] === 'employee') {
+                [$employeeRows, $totalCount] = $this->searchEmployeesArchive($filters, $page, $filters['per_page']);
+            } else {
+                [$snapshots, $totalCount] = $this->searchSnapshots($filters, $page, $filters['per_page']);
+            }
+        }
+
+        $stats   = $this->getArchiveStats($filters);
+        $issuers = $this->getArchiveIssuers($filters);
 
         $branches = (new Branch())->getAll();
-        if ($scope['mode'] !== ReportScopeService::MODE_ALL && $branchId > 0) {
+        if ($scope['mode'] !== ReportScopeService::MODE_ALL && $filters['branch_id'] > 0) {
             $branches = array_values(array_filter(
                 $branches,
-                static fn(object $branch): bool => (int)$branch->id === $branchId
+                static fn(object $branch): bool => (int)$branch->id === $filters['branch_id']
             ));
         }
         $years = $this->getReportYears();
 
         $this->view('reports/archive', [
-            'pageTitle'   => 'سجل التقارير المؤرشفة',
-            'snapshots'   => $snapshots,
-            'totalCount'  => $totalCount,
-            'page'        => $page,
-            'perPage'     => $perPage,
-            'totalPages'  => (int)ceil($totalCount / $perPage),
-            'search'      => $search,
-            'branchId'    => $branchId,
-            'year'        => $year,
-            'branches'    => $branches,
-            'years'       => $years,
-            'scope'       => $scope,
-            'scopeLabel'  => (string)$scope['label'],
-            'csrfToken'   => Auth::generateCsrfToken(),
+            'pageTitle'     => 'سجل التقارير المؤرشفة',
+            'viewMode'      => $filters['view'],
+            'employeeRows'  => $employeeRows,
+            'employeeDetail'=> null,
+            'employeeId'    => 0,
+            'snapshots'     => $snapshots,
+            'totalCount'    => $totalCount,
+            'page'          => $page,
+            'perPage'       => $filters['per_page'],
+            'totalPages'    => $totalPages,
+            'filters'       => $filters,
+            'stats'         => $stats,
+            'issuers'       => $issuers,
+            'branches'      => $branches,
+            'years'         => $years,
+            'scope'         => $scope,
+            'scopeLabel'    => (string)$scope['label'],
+            'csrfToken'     => Auth::generateCsrfToken(),
         ]);
     }
 
-    /**
-     * POST: Generate a report snapshot (immutable, saved to DB).
-     */
+    public function archiveEmployee(int $employeeId): void
+    {
+        Auth::enforce('employees.profile');
+
+        if ($employeeId < 1 || !(new ReportScopeService())->canAccessEmployee($employeeId)) {
+            (new ErrorController())->forbidden('reports.view');
+            return;
+        }
+
+        $filters = $this->normalizeArchiveFilters($_GET);
+        $filters['employee_id'] = $employeeId;
+        $filters['view'] = 'list';
+        $page = max(1, (int)($_GET['page'] ?? 1));
+
+        [$snapshots, $totalCount] = $this->searchSnapshots($filters, $page, $filters['per_page']);
+        $totalPages = (int)ceil($totalCount / $filters['per_page']);
+        if ($totalPages > 0 && $page > $totalPages) {
+            $page = $totalPages;
+            [$snapshots, $totalCount] = $this->searchSnapshots($filters, $page, $filters['per_page']);
+        }
+
+        $stats = $this->getArchiveStats($filters);
+        $issuers = $this->getArchiveIssuers($filters);
+
+        $branches = (new Branch())->getAll();
+        $years = $this->getReportYears();
+
+        $employee = (new Employee())->findById($employeeId);
+
+        // آخر تقرير للموظف (مستقل عن pagination/sort).
+        $latestParams = [];
+        $latestWhere = $this->buildArchiveWhere($filters, $latestParams);
+        $latestDb = Database::getInstance();
+        $latestDb->query(
+            'SELECT rs.report_number, rs.created_at
+             FROM report_snapshots rs
+             LEFT JOIN employees se ON se.id = rs.employee_id'
+            . $latestWhere
+            . ' ORDER BY rs.id DESC LIMIT 1'
+        );
+        foreach ($latestParams as $key => $value) {
+            $latestDb->bind($key, $value);
+        }
+        $latestReport = $latestDb->fetch();
+
+        $this->view('reports/archive', [
+            'pageTitle'      => 'سجل تقارير الموظف',
+            'viewMode'       => 'detail',
+            'employeeDetail' => $employee,
+            'employeeId'     => $employeeId,
+            'latestReport'   => $latestReport,
+            'snapshots'      => $snapshots,
+            'totalCount'     => $totalCount,
+            'page'           => $page,
+            'perPage'        => $filters['per_page'],
+            'totalPages'     => $totalPages,
+            'filters'        => $filters,
+            'stats'          => $stats,
+            'issuers'        => $issuers,
+            'branches'       => $branches,
+            'years'          => $years,
+            'scope'          => (new ReportScopeService())->resolve(),
+            'scopeLabel'     => (new ReportScopeService())->label(),
+            'csrfToken'      => Auth::generateCsrfToken(),
+        ]);
+    }
     public function generate(): void
     {
         Auth::enforce('employees.profile');
@@ -463,52 +567,53 @@ final class ReportsController extends Controller
         return $totalLabel . ': ' . implode(' + ', $parts);
     }
 
-    private function searchSnapshots(string $search, int $branchId, int $year, int $page, int $perPage): array
+    private function searchEmployeesArchive(array $filters, int $page, int $perPage): array
     {
         $db = Database::getInstance();
         $offset = ($page - 1) * $perPage;
 
-        $where = ' WHERE 1=1';
         $params = [];
-
-        // Phase 1 security: mandatory archive scope (joined to the current employee org record).
-        $where .= (new ReportScopeService())->applySnapshotConstraint('rs', 'se', $params);
+        $where = $this->buildArchiveWhere($filters, $params);
         $scopeJoin = ' LEFT JOIN employees se ON se.id = rs.employee_id';
 
-        if ($search !== '') {
-            $where .= " AND (rs.report_number LIKE :search
-                        OR JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) LIKE :search2
-                        OR JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')) LIKE :search3)";
-            $params[':search']  = '%' . $search . '%';
-            $params[':search2'] = '%' . $search . '%';
-            $params[':search3'] = '%' . $search . '%';
-        }
-        if ($branchId > 0) {
-            // التقرير يخزّن اسم الفرع وقت الإصدار، لذا نطابق الاسم مع الفرع المطلوب.
-            $where .= " AND JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name'))
-                        = (SELECT b.name FROM branches b WHERE b.id = :branch_id)";
-            $params[':branch_id'] = $branchId;
-        }
-        if ($year > 0) {
-            $where .= ' AND YEAR(rs.created_at) = :year';
-            $params[':year'] = $year;
-        }
-
-        // Count
-        $db->query('SELECT COUNT(*) FROM report_snapshots rs' . $scopeJoin . $where);
+        // Count distinct employees.
+        $db->query('SELECT COUNT(DISTINCT rs.employee_id) FROM report_snapshots rs' . $scopeJoin . $where);
         foreach ($params as $key => $value) {
             $db->bind($key, $value);
         }
         $totalCount = (int)$db->fetchColumn();
 
-        // Data
-        $sql = "SELECT rs.id, rs.report_number, rs.employee_id, rs.created_at,
+        $sort = (string)($filters['sort'] ?? 'newest');
+        $orderBy = match ($sort) {
+            'oldest'   => 'latest_created_at ASC, latest_id ASC',
+            'name_asc' => 'full_name ASC',
+            'name_desc'=> 'full_name DESC',
+            'branch'   => 'branch_name ASC, full_name ASC',
+            'count'    => 'report_count DESC, full_name ASC',
+            'report_no'=> 'latest_report_number DESC',
+            default    => 'latest_created_at DESC, latest_id DESC',
+        };
+
+        $sql = "SELECT rs.employee_id AS id,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) AS full_name,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')) AS emp_code,
                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name')) AS branch_name,
-                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.created_by.username')) AS created_by
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.department_name')) AS department_name,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.position_title')) AS position_title,
+                       COUNT(*) AS report_count,
+                       MAX(rs.id) AS latest_id,
+                       MAX(rs.created_at) AS latest_created_at,
+                       (SELECT rs2.report_number FROM report_snapshots rs2 WHERE rs2.employee_id = rs.employee_id ORDER BY rs2.id DESC LIMIT 1) AS latest_report_number,
+                       AVG(CAST(JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.report.averages.overall.average')) AS DECIMAL(8,2))) AS avg_score
                 FROM report_snapshots rs" . $scopeJoin . $where
-            . ' ORDER BY rs.id DESC LIMIT :limit OFFSET :offset';
+            . " GROUP BY rs.employee_id,
+                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')),
+                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')),
+                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name')),
+                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.department_name')),
+                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.position_title'))
+            " . ' ORDER BY ' . $orderBy . ' LIMIT :limit OFFSET :offset';
+
         $db->query($sql);
         foreach ($params as $key => $value) {
             $db->bind($key, $value);
@@ -517,6 +622,212 @@ final class ReportsController extends Controller
         $db->bind(':offset', $offset);
 
         return [$db->fetchAll(), $totalCount];
+    }
+
+    private function searchSnapshots(array $filters, int $page, int $perPage): array
+    {
+        $db = Database::getInstance();
+        $offset = ($page - 1) * $perPage;
+
+        $params = [];
+        $where = $this->buildArchiveWhere($filters, $params);
+        $scopeJoin = ' LEFT JOIN employees se ON se.id = rs.employee_id';
+
+        // Count
+        $db->query('SELECT COUNT(*) FROM report_snapshots rs' . $scopeJoin . $where);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        $totalCount = (int)$db->fetchColumn();
+
+        $orderBy = self::ARCHIVE_SORTS[$filters['sort']] ?? self::ARCHIVE_SORTS['newest'];
+
+        // Data
+        $sql = "SELECT rs.id, rs.report_number, rs.employee_id, rs.created_at, rs.created_by_user_id,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) AS full_name,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')) AS emp_code,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name')) AS branch_name,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.department_name')) AS department_name,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.position_title')) AS position_title,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.created_by.username')) AS created_by,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.report.averages')) AS averages_json,
+                       JSON_EXTRACT(rs.snapshot_json, '$.report.records[*].target_type') AS record_targets_json,
+                       JSON_EXTRACT(rs.snapshot_json, '$.report.records[*].evaluation_type') AS record_eval_types_json,
+                       CAST(JSON_LENGTH(JSON_EXTRACT(rs.snapshot_json, '$.report.records')) AS UNSIGNED) AS records_count
+                FROM report_snapshots rs" . $scopeJoin . $where
+            . ' ORDER BY ' . $orderBy . ', rs.id DESC LIMIT :limit OFFSET :offset';
+        $db->query($sql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        $db->bind(':limit', $perPage);
+        $db->bind(':offset', $offset);
+
+        return [$db->fetchAll(), $totalCount];
+    }
+
+    /**
+     * Normalizes every archive GET parameter through strict whitelists.
+     *
+     * @return array{q:string,branch_id:int,year:int,type:string,date_from:string,date_to:string,created_by:int,sort:string,per_page:int}
+     */
+    private function normalizeArchiveFilters(array $input): array
+    {
+        $search   = trim((string)($input['q'] ?? ''));
+        $branchId = max(0, (int)($input['branch_id'] ?? 0));
+        $year     = (int)($input['year'] ?? 0);
+        if ($year < 1900 || $year > 2200) {
+            $year = 0;
+        }
+
+        $type = strtolower(trim((string)($input['type'] ?? '')));
+        if (!in_array($type, self::ARCHIVE_TYPES, true)) {
+            $type = '';
+        }
+
+        $dateFrom = $this->normalizeDate($input['date_from'] ?? '');
+        $dateTo   = $this->normalizeDate($input['date_to'] ?? '');
+        if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        $createdBy = max(0, (int)($input['created_by'] ?? 0));
+        $sort      = (string)($input['sort'] ?? 'newest');
+        if (!array_key_exists($sort, self::ARCHIVE_SORTS)) {
+            $sort = 'newest';
+        }
+
+        $perPage = (int)($input['per_page'] ?? 15);
+        if (!in_array($perPage, self::ARCHIVE_PER_PAGE, true)) {
+            $perPage = 15;
+        }
+
+        return [
+            'q'          => $search,
+            'branch_id'  => $branchId,
+            'year'       => $year,
+            'type'       => $type,
+            'date_from'  => $dateFrom,
+            'date_to'    => $dateTo,
+            'created_by' => $createdBy,
+            'sort'       => $sort,
+            'per_page'   => $perPage,
+        ];
+    }
+
+    /**
+     * Builds the shared archive predicate (scope + all active filters).
+     */
+    private function buildArchiveWhere(array $filters, array &$params): string
+    {
+        $where = ' WHERE 1=1';
+        $where .= (new ReportScopeService())->applySnapshotConstraint('rs', 'se', $params);
+
+        if (($filters['q'] ?? '') !== '') {
+            $where .= " AND (rs.report_number LIKE :f_search
+                        OR JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.full_name')) LIKE :f_search2
+                        OR JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.emp_code')) LIKE :f_search3)";
+            $params[':f_search']  = '%' . $filters['q'] . '%';
+            $params[':f_search2'] = '%' . $filters['q'] . '%';
+            $params[':f_search3'] = '%' . $filters['q'] . '%';
+        }
+
+        if (($filters['branch_id'] ?? 0) > 0) {
+            // التقرير يخزّن اسم الفرع وقت الإصدار، لذا نطابق الاسم مع الفرع المطلوب.
+            $where .= " AND JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.employee.branch_name'))
+                        = (SELECT b.name FROM branches b WHERE b.id = :f_branch_id)";
+            $params[':f_branch_id'] = (int)$filters['branch_id'];
+        }
+
+        if (($filters['year'] ?? 0) > 0) {
+            $where .= ' AND YEAR(rs.created_at) = :f_year';
+            $params[':f_year'] = (int)$filters['year'];
+        }
+
+        if (($filters['type'] ?? '') !== '') {
+            // تصنيف النوع محفوظ داخل النسخة (averages) — يغطي النسخ القديمة والجديدة بلا تعديل JSON.
+            $where .= " AND CAST(JSON_EXTRACT(rs.snapshot_json, '$.report.averages." . $filters['type'] . ".evaluation_count') AS UNSIGNED) > 0";
+        }
+
+        if (($filters['date_from'] ?? '') !== '') {
+            $where .= ' AND DATE(rs.created_at) >= :f_date_from';
+            $params[':f_date_from'] = $filters['date_from'];
+        }
+        if (($filters['date_to'] ?? '') !== '') {
+            $where .= ' AND DATE(rs.created_at) <= :f_date_to';
+            $params[':f_date_to'] = $filters['date_to'];
+        }
+
+        if (($filters['employee_id'] ?? 0) > 0) {
+            $where .= ' AND rs.employee_id = :f_employee_id';
+            $params[':f_employee_id'] = (int)$filters['employee_id'];
+        }
+
+        return $where;
+    }
+
+    /**
+     * One aggregate query for the KPI cards, over the same filtered dataset.
+     *
+     * @return array{total:int,employees:int,this_month:int,avg_score:?float,last_issue:?string}
+     */
+    private function getArchiveStats(array $filters): array
+    {
+        $db = Database::getInstance();
+        $params = [];
+        $where = $this->buildArchiveWhere($filters, $params);
+
+        $sql = "SELECT COUNT(*) AS total,
+                       COUNT(DISTINCT rs.employee_id) AS employees,
+                       SUM(CASE WHEN rs.created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS this_month,
+                       AVG(CAST(JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.report.averages.overall.average')) AS DECIMAL(8,2))) AS avg_score,
+                       MAX(rs.created_at) AS last_issue
+                FROM report_snapshots rs
+                LEFT JOIN employees se ON se.id = rs.employee_id" . $where;
+
+        $db->query($sql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        $row = $db->fetch();
+
+        return [
+            'total'      => (int)($row->total ?? 0),
+            'employees'  => (int)($row->employees ?? 0),
+            'this_month' => (int)($row->this_month ?? 0),
+            'avg_score'  => $row->avg_score !== null ? round((float)$row->avg_score, 1) : null,
+            'last_issue' => $row->last_issue !== null ? (string)$row->last_issue : null,
+        ];
+    }
+
+    /**
+     * Issuers available within the current filters (the issuer filter itself is ignored).
+     *
+     * @return object[] id, username, total
+     */
+    private function getArchiveIssuers(array $filters): array
+    {
+        $db = Database::getInstance();
+        $issuerFilters = $filters;
+        $issuerFilters['created_by'] = 0;
+
+        $params = [];
+        $where = $this->buildArchiveWhere($issuerFilters, $params);
+
+        $sql = "SELECT rs.created_by_user_id AS id,
+                       JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.created_by.username')) AS username,
+                       COUNT(*) AS total
+                FROM report_snapshots rs
+                LEFT JOIN employees se ON se.id = rs.employee_id" . $where
+            . " GROUP BY rs.created_by_user_id,
+                        JSON_UNQUOTE(JSON_EXTRACT(rs.snapshot_json, '$.created_by.username'))
+                ORDER BY total DESC, username ASC";
+
+        $db->query($sql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        return $db->fetchAll();
     }
 
     private function getReportYears(): array

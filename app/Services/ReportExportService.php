@@ -16,6 +16,9 @@ final class ReportExportService
 {
     public function render(string $format, object $snapshot): array
     {
+        if (isset($snapshot->snapshot_data['report']) && is_array($snapshot->snapshot_data['report'])) {
+            $snapshot->snapshot_data['report'] = $this->normalizeReport($snapshot->snapshot_data['report']);
+        }
         $baseName = 'report-' . $snapshot->report_number;
         return match ($format) {
             'pdf' => ['content' => $this->renderPdf($snapshot), 'content_type' => 'application/pdf', 'filename' => $baseName . '.pdf'],
@@ -63,6 +66,19 @@ final class ReportExportService
         $mpdf->SetHTMLFooter($this->buildFooterHtml($brand));
 
         $mpdf->WriteHTML($this->wrapDocument($this->buildStyles($brand), $this->buildHtml($snapshot)));
+
+        // Attachments (official documents)
+        $data = $snapshot->snapshot_data;
+        $report = $data['report'] ?? [];
+        $records = $report['records'] ?? [];
+        foreach ($records as $record) {
+            $attachment = is_array($record) ? ($record['attachment'] ?? null) : ($record->attachment ?? null);
+            if (empty($attachment) || !is_array($attachment)) {
+                continue;
+            }
+            $mpdf->AddPage();
+            $mpdf->WriteHTML($this->buildAttachmentHtml($attachment, $brand));
+        }
 
         return $mpdf->Output('', 'S');
     }
@@ -163,7 +179,7 @@ final class ReportExportService
         foreach ($report['records'] as $record) {
             $values = [
                 ['text', $this->recordValue($record, 'evaluation_date')],
-                ['text', $this->recordValue($record, 'evaluation_type_label')],
+                ['text', $this->derivedTypeLabel($record)],
                 ['text', $this->recordValue($record, 'template_name')],
                 ['number', $this->getRecordScore($record)],
                 ['text', $this->recordValue($record, 'grade_label')],
@@ -190,6 +206,104 @@ final class ReportExportService
         }
 
         foreach (range('A', 'E') as $column) { $sheet->getColumnDimension($column)->setAutoSize(true); }
+
+        // Attachments as separate sheets
+        $reportFlow = $report['records'] ?? [];
+        $attachmentIndex = 0;
+        foreach ($reportFlow as $record) {
+            $attachment = is_array($record) ? ($record['attachment'] ?? null) : ($record->attachment ?? null);
+            if (empty($attachment) || !is_array($attachment)) {
+                continue;
+            }
+            $attachmentIndex++;
+            $sheetAtt = $spreadsheet->createSheet();
+            $sheetAtt->setRightToLeft(true);
+            $sheetAtt->setTitle('مرفق ' . $attachmentIndex);
+
+            $rowAtt = 1;
+            $sheetAtt->setCellValue("A{$rowAtt}", 'مرفق ' . $attachmentIndex);
+            $sheetAtt->getStyle("A{$rowAtt}")->getFont()->setBold(true);
+            $sheetAtt->getStyle("A{$rowAtt}")->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFFFF'));
+            $sheetAtt->getStyle("A{$rowAtt}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+            $sheetAtt->getStyle("A{$rowAtt}")->getFill()->getStartColor()->setARGB('FF0c2823');
+            $rowAtt++;
+            $this->setText($sheetAtt, "A{$rowAtt}", 'التقييم: ' . ($attachment['template']['template_name'] ?? ($attachment['evaluation']['template_name'] ?? 'تقييم')));
+            $rowAtt++;
+            $this->setText($sheetAtt, "A{$rowAtt}", 'رقم التقييم: ' . ($attachment['evaluation_id'] ?? ''));
+            $rowAtt++;
+            $this->setText($sheetAtt, "A{$rowAtt}", 'التاريخ: ' . ($this->formatDate($attachment['evaluation']['evaluation_date'] ?? '')));
+            $rowAtt += 2;
+
+            $employee = $attachment['employee'] ?? [];
+            if (!is_array($employee)) { $employee = (array)($employee ?? []); }
+            $sheetAtt->setCellValue("A{$rowAtt}", 'بيانات الموظف');
+            $sheetAtt->getStyle("A{$rowAtt}")->getFont()->setBold(true);
+            $sheetAtt->getStyle("A{$rowAtt}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+            $sheetAtt->getStyle("A{$rowAtt}")->getFill()->getStartColor()->setARGB('FFF5F5F5');
+            $rowAtt++;
+            foreach ([
+                'الاسم' => $employee['full_name'] ?? '',
+                'الرقم الوظيفي' => $employee['emp_code'] ?? '',
+                'الفرع' => $employee['branch_name'] ?? '',
+                'القسم' => $employee['department_name'] ?? '',
+            ] as $label => $value) {
+                $this->setText($sheetAtt, "A{$rowAtt}", $label);
+                $sheetAtt->getStyle("A{$rowAtt}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+                $sheetAtt->getStyle("A{$rowAtt}")->getFill()->getStartColor()->setARGB('FFF5F5F5');
+                $this->setText($sheetAtt, "B{$rowAtt}", ($value ?: '—'));
+                $rowAtt++;
+            }
+            $rowAtt += 1;
+
+            $criteria = $attachment['template']['criteria'] ?? [];
+            $answers = [];
+            foreach (($attachment['answers'] ?? []) as $answerRow) {
+                if (is_array($answerRow) && isset($answerRow['section_id'])) {
+                    $answers[$answerRow['section_id']] = $answerRow;
+                }
+            }
+            if ($criteria !== []) {
+                $sheetAtt->setCellValue("A{$rowAtt}", 'معايير التقييم');
+                $rowAtt++;
+                $sheetAtt->setCellValue("A{$rowAtt}", 'عنصر التقييم');
+                $sheetAtt->setCellValue("B{$rowAtt}", 'المستوى');
+                $sheetAtt->setCellValue("C{$rowAtt}", 'ملاحظات');
+                foreach (['A','B','C'] as $colLetter) {
+                    $sheetAtt->getStyle("{$colLetter}{$rowAtt}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+                    $sheetAtt->getStyle("{$colLetter}{$rowAtt}")->getFill()->getStartColor()->setARGB('FF0c2823');
+                    $sheetAtt->getStyle("{$colLetter}{$rowAtt}")->getFont()->setBold(true);
+                    $sheetAtt->getStyle("{$colLetter}{$rowAtt}")->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFFFF'));
+                }
+                $rowAtt++;
+                foreach ($criteria as $criterion) {
+                    $this->setText($sheetAtt, "A{$rowAtt}", ($criterion['criterion_name'] ?? ''));
+                    $rowAtt++;
+                    foreach (($criterion['sections'] ?? []) as $section) {
+                        $answer = $answers[$section['id'] ?? 0] ?? null;
+                        $display = '—';
+                        if ($answer) {
+                            if (($section['evaluation_type'] ?? '') === 'grade') {
+                                $opts = json_decode($section['evaluation_options'] ?? '[]', true);
+                                foreach (($opts ?? []) as $opt) {
+                                    if ((string)($opt['value'] ?? '') === (string)($answer['raw_value'] ?? '') || (string)($opt['label'] ?? '') === (string)($answer['raw_value'] ?? '')) {
+                                        $display = $opt['label'] ?? $answer['raw_value'];
+                                        break;
+                                    }
+                                }
+                                if ($display === '—') { $display = $answer['raw_value'] ?? '—'; }
+                            } else {
+                                $display = $answer['raw_value'] ?? '—';
+                            }
+                        }
+                        $this->setText($sheetAtt, "A{$rowAtt}", $section['section_name'] ?? '');
+                        $this->setText($sheetAtt, "B{$rowAtt}", $display);
+                        $this->setText($sheetAtt, "C{$rowAtt}", ($answer['notes'] ?? '') !== '' ? ($answer['notes'] ?? '') : '—');
+                        $rowAtt++;
+                    }
+                }
+            }
+        }
+
         return $this->captureOutput(static function () use ($spreadsheet): void { (new Xlsx($spreadsheet))->save('php://output'); });
     }
 
@@ -244,6 +358,7 @@ final class ReportExportService
         }
 
         $this->addDocxSignatures($section, $brand);
+        $this->addDocxAttachments($word, $snapshot, $brand);
 
         return $this->captureOutput(static function () use ($word): void { IOFactory::createWriter($word, 'Word2007')->save('php://output'); });
     }
@@ -297,8 +412,11 @@ final class ReportExportService
             . '.employee-grid td.val{width:34%;color:' . $colors['ink'] . ';font-size:9.5pt;font-weight:bold}'
             // الأقسام والجداول
             . '.section{page-break-inside:avoid;margin-top:4mm}'
-            . '.section-title{background:' . $colors['primary'] . ';color:' . $colors['white']
-            . ';font-size:11pt;font-weight:bold;padding:2mm 3mm;border-right:3px solid ' . $colors['accent'] . '}'
+            // مرفقات التقييم
+            . '.criterion-card{border:1px solid ' . $colors['border'] . ';border-radius:6px;overflow:hidden;margin:2mm 0 3mm}'
+            . '.criterion-head{background:' . $colors['primary'] . ';color:' . $colors['white'] . ';padding:1.5mm 3mm;font-weight:bold;font-size:10pt}'
+            . 'table.data td,table.data th{border:1px solid ' . $colors['border'] . ';padding:1.6mm 2mm;text-align:right}'
+            . 'table.data tr.alt td{background:' . $colors['zebra'] . '}'
             . 'table.data{width:100%;border-collapse:collapse;font-size:9pt}'
             . 'table.data th{background:' . $colors['primary'] . ';color:' . $colors['white']
             . ';border:1px solid ' . $colors['primary'] . ';padding:1.8mm 2mm;text-align:right;font-weight:bold;font-size:9pt}'
@@ -404,6 +522,103 @@ final class ReportExportService
     }
 
     /**
+     * CD-043: إعادة تصنيف الأنواع حسب target_type (مع fallback employee للنسخ القديمة).
+     */
+    private function normalizeReport(array $report): array
+    {
+        $records = $report['records'] ?? [];
+        if (!is_array($records)) {
+            return $report;
+        }
+
+        $labels = [
+            'employee' => 'تقييم فردي عام',
+            'annual'   => 'سنوي',
+            'periodic' => 'دوري',
+            'course'   => 'دورة',
+            'workshop' => 'ورشة',
+            'skill'    => 'مهاري',
+        ];
+
+        $deriveType = static function ($record) use ($labels): string {
+            $target = null;
+            $legacy = null;
+            if (is_array($record)) {
+                $target = $record['target_type'] ?? null;
+                $legacy = $record['evaluation_type'] ?? null;
+            } elseif (is_object($record)) {
+                $target = $record->target_type ?? null;
+                $legacy = $record->evaluation_type ?? null;
+            }
+            if ($target === 'employee') return 'employee';
+            if ($target === 'skill') return 'skill';
+            if (in_array($target, ['employee_in_course', 'course'], true)) return 'course';
+            if (in_array($target, ['employee_in_workshop', 'workshop'], true)) return 'workshop';
+            $legacy = is_string($legacy) ? $legacy : '';
+            if ($legacy === '' || $legacy === 'annual') {
+                return 'employee';
+            }
+            return $legacy;
+        };
+
+        foreach ($records as $index => $record) {
+            $type = $deriveType($record);
+            if (is_array($record)) {
+                $records[$index]['evaluation_type'] = $type;
+                $records[$index]['evaluation_type_label'] = $labels[$type] ?? ($record['evaluation_type_label'] ?? 'غير محدد');
+            } elseif (is_object($record)) {
+                $record->evaluation_type = $type;
+                $record->evaluation_type_label = $labels[$type] ?? ($record->evaluation_type_label ?? 'غير محدد');
+                $records[$index] = $record;
+            }
+        }
+
+        // Convert to objects for AveragesEngine.
+        $objects = [];
+        foreach ($records as $record) {
+            $obj = new \stdClass();
+            if (is_array($record)) {
+                foreach ($record as $key => $value) {
+                    $obj->{$key} = $value;
+                }
+            } elseif (is_object($record)) {
+                foreach (get_object_vars($record) as $key => $value) {
+                    $obj->{$key} = $value;
+                }
+            }
+            $objects[] = $obj;
+        }
+
+        $scale = $this->getCanonicalScale();
+        $engine = new \App\Services\AveragesEngine();
+        $averages = [];
+        foreach (['overall', 'employee', 'annual', 'periodic', 'course', 'workshop', 'skill'] as $type) {
+            $matching = $type === 'overall'
+                ? $objects
+                : array_values(array_filter($objects, static fn($record): bool => $record->evaluation_type === $type));
+            $averages[$type] = $engine->summarize($matching, $scale);
+        }
+
+        $report['records'] = $records;
+        $report['averages'] = $averages;
+        $report['yearly'] = $engine->summarizeByYear($objects, $scale);
+        return $report;
+    }
+
+    private function getCanonicalScale(): array
+    {
+        static $scale = null;
+        if ($scale !== null) {
+            return $scale;
+        }
+        $db = \App\Core\Database::getInstance();
+        $db->query("SELECT grade_label, min_value, max_value, numeric_value FROM grading_scales WHERE scale_name = :scale_name AND is_active = 1 ORDER BY sort_order, min_value, id");
+        $db->bind(':scale_name', 'السلم الخماسي');
+        $scale = $db->fetchAll();
+        return $scale;
+    }
+
+    /**
      * @return array<string, array{title:string, records:array, summary:?array}>
      */
     private function groupRecords(array $records): array
@@ -424,6 +639,11 @@ final class ReportExportService
                 $type = 'course';
             } elseif ($target === 'employee_in_workshop' || $target === 'workshop') {
                 $type = 'workshop';
+            } elseif ($target === 'skill') {
+                $type = 'skill';
+            } elseif ($target === '') {
+                $legacy = (string)$this->recordValue($record, 'evaluation_type', '');
+                $type = ($legacy === '' || $legacy === 'annual') ? 'employee' : $legacy;
             } else {
                 $type = (string)$this->recordValue($record, 'evaluation_type', '');
             }
@@ -443,6 +663,38 @@ final class ReportExportService
         }
 
         return $groups;
+    }
+
+    /**
+     * CD-043: تسمية النوع حسب target_type (حتى للنسخ القديمة/الانتقالية).
+     */
+    private function derivedTypeLabel($record): string
+    {
+        $target = (string)$this->recordValue($record, 'target_type', '');
+        if ($target === 'employee') {
+            $type = 'employee';
+        } elseif ($target === 'employee_in_course' || $target === 'course') {
+            $type = 'course';
+        } elseif ($target === 'employee_in_workshop' || $target === 'workshop') {
+            $type = 'workshop';
+        } elseif ($target === 'skill') {
+            $type = 'skill';
+        } elseif ($target === '') {
+            $legacy = (string)$this->recordValue($record, 'evaluation_type', '');
+            $type = ($legacy === '' || $legacy === 'annual') ? 'employee' : $legacy;
+        } else {
+            $type = (string)$this->recordValue($record, 'evaluation_type', '');
+        }
+
+        return match ($type) {
+            'employee' => 'تقييم فردي عام',
+            'annual' => 'سنوي',
+            'periodic' => 'دوري',
+            'course' => 'دورة',
+            'workshop' => 'ورشة',
+            'skill' => 'مهاري',
+            default => (string)$this->recordValue($record, 'evaluation_type_label', '—'),
+        };
     }
 
     private function buildSectionHtml(string $title, array $records, array $summary): string
@@ -904,6 +1156,92 @@ final class ReportExportService
         return false;
     }
 
+    /**
+     * HTML fragment for a single evaluation attachment (official document).
+     * Reuses the shared _document partial to match the report view exactly.
+     */
+    private function buildAttachmentHtml(array $attachment, array $brand): string
+    {
+        $evaluation = isset($attachment['evaluation']) && is_array($attachment['evaluation']) ? (object)$attachment['evaluation'] : null;
+        $template = $attachment['template'] ?? [];
+        $employee = isset($attachment['employee']) && is_array($attachment['employee']) ? (object)$attachment['employee'] : null;
+        $program = isset($attachment['program']) && is_array($attachment['program']) ? (object)$attachment['program'] : null;
+        $evaluator = $evaluation ? (object)[
+            'full_name' => $evaluation->evaluator_name ?? '',
+            'position_title' => $evaluation->evaluator_title ?? '',
+        ] : null;
+        $hijriDate = null;
+
+        // Build answers map by section_id.
+        $answersMap = [];
+        foreach (($attachment['answers'] ?? []) as $answerRow) {
+            if (is_array($answerRow) && isset($answerRow['section_id'])) {
+                $answersMap[$answerRow['section_id']] = (object)$answerRow;
+            }
+        }
+        $answers = $answersMap;
+
+        ob_start();
+        require APP_ROOT . '/app/Views/evaluations/_document_styles.php';
+        $styles = ob_get_clean();
+
+        // mPDF: إزالة الاستيرادات الخارجية واستبدال المتغيرات CSS غير المدعومة، وتحسين التخطيط لمحرك mPDF.
+        $styles = (string)preg_replace('/@import[^;]+;/', '', (string)$styles);
+        $styles = str_replace('min-height:285mm', 'min-height:auto', $styles);
+        $styles = preg_replace('/box-shadow:[^;]+;/', '', $styles);
+        $styles = str_replace('overflow:hidden;', '', $styles);
+        $brandFamily = (string)($brand['font']['family'] ?? 'cairo');
+        $styles .= '<style>'
+            . 'body{direction:rtl;font-family:' . $brandFamily . ';font-size:9.5pt;line-height:1.55;}'
+            . '.a4-page{display:block;width:100%;min-height:0;margin:0 auto;background:#ffffff;overflow:visible;border:0;border-radius:0;box-shadow:none;position:relative;}'
+            . '.a4-page{border-top:3px solid #c8943f;}'
+            . '.doc-body{display:block;flex:0 0 auto;}'
+            . '.doc-footer{margin-top:0;display:block;background:#f8f9fb;border-top:1px solid #e2ded4;padding:10px 22px;font-size:9pt;color:#6c757d;}'
+            . '.doc-footer .left{display:block;}'
+            . '.doc-header{display:block;padding:10mm 0 6mm;}'
+            . '.header-emblem{display:block;float:left;width:12mm;height:12mm;border:1px solid #c8943f;border-radius:50%;background:#ffffff;text-align:center;}'
+            . '.header-titles{display:block;text-align:center;padding:0 12px;}'
+            . '.header-meta{display:block;float:right;min-width:155px;text-align:right;font-size:10.5pt;line-height:1.7;color:#334155;background:#f8f9fb;border:1px solid #e8eaed;border-radius:8px;padding:8px 10px;}'
+            . '.section{display:block;margin-bottom:16px;}'
+            . '.section-head{display:block;padding-bottom:7px;border-bottom:2px solid #0c2823;}'
+            . '.section-head .line{display:none;}'
+            . '.section-num{display:block;width:28px;height:28px;background:#0c2823;color:#ffffff;border-radius:50%;font-size:12pt;font-weight:800;text-align:center;line-height:28px;}'
+            . '.criterion-card{display:block;background:#ffffff;border:1px solid #e2ded4;border-radius:0;overflow:visible;margin-bottom:12px;box-shadow:none;}'
+            . '.criterion-head{display:block;background:#0c2823;color:#ffffff;padding:8mm 0;border-bottom:2px solid #c8943f;}'
+            . '.criterion-head h3{display:block;float:left;font-size:13pt;font-weight:800;color:#ffffff;margin:0;}'
+            . '.criterion-head .count{display:block;float:right;background:#ffffff;color:#0c2823;border:none;border-radius:20px;padding:3px 10px;font-size:11pt;font-weight:800;}'
+            . '.eval-table{width:100%;border-collapse:collapse;font-size:11pt;}'
+            . '.eval-table thead th{background:#f8f9fb;color:#0c2823;font-weight:700;font-size:11pt;padding:6pt 8pt;text-align:center;border:1px solid #e2ded4;}'
+            . '.eval-table thead th:first-child{text-align:right;padding-right:12pt;}'
+            . '.eval-table tbody td{padding:7pt 8pt;border:1px solid #e8eaed;vertical-align:middle;}'
+            . '.eval-table tbody td:first-child{color:#1a1a1a;font-weight:500;font-size:11pt;}'
+            . '.eval-table tbody td:nth-child(2){text-align:center;}'
+            . '.eval-table tbody td:last-child{color:#6c757d;font-size:10pt;text-align:center;}'
+            . '.badge{display:inline-block;}'
+            . '.program-card-head{display:block;padding:8mm 0;}'
+            . '.program-card-head h3{display:block;font-size:13pt;font-weight:800;color:#ffffff;}'
+            . '.program-grid{display:table;width:100%;border-collapse:collapse;}'
+            . '.program-cell{display:table-cell;vertical-align:top;padding:8mm 14mm;border-bottom:1px solid #f1f3f5;border-left:1px solid #f1f3f5;}'
+            . '.program-cell label{display:block;font-size:9pt;font-weight:700;color:#6c757d;text-align:center;}'
+            . '.program-cell span{display:block;font-size:12pt;font-weight:600;color:#1a1a1a;text-align:center;}'
+            . '.evaluator-card{display:table;width:100%;background:#f8f9fb;border:1px solid #e2ded4;border-radius:10px;padding:16px;}'
+            . '.eval-person{display:table-cell;vertical-align:top;text-align:center;padding:10mm 8mm;background:#ffffff;border:1px solid #e8eaed;border-radius:8px;}'
+            . '.eval-person .lbl{display:block;font-size:10pt;font-weight:700;color:#6c757d;text-align:center;}'
+            . '.eval-person .val{display:block;font-size:13pt;font-weight:700;color:#0c2823;text-align:center;}'
+            . '.signature-area{display:table;width:100%;border-collapse:collapse;margin-top:18px;padding-top:14px;border-top:1px dashed #d6d9e0;}'
+            . '.sig-box{display:table-cell;vertical-align:bottom;width:33.33%;text-align:center;padding:10mm 6mm;border:1px dashed #d6d9e0;border-radius:8px;background:#fafbfc;min-height:78px;}'
+            . '.sig-line{width:100%;height:1px;background:#0c2823;margin:14px auto 6px;position:relative;}'
+            . '.sig-label{font-size:10.5pt;font-weight:700;color:#0c2823;}'
+            . '.sig-sub{font-size:10pt;color:#6c757d;min-height:1.2em;}'
+            . '</style>';
+
+        ob_start();
+        require APP_ROOT . '/app/Views/evaluations/_document.php';
+        $body = ob_get_clean();
+
+        return $styles . $body;
+    }
+
     private function getRecordScore(mixed $record): mixed
     {
         if ($this->recordHasKey($record, 'final_score')) {
@@ -915,6 +1253,103 @@ final class ReportExportService
     private static function esc(mixed $value): string
     {
         return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    private function addDocxAttachments(PhpWord $word, object $snapshot, array $brand): void
+    {
+        $data = $snapshot->snapshot_data;
+        $records = $data['report']['records'] ?? [];
+        $attachments = [];
+        foreach ($records as $record) {
+            $attachment = is_array($record) ? ($record['attachment'] ?? null) : ($record->attachment ?? null);
+            if (!empty($attachment) && is_array($attachment)) {
+                $attachments[] = $attachment;
+            }
+        }
+        if ($attachments === []) {
+            return;
+        }
+        $total = count($attachments);
+        foreach (array_values($attachments) as $idx => $attachment) {
+            $i = $idx + 1;
+            $section = $word->addSection([
+                'marginTop' => 900,
+                'marginBottom' => 900,
+                'marginLeft' => 900,
+                'marginRight' => 900,
+                'footerHeight' => 500,
+            ]);
+            $this->addDocxFooter($section, $brand);
+            $this->addDocxHeader($section, $snapshot, $brand);
+
+            $heading = $section->addTable([
+                'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'cellMargin' => 50, 'bidiVisual' => true,
+            ]);
+            $heading->addRow();
+            $heading->addCell(10100, ['bgColor' => '0c2823'])->addText(
+                'مرفق ' . $i . ' من ' . $total,
+                $this->docxFont(true, 12, '#ffffff'),
+                $this->docxParagraph(Jc::RIGHT, 0)
+            );
+
+            $this->addDocxEmployeeBox($section, $attachment['employee'] ?? []);
+
+            $criteria = $attachment['template']['criteria'] ?? [];
+            $answers = [];
+            foreach (($attachment['answers'] ?? []) as $answerRow) {
+                if (is_array($answerRow) && isset($answerRow['section_id'])) {
+                    $answers[$answerRow['section_id']] = $answerRow;
+                }
+            }
+            foreach ($criteria as $criterion) {
+                $section->addTextBreak(1);
+                $section->addText(
+                    (string)($criterion['criterion_name'] ?? ''),
+                    $this->docxFont(true, 11, $brand['colors']['primary']),
+                    $this->docxParagraph(Jc::RIGHT, 0)
+                );
+                $table = $section->addTable([
+                    'width' => 100, 'unit' => 'pct', 'borderSize' => 4, 'borderColor' => 'e2ded4', 'cellMargin' => 50, 'bidiVisual' => true,
+                ]);
+                $table->addRow();
+                foreach (['#', 'عنصر التقييم', 'المستوى', 'ملاحظات'] as $col => $colTitle) {
+                    $table->addCell(($col === 0 ? 600 : ($col === 3 ? 3600 : 2700)), ['bgColor' => '0c2823'])->addText(
+                        $colTitle,
+                        $this->docxFont(true, 9, '#ffffff'),
+                        $this->docxParagraph($col === 0 ? Jc::CENTER : Jc::RIGHT, 0)
+                    );
+                }
+                $sectionsList = $criterion['sections'] ?? [];
+                $counter = 0;
+                foreach ($sectionsList as $sectionRow) {
+                    $counter++;
+                    $answer = $answers[$sectionRow['id'] ?? 0] ?? null;
+                    $display = '—';
+                    if ($answer) {
+                        if (($sectionRow['evaluation_type'] ?? '') === 'grade') {
+                            $opts = json_decode($sectionRow['evaluation_options'] ?? '[]', true);
+                            foreach (($opts ?? []) as $opt) {
+                                if ((string)($opt['value'] ?? '') === (string)($answer['raw_value'] ?? '') || (string)($opt['label'] ?? '') === (string)($answer['raw_value'] ?? '')) {
+                                    $display = $opt['label'] ?? $answer['raw_value'];
+                                    break;
+                                }
+                            }
+                            if ($display === '—') { $display = $answer['raw_value'] ?? '—'; }
+                        } else {
+                            $display = $answer['raw_value'] ?? '—';
+                        }
+                    }
+                    $notes = ($answer['notes'] ?? '') !== '' ? ($answer['notes'] ?? '') : '—';
+                    $table->addRow();
+                    $table->addCell(600, ['bgColor' => 'f5f5f5', 'valign' => 'center'])->addText((string)$counter, $this->docxFont(true, 9, '#0c2823'), $this->docxParagraph(Jc::CENTER, 0));
+                    $table->addCell(2700, ['bgColor' => 'f5f5f5'])->addText((string)($sectionRow['section_name'] ?? ''), $this->docxFont(false, 9, '#1a1a1a'), $this->docxParagraph(Jc::RIGHT, 0));
+                    $table->addCell(2700, ['bgColor' => 'f5f5f5'])->addText((string)$display, $this->docxFont(true, 9, '#0c2823'), $this->docxParagraph(Jc::CENTER, 0));
+                    $table->addCell(3600, ['bgColor' => 'f5f5f5'])->addText((string)$notes, $this->docxFont(false, 8, '#444444'), $this->docxParagraph(Jc::RIGHT, 0));
+                }
+            }
+
+            $this->addDocxSignatures($section, $brand);
+        }
     }
 
     private function getBrand(): array

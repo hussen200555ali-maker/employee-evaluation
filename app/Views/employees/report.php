@@ -19,6 +19,45 @@ $logoUrl = APP_URL . '/public/assets/images/logo.png';
 $records = $report['records'] ?? [];
 $averages = $report['averages'] ?? [];
 
+// CD-043: إعادة احتساب المتوسطات حسب target_type (للنسخ القديمة/الانتقالية).
+$deriveType = static function ($r) use ($getVal): string {
+    $target = $getVal($r, 'target_type', null);
+    if ($target === 'employee') return 'employee';
+    if ($target === 'employee_in_course' || $target === 'course') return 'course';
+    if ($target === 'employee_in_workshop' || $target === 'workshop') return 'workshop';
+    if ($target === 'skill') return 'skill';
+    $legacy = (string)($getVal($r, 'evaluation_type', 'annual') ?: 'annual');
+    if ($legacy === '' || $legacy === 'annual') return 'employee';
+    return $legacy;
+};
+$scaleDb = \App\Core\Database::getInstance();
+$scaleDb->query("SELECT grade_label, min_value, max_value, numeric_value FROM grading_scales WHERE scale_name = :scale_name AND is_active = 1 ORDER BY sort_order, min_value, id");
+$scaleDb->bind(':scale_name', 'السلم الخماسي');
+$scale = $scaleDb->fetchAll();
+$engine = new \App\Services\AveragesEngine();
+$objects = [];
+foreach ($records as $record) {
+    $obj = new stdClass();
+    if (is_array($record)) {
+        foreach ($record as $key => $value) {
+            $obj->{$key} = $value;
+        }
+    } elseif (is_object($record)) {
+        foreach (get_object_vars($record) as $key => $value) {
+            $obj->{$key} = $value;
+        }
+    }
+    $obj->evaluation_type = $deriveType($record);
+    $objects[] = $obj;
+}
+$averages = [];
+foreach (['overall', 'employee', 'annual', 'periodic', 'course', 'workshop', 'skill'] as $type) {
+    $matching = $type === 'overall'
+        ? $objects
+        : array_values(array_filter($objects, static fn($record): bool => $record->evaluation_type === $type));
+    $averages[$type] = $engine->summarize($matching, $scale);
+}
+
 // Group records by type (conditional rendering)
 // CD-040.6 (a2'): derive from target_type (not raw evaluation_type).
 $typeOf = static function ($r) use ($getVal) {
@@ -27,7 +66,11 @@ $typeOf = static function ($r) use ($getVal) {
     if ($target === 'employee') return 'employee';
     if ($target === 'employee_in_course' || $target === 'course') return 'course';
     if ($target === 'employee_in_workshop' || $target === 'workshop') return 'workshop';
-    return (string)($getVal($r, 'evaluation_type', 'annual') ?: 'annual');
+    if ($target === 'skill') return 'skill';
+    $legacy = (string)($getVal($r, 'evaluation_type', 'annual') ?: 'annual');
+    // النسخ القديمة بدون target_type: "annual" (fallback قديم) يُعامل كفردي.
+    if ($legacy === '' || $legacy === 'annual') return 'employee';
+    return $legacy;
 };
 $courseRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'course'));
 $workshopRecords = array_values(array_filter($records, fn($r) => $typeOf($r) === 'workshop'));
@@ -250,6 +293,55 @@ table.sig td { padding:14px 8px; text-align:center; font-size:9px; color:#999; b
 
     </div>
 </div>
+
+<!-- Attachments (صفحات منفصلة) -->
+<?php
+$attachments = [];
+foreach ($records as $record) {
+    $attachment = is_array($record) ? ($record['attachment'] ?? null) : ($record->attachment ?? null);
+    if (!empty($attachment)) {
+        $attachments[] = $attachment;
+    }
+}
+?>
+<?php if ($attachments !== []): ?>
+    <?php require_once APP_ROOT . '/app/Views/evaluations/_document_styles.php'; ?>
+    <div class="a4-container">
+        <?php foreach (array_values($attachments) as $idx => $attachment): ?>
+            <?php
+            $attachmentIndex = $idx + 1;
+            $attachmentTotal = count($attachments);
+            $evaluation = isset($attachment['evaluation']) && is_array($attachment['evaluation']) ? (object)$attachment['evaluation'] : null;
+            $template = $attachment['template'] ?? [];
+            $answersMap = [];
+            foreach (($attachment['answers'] ?? []) as $answerRow) {
+                if (is_array($answerRow) && isset($answerRow['section_id'])) {
+                    $answersMap[$answerRow['section_id']] = (object)$answerRow;
+                }
+            }
+            $answers = $answersMap;
+            $program = !empty($attachment['program']) && is_array($attachment['program']) ? (object)$attachment['program'] : null;
+            $employee = !empty($attachment['employee']) && is_array($attachment['employee']) ? (object)$attachment['employee'] : null;
+            $evaluator = $evaluation ? (object)[
+                'full_name' => $evaluation->evaluator_name ?? '',
+                'position_title' => $evaluation->evaluator_title ?? '',
+            ] : null;
+            $hijriDate = null;
+            ?>
+            <div style="page-break-before: always;"></div>
+            <div class="section-title">مرفق <?= $attachmentIndex ?> من <?= $attachmentTotal ?></div>
+            <div style="margin-bottom: 24px;">
+                <?php require APP_ROOT . '/app/Views/evaluations/_document.php'; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php elseif ($records !== []): ?>
+    <div class="a4-container">
+        <div class="a4-page">
+            <div class="empty-state">لا توجد مرفقات (نسخة قديمة).</div>
+        </div>
+    </div>
+<?php endif; ?>
 
 </body>
 </html>

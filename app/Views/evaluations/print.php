@@ -95,6 +95,7 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
     ];
     $typeInfo = $typeLabels[$targetKey] ?? $typeLabels['employee'];
   ?>
+  <?php $emp = (new \App\Models\Employee())->findById((int)$evaluation->evaluated_employee_id); ?>
   <header class="doc-header">
     <div class="header-emblem"><i class="<?php echo $typeInfo[2]; ?>"></i></div>
     <div class="header-titles">
@@ -108,17 +109,25 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
         <p><strong>الموافق:</strong> <?php echo "{$hijriDate->day} {$hijriDate->month_name} {$hijriDate->year}"; ?></p>
         <p><strong>اليوم:</strong> <?php echo htmlspecialchars($hijriDate->weekday); ?></p>
       <?php endif; ?>
+      <p><strong>الموظف:</strong> <?php echo htmlspecialchars($emp->full_name ?? '—'); ?></p>
+      <p><strong>الرقم:</strong> <?php echo htmlspecialchars($emp->emp_code ?? '—'); ?></p>
       <p style="margin-top:4px; padding-top:4px; border-top:1px dashed #e2e8f0; font-size:9px;"><i class="fas fa-hashtag" style="color:var(--gold);"></i> تقرير #<?php echo str_pad($evaluation->id,5,'0',STR_PAD_LEFT); ?></p>
     </div>
   </header>
 
   <div style="padding:14px 18px 10px;">
-    <?php if (empty($program) && (($template['target_type'] ?? '') === 'employee')): ?>
+    <?php if ($emp): ?>
     <div class="section">
-      <div class="section-head"><div class="section-num">—</div><h2>سياق التقييم</h2><div class="line"></div></div>
-      <div class="program-card"><div class="program-grid"><div class="program-cell" style="grid-column:1/-1;"><span class="empty">تقييم فردي — غير مرتبط ببرنامج/دورة/ورشة.</span></div></div></div>
+      <div class="section-head"><div class="section-num">—</div><h2>بيانات الموظف</h2><div class="line"></div></div>
+      <div class="program-card"><div class="program-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="program-cell"><label>الاسم</label><span><?php echo htmlspecialchars($emp->full_name ?? '—'); ?></span></div>
+        <div class="program-cell"><label>الرقم الوظيفي</label><span><?php echo htmlspecialchars($emp->emp_code ?? '—'); ?></span></div>
+        <div class="program-cell"><label>الفرع</label><span><?php echo htmlspecialchars($emp->branch_name ?? '—'); ?></span></div>
+        <div class="program-cell"><label>القسم</label><span><?php echo htmlspecialchars($emp->department_name ?? '—'); ?></span></div>
+      </div></div>
     </div>
-    <?php elseif (!empty($program)): ?>
+    <?php endif; ?>
+    <?php if (!empty($program)): ?>
     <div class="section">
       <div class="section-head"><div class="section-num">٢</div><h2>بيانات البرنامج التدريبي</h2><div class="line"></div></div>
       <div class="program-card">

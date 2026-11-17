@@ -76,7 +76,7 @@ final class ReportSnapshotService
                     'hire_date' => $employee->join_date,
                     'status' => (int)$employee->is_active === 1 ? 'نشط' : 'غير نشط',
                 ],
-                'report' => $this->reportService->getProfileReport($employeeId),
+                'report' => $this->enrichReportWithAttachments($this->reportService->getProfileReport($employeeId)),
             ];
             $this->db->query(
                 'UPDATE report_snapshot_counters
@@ -145,6 +145,84 @@ final class ReportSnapshotService
         );
         $this->db->bind(':employee_id', $employeeId);
         return $this->db->fetchAll();
+    }
+
+    private function enrichReportWithAttachments(array $report): array
+    {
+        foreach (($report['records'] ?? []) as $index => $record) {
+            $recordArray = is_array($record) ? $record : (array)$record;
+            $evaluationId = (int)($recordArray['id'] ?? 0);
+            $attachment = null;
+            if ($evaluationId > 0) {
+                $evaluation = (new \App\Models\Evaluation())->getFullEvaluationData($evaluationId);
+                $answers = (new \App\Models\Evaluation())->getEvaluationAnswers($evaluationId);
+                $employee = $evaluation ? (new \App\Models\Employee())->findById((int)$evaluation->evaluated_employee_id) : null;
+                $template = null;
+                if ($evaluation && !empty($evaluation->template_id)) {
+                    $template = (new \App\Models\Template())->getTemplateWithStructure((int)$evaluation->template_id);
+                }
+                $program = null;
+                if ($evaluation) {
+                    $program = $this->fetchProgramForEvaluation($evaluation);
+                }
+                $attachment = [
+                    'evaluation_id' => $evaluationId,
+                    'employee' => $employee ? [
+                        'full_name' => $employee->full_name,
+                        'emp_code' => $employee->emp_code,
+                        'branch_name' => $employee->branch_name,
+                        'department_name' => $employee->department_name,
+                    ] : [
+                        'full_name' => $evaluation->evaluated_name ?? null,
+                        'emp_code' => $evaluation->evaluated_code ?? null,
+                        'branch_name' => null,
+                        'department_name' => null,
+                    ],
+                    'evaluation' => $evaluation ? json_decode(json_encode($evaluation), true) : null,
+                    'template' => $template ? json_decode(json_encode($template), true) : null,
+                    'answers' => $answers ? json_decode(json_encode($answers), true) : [],
+                    'program' => $program ? json_decode(json_encode($program), true) : null,
+                    'captured_at' => gmdate('c'),
+                ];
+            }
+            $recordArray['attachment'] = $attachment;
+            $report['records'][$index] = $recordArray;
+        }
+        return $report;
+    }
+
+    private function fetchProgramForEvaluation(object $evaluation): ?object
+    {
+        $contextType = $evaluation->context_type ?? null;
+        $contextId = (int)($evaluation->context_id ?? 0);
+        if (in_array($contextType, ['course', 'workshop'], true) && $contextId > 0) {
+            $this->db->query('SELECT tp.*, b.name AS branch_name, d.name AS department_name, c.name AS catalog_title
+                            FROM training_programs tp
+                            LEFT JOIN branches b ON b.id = tp.executing_branch_id
+                            LEFT JOIN departments d ON d.id = tp.executing_department_id
+                            LEFT JOIN training_catalogs c ON c.id = tp.catalog_id
+                            WHERE tp.id = :id LIMIT 1');
+            $this->db->bind(':id', $contextId);
+            $row = $this->db->fetch();
+            if ($row) {
+                $row->is_legacy_snapshot = false;
+                return $row;
+            }
+        }
+        if (!empty($evaluation->entity_snapshot)) {
+            $snap = json_decode((string)$evaluation->entity_snapshot, true);
+            if (is_array($snap) && !empty($snap['course_title'])) {
+                return (object)[
+                    'id' => null, 'type' => $contextType ?: 'course',
+                    'title' => $snap['course_title'], 'description' => null,
+                    'start_date' => null, 'end_date' => null,
+                    'branch_name' => null, 'department_name' => null,
+                    'catalog_title' => null, 'responsible_person' => null,
+                    'status' => null, 'is_legacy_snapshot' => true,
+                ];
+            }
+        }
+        return null;
     }
 
     public function findForEmployee(int $employeeId, int $snapshotId): ?object
