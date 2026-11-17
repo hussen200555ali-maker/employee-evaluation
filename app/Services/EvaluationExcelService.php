@@ -1008,7 +1008,7 @@ final class EvaluationExcelService
     private function extractTemplateId(Worksheet $sheet, Spreadsheet $book): int
     {
         $title = (string) $sheet->getCell('A1')->getValue();
-        if (preg_match('/????\s*??????\s*:\s*(\d+)/u', $title, $matches)) {
+        if (preg_match('/معرف\s*القالب\s*:\s*(\d+)/u', $title, $matches)) {
             return (int) $matches[1];
         }
         if (preg_match('/Template\s*ID\s*:\s*(\d+)/iu', $title, $matches)) {
