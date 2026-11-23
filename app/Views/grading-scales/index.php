@@ -58,7 +58,7 @@
                 <h4 class="mt-4"><?= htmlspecialchars($currentScale, ENT_QUOTES, 'UTF-8') ?></h4>
                 <div class="table-responsive mb-4">
                     <table class="table table-striped table-bordered align-middle">
-                        <thead class="table-light">
+                        <thead>
                             <tr>
                                 <th>اسم السلم</th><th>التقدير</th><th>من</th><th>إلى</th><th>القيمة الرقمية</th><th>الترتيب</th><th>الحالة</th><th>الإجراءات</th>
                             </tr>

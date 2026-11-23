@@ -3,6 +3,14 @@
 
 $this->view('layouts/header', ['pageTitle' => $pageTitle]);
 ?>
+<section class="app-hero" aria-labelledby="bk-index" style="margin-bottom:1rem">
+    <div class="app-hero__left">
+        <span class="app-eyebrow"><i class="fas fa-shield-halved"></i> أمان النظام</span>
+        <h1 id="bk-index">النسخ الاحتياطي <span class="accent">للنظام</span></h1>
+        <p>لوحة شاملة لإنشاء النسخ الاحتياطية وجدولتها وصيانتها — مع التشفير والتحقق التلقائي من السلامة.</p>
+        <a class="app-hero__cta" href="<?php echo APP_URL; ?>/backup/settings"><i class="fas fa-gear"></i> إعدادات النسخ</a>
+    </div>
+</section>
 
 <div class="container-fluid">
     <div class="row">

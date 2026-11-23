@@ -56,7 +56,8 @@ body::before { content: ''; position: fixed; inset: 0; pointer-events: none; bac
 .btn-login-sm { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(200,148,63,.5); font-weight: 700; border-radius: 8px; padding: .4rem 1rem; transition: all .25s; }
 .btn-login-sm:hover { background: var(--gold); color: #0c2823; border-color: var(--gold); }
 .page-header { border: 0; margin-bottom: 1.5rem; padding: 0; }
-.page-header h2, .page-header h1 { color: var(--ink); letter-spacing: -.025em; font-weight: 800; font-size: clamp(1.55rem, 2.5vw, 2.15rem); }
+.page-header h2, .page-header h1 { letter-spacing: -.025em; font-weight: 800; font-size: clamp(1.55rem, 2.5vw, 2.15rem); }
+.page-header :where(h1, h2) { color: var(--ink); }
 .page-header h2 i { color: var(--brand); margin-left: .45rem; }
 .eyebrow { display: inline-flex; align-items: center; gap: .45rem; color: var(--brand); font-size: .75rem; font-weight: 800; letter-spacing: .04em; margin-bottom: .55rem; }
 .btn, .btn-add, .btn-submit-form, .btn-submit { border-radius: 9px; font-weight: 800; box-shadow: none; transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease; }

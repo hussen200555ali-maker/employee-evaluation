@@ -1,35 +1,43 @@
 <?php
 $this->view('layouts/header', ['pageTitle' => $pageTitle]);
 ?>
+<section class="app-hero" aria-labelledby="bk-pros" style="margin-bottom:1rem">
+    <div class="app-hero__left">
+        <span class="app-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> احترافي</span>
+        <h1 id="bk-pros">الإعدادات <span class="accent">الاحترافية</span> للنسخ</h1>
+        <p>الذكاء الاصطناعي في التحقق، وتدوير النسخ الذكي، وسياسة التنظيف المؤتمتة.</p>
+        <a class="app-hero__cta" href="<?php echo APP_URL; ?>/backup/dashboard"><i class="fas fa-chart-column"></i> لوحة القيادة</a>
+    </div>
+</section>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط§ط­طھط±ط§ظپظٹط© ظ„ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹ</h5>
+                    <h5 class="card-title">الإعدادات الاحترافية للنسخ الاحتياطي</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="<?php echo APP_URL; ?>
                 <?= csrf_field() ?>/backup/settings/save">
                         <div class="row">
-                            <!-- ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط© -->
+                            <!-- الإعدادات الأساسية -->
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h6>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط©</h6>
+                                        <h6>الإعدادات الأساسية</h6>
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-3">
-                                            <label class="form-label">ظ†ظˆط¹ ط§ظ„ظ†ط³ط® ط§ظ„ط§ط­طھظٹط§ط·ظٹ</label>
+                                            <label class="form-label">نوع النسخ الاحتياطي</label>
                                             <select name="backup_type" class="form-control">
-                                                <option value="full" <?= ($settings->backup_type ?? 'full') == 'full' ? 'selected' : '' ?>>ظ†ط³ط® ظƒط§ظ…ظ„</option>
-                                                <option value="incremental" <?= ($settings->backup_type ?? 'full') == 'incremental' ? 'selected' : '' ?>>ظ†ط³ط® طھط²ط§ظٹط¯ظٹ</option>
+                                                <option value="full" <?= ($settings->backup_type ?? 'full') == 'full' ? 'selected' : '' ?>>نسخ كامل</option>
+                                                <option value="incremental" <?= ($settings->backup_type ?? 'full') == 'incremental' ? 'selected' : '' ?>>نسخ تزايدي</option>
                                             </select>
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">ظپطھط±ط© ط§ظ„ط§ط­طھظپط§ط¸ (ط£ظٹط§ظ…)</label>
+                                            <label class="form-label">فترة الاحتفاظ (أيام)</label>
                                             <input type="number" name="retention_days" class="form-control" 
                                                    value="<?= $settings->retention_days ?? 30 ?>" min="1" max="365">
                                         </div>
@@ -37,43 +45,43 @@ $this->view('layouts/header', ['pageTitle' => $pageTitle]);
                                 </div>
                             </div>
                             
-                            <!-- ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¬ط¯ظˆظ„ط© -->
+                            <!-- إعدادات الجدولة -->
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h6>ط§ظ„ط¬ط¯ظˆظ„ط© ط§ظ„طھظ„ظ‚ط§ط¦ظٹط©</h6>
+                                        <h6>الجدولة التلقائية</h6>
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-3">
-                                            <label class="form-label">ظ†ظˆط¹ ط§ظ„ط¬ط¯ظˆظ„ط©</label>
+                                            <label class="form-label">نوع الجدولة</label>
                                             <select name="schedule_type" class="form-control" id="schedule_type">
-                                                <option value="manual" <?= ($settings->schedule_type ?? 'manual') == 'manual' ? 'selected' : '' ?>>ظٹط¯ظˆظٹ</option>
-                                                <option value="daily" <?= ($settings->schedule_type ?? 'manual') == 'daily' ? 'selected' : '' ?>>ظٹظˆظ…ظٹ</option>
-                                                <option value="weekly" <?= ($settings->schedule_type ?? 'manual') == 'weekly' ? 'selected' : '' ?>>ط£ط³ط¨ظˆط¹ظٹ</option>
-                                                <option value="monthly" <?= ($settings->schedule_type ?? 'manual') == 'monthly' ? 'selected' : '' ?>>ط´ظ‡ط±ظٹ</option>
+                                                <option value="manual" <?= ($settings->schedule_type ?? 'manual') == 'manual' ? 'selected' : '' ?>>يدوي</option>
+                                                <option value="daily" <?= ($settings->schedule_type ?? 'manual') == 'daily' ? 'selected' : '' ?>>يومي</option>
+                                                <option value="weekly" <?= ($settings->schedule_type ?? 'manual') == 'weekly' ? 'selected' : '' ?>>أسبوعي</option>
+                                                <option value="monthly" <?= ($settings->schedule_type ?? 'manual') == 'monthly' ? 'selected' : '' ?>>شهري</option>
                                             </select>
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">ظˆظ‚طھ ط§ظ„طھط´ط؛ظٹظ„</label>
+                                            <label class="form-label">وقت التشغيل</label>
                                             <input type="time" name="schedule_time" class="form-control" 
                                                    value="<?= $settings->schedule_time ?? '02:00' ?>">
                                         </div>
                                         
                                         <div class="mb-3" id="schedule_day_container" style="display: none;">
-                                            <!-- ط³ظٹطھظ… طھط¹ط¨ط¦طھظ‡ ط¨ط§ظ„ط¬ط§ظپط§ط³ظƒط±ظٹط¨طھ -->
+                                            <!-- سيتم تعبئته بالجافاسكريبت -->
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- ط¥ط¹ط¯ط§ط¯ط§طھ ظ…طھظ‚ط¯ظ…ط© -->
+                        <!-- إعدادات متقدمة -->
                         <div class="row mt-3">
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h6>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھظ‚ط¯ظ…ط©</h6>
+                                        <h6>الإعدادات المتقدمة</h6>
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
@@ -81,21 +89,21 @@ $this->view('layouts/header', ['pageTitle' => $pageTitle]);
                                                 <div class="form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" name="encryption_enabled" 
                                                            id="encryption_enabled" <?= ($settings->encryption_enabled ?? 0) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="encryption_enabled">طھظپط¹ظٹظ„ ط§ظ„طھط´ظپظٹط±</label>
+                                                    <label class="form-check-label" for="encryption_enabled">تفعيل التشفير</label>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" name="compression_enabled" 
                                                            id="compression_enabled" <?= ($settings->compression_enabled ?? 1) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="compression_enabled">طھظپط¹ظٹظ„ ط§ظ„ط¶ط؛ط·</label>
+                                                    <label class="form-check-label" for="compression_enabled">تفعيل الضغط</label>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" name="auto_cleanup" 
                                                            id="auto_cleanup" <?= ($settings->auto_cleanup ?? 1) ? 'checked' : '' ?>>
-                                                    <label class="form-check-label" for="auto_cleanup">ط§ظ„طھظ†ط¸ظٹظپ ط§ظ„طھظ„ظ‚ط§ط¦ظٹ</label>
+                                                    <label class="form-check-label" for="auto_cleanup">التنظيف التلقائي</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -105,8 +113,8 @@ $this->view('layouts/header', ['pageTitle' => $pageTitle]);
                         </div>
                         
                         <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</button>
-                            <a href="<?php echo APP_URL; ?>/backup" class="btn btn-secondary">ط§ظ„ط¹ظˆط¯ط©</a>
+                            <button type="submit" class="btn btn-primary">حفظ الإعدادات</button>
+                            <a href="<?php echo APP_URL; ?>/backup" class="btn btn-secondary">العودة</a>
                         </div>
                     </form>
                 </div>
@@ -128,25 +136,25 @@ document.getElementById('schedule_type').addEventListener('change', function() {
 
 function updateScheduleDayOptions(scheduleType) {
     const container = document.getElementById('schedule_day_container');
-    let html = '<label class="form-label">ظٹظˆظ… ط§ظ„طھط´ط؛ظٹظ„</label>';
+    let html = '<label class="form-label">يوم التشغيل</label>';
     
     if (scheduleType === 'weekly') {
         html += `
             <select name="schedule_day" class="form-control">
-                <option value="sunday">ط§ظ„ط£ط­ط¯</option>
-                <option value="monday">ط§ظ„ط¥ط«ظ†ظٹظ†</option>
-                <option value="tuesday">ط§ظ„ط«ظ„ط§ط«ط§ط،</option>
-                <option value="wednesday">ط§ظ„ط£ط±ط¨ط¹ط§ط،</option>
-                <option value="thursday">ط§ظ„ط®ظ…ظٹط³</option>
-                <option value="friday">ط§ظ„ط¬ظ…ط¹ط©</option>
-                <option value="saturday">ط§ظ„ط³ط¨طھ</option>
+                <option value="sunday">الأحد</option>
+                <option value="monday">الإثنين</option>
+                <option value="tuesday">الثلاثاء</option>
+                <option value="wednesday">الأربعاء</option>
+                <option value="thursday">الخميس</option>
+                <option value="friday">الجمعة</option>
+                <option value="saturday">السبت</option>
             </select>`;
     } else if (scheduleType === 'monthly') {
         html += `
             <select name="schedule_day" class="form-control">
-                <option value="1">ط§ظ„ظٹظˆظ… ط§ظ„ط£ظˆظ„ ظ…ظ† ط§ظ„ط´ظ‡ط±</option>
-                <option value="15">ظ…ظ†طھطµظپ ط§ظ„ط´ظ‡ط± (15)</option>
-                <option value="28">ظ†ظ‡ط§ظٹط© ط§ظ„ط´ظ‡ط± (28)</option>
+                <option value="1">اليوم الأول من الشهر</option>
+                <option value="15">منتصف الشهر (15)</option>
+                <option value="28">نهاية الشهر (28)</option>
             </select>`;
     } else {
         html = '';
@@ -155,7 +163,7 @@ function updateScheduleDayOptions(scheduleType) {
     container.innerHTML = html;
 }
 
-// ط§ظ„طھظ‡ظٹط¦ط© ط§ظ„ط£ظˆظ„ظٹط©
+// التهيئة الأولية
 document.addEventListener('DOMContentLoaded', function() {
     const scheduleType = document.getElementById('schedule_type').value;
     if (scheduleType !== 'manual') {

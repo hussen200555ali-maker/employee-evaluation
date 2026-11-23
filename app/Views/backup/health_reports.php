@@ -2,11 +2,19 @@
 // app/Views/backup/health_reports.php
 $this->view('layouts/header', ['pageTitle' => $pageTitle]);
 ?>
+<section class="app-hero" aria-labelledby="bk-health" style="margin-bottom:1rem">
+    <div class="app-hero__left">
+        <span class="app-eyebrow"><i class="fas fa-chart-column"></i> المراقبة</span>
+        <h1 id="bk-health">تقارير <span class="accent">صحة النسخ</span> الاحتياطي</h1>
+        <p>مراقبة تلقائية لسلامة النسخ — كسر في النسخة يكتشف فوراً مع تنبيهات فورية.</p>
+        <a class="app-hero__cta" href="<?php echo APP_URL; ?>/backup"><i class="fas fa-arrow-right"></i> العودة إلى النسخ</a>
+    </div>
+</section>
 
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title">📊 تقارير صحة نظام النسخ الاحتياطي</h5>
+            <h5 class="card-title"><i class="fas fa-chart-column"></i> تقارير صحة نظام النسخ الاحتياطي</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">

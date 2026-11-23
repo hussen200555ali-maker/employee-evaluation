@@ -1,49 +1,56 @@
 <?php
 $this->view('layouts/header', ['pageTitle' => $pageTitle]);
 ?>
+<section class="app-hero" aria-labelledby="bk-rest" style="margin-bottom:1rem">
+    <div class="app-hero__left">
+        <span class="app-eyebrow"><i class="fas fa-lock"></i> الاستعادة</span>
+        <h1 id="bk-rest">استعادة <span class="accent">نسخة مشفرة</span></h1>
+        <p>أدخل مفتاح التشفير لفك النسخة — سيتحقق النظام منها ثم ينفذ الاستعادة.</p>
+    </div>
+</section>
 
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">ًں”گ ط¥ط¯ط®ط§ظ„ ظ…ظپطھط§ط­ ط§ظ„طھط´ظپظٹط± ظ„ظ„ط§ط³طھط¹ط§ط¯ط©</h5>
+                    <h5 class="card-title">🔐 إدخال مفتاح التشفير للاستعادة</h5>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <h6>ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ†ط³ط®ط©:</h6>
-                        <p><strong>ط§ظ„ط§ط³ظ…:</strong> <?php echo htmlspecialchars($backup->backup_name); ?></p>
-                        <p><strong>ط§ظ„طھط§ط±ظٹط®:</strong> <?php echo date('Y-m-d H:i', strtotime($backup->created_at)); ?></p>
-                        <p><strong>ط§ظ„ظ†ظˆط¹:</strong> <?php echo $backup->backup_type === 'full' ? 'ظƒط§ظ…ظ„ط©' : 'طھط²ط§ظٹط¯ظٹط©'; ?></p>
+                        <h6>معلومات النسخة:</h6>
+                        <p><strong>الاسم:</strong> <?php echo htmlspecialchars($backup->backup_name); ?></p>
+                        <p><strong>التاريخ:</strong> <?php echo date('Y-m-d H:i', strtotime($backup->created_at)); ?></p>
+                        <p><strong>النوع:</strong> <?php echo $backup->backup_type === 'full' ? 'كاملة' : 'تزايدية'; ?></p>
                     </div>
                     
-                    <p class="text-muted">ظ‡ط°ظ‡ ط§ظ„ظ†ط³ط®ط© ظ…ط´ظپط±ط©. ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ظ…ظپطھط§ط­ ط§ظ„طھط´ظپظٹط± ظ„ط§ط³طھط¹ط§ط¯طھظ‡ط§.</p>
+                    <p class="text-muted">هذه النسخة مشفرة. يرجى إدخال مفتاح التشفير لاستعادتها.</p>
                     
                     <form method="POST">
                 <?= csrf_field() ?>
                         <div class="mb-3">
-                            <label for="encryption_key" class="form-label">ظ…ظپطھط§ط­ ط§ظ„طھط´ظپظٹط±</label>
+                            <label for="encryption_key" class="form-label">مفتاح التشفير</label>
                             <input type="password" class="form-control" id="encryption_key" 
-                                   name="encryption_key" required placeholder="ط£ط¯ط®ظ„ ظ…ظپطھط§ط­ ط§ظ„طھط´ظپظٹط±...">
-                            <div class="form-text">ط£ط¯ط®ظ„ ط§ظ„ظ…ظپطھط§ط­ ط§ظ„ط°ظٹ طھظ… ط§ط³طھط®ط¯ط§ظ…ظ‡ ظ„طھط´ظپظٹط± ظ‡ط°ظ‡ ط§ظ„ظ†ط³ط®ط©.</div>
+                                   name="encryption_key" required placeholder="أدخل مفتاح التشفير...">
+                            <div class="form-text">أدخل المفتاح الذي تم استخدامه لتشفير هذه النسخة.</div>
                         </div>
                         
                         <div class="alert alert-warning">
-                            <h6><i class="fas fa-exclamation-triangle"></i> طھط­ط°ظٹط± ظ…ظ‡ظ…:</h6>
+                            <h6><i class="fas fa-exclamation-triangle"></i> تحذير مهم:</h6>
                             <ul>
-                                <li>ط§ط³طھط¹ط§ط¯ط© ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط© ط³طھط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط§ظ„ظٹط©</li>
-                                <li>ط³ظٹطھظ… ط§ط³طھط¨ط¯ط§ظ„ ط¬ظ…ظٹط¹ ط§ظ„ط¬ط¯ط§ظˆظ„ ط§ظ„ط­ط§ظ„ظٹط©</li>
-                                <li>ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ†ظ‡ط§</li>
-                                <li>طھط£ظƒط¯ ظ…ظ† ظˆط¬ظˆط¯ ظ†ط³ط®ط© ط§ط­طھظٹط§ط·ظٹط© ط­ط¯ظٹط«ط© ظ‚ط¨ظ„ ط§ظ„ظ…طھط§ط¨ط¹ط©</li>
+                                <li>استعادة النسخة الاحتياطية ستحذف جميع البيانات الحالية</li>
+                                <li>سيتم استبدال جميع الجداول الحالية</li>
+                                <li>هذه العملية لا يمكن التراجع عنها</li>
+                                <li>تأكد من وجود نسخة احتياطية حديثة قبل المتابعة</li>
                             </ul>
                         </div>
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-warning">
-                                <i class="fas fa-undo"></i> ظپظƒ ط§ظ„طھط´ظپظٹط± ظˆط§ظ„ط§ط³طھط¹ط§ط¯ط©
+                                <i class="fas fa-undo"></i> ظپظƒ التشفير والاستعادة
                             </button>
                             <a href="<?php echo APP_URL; ?>/backup" class="btn btn-secondary">
-                                <i class="fas fa-arrow-right"></i> ط±ط¬ظˆط¹ ط¥ظ„ظ‰ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ†ط³ط®
+                                <i class="fas fa-arrow-right"></i> رجوع إلى قائمة النسخ
                             </a>
                         </div>
                     </form>

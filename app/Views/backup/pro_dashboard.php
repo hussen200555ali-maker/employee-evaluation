@@ -163,13 +163,13 @@ if (is_object($health)) {
                                             <div class="btn-group btn-group-sm">
                                                 <?php if ($backup->status === 'success'): ?>
                                                 <a href="<?php echo APP_URL; ?>/backup/download/<?php echo $backup->id; ?>" class="btn btn-info">
-                                                    📥
+                                                    <i class="fas fa-download"></i>
                                                 </a>
                                                 <a href="<?php echo APP_URL; ?>/backup/restore/<?php echo $backup->id; ?>" class="btn btn-warning" onclick="return confirm('تحذير: استعادة النسخة الاحتياطية ستحذف جميع البيانات الحالية. هل تريد المتابعة؟')">
-                                                    🔄
+                                                    <i class="fas fa-rotate"></i>
                                                 </a>
                                                 <a href="<?php echo APP_URL; ?>/backup/delete/<?php echo $backup->id; ?>" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذه النسخة الاحتياطية؟')">
-                                                    🗑️
+                                                    <i class="fas fa-trash"></i>
                                                 </a>
                                                 <?php endif; ?>
                                             </div>
