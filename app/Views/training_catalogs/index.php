@@ -31,16 +31,26 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
 @media(max-width:640px){.tr-grid2{grid-template-columns:1fr;}}
 </style>
 
-<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-    <h2><i class="fas fa-folder-open"></i> 📚 كتالوج التصنيفات</h2>
-    <?php if (App\Core\Auth::userHasPermission('training.manage')): ?>
-        <a class="tr-btn tr-btn-gold tr-btn-sm" href="#catForm">➕ إضافة تصنيف</a>
-    <?php endif; ?>
-</div>
+<section class="app-hero" aria-labelledby="tp-catalog-title">
+    <div class="app-hero__left">
+        <span class="app-eyebrow"><i class="fas fa-graduation-cap"></i> إدارة التدريب والتطوير</span>
+        <h1 id="tp-catalog-title">كتالوج <span class="accent">التصنيفات</span></h1>
+        <p>توحيد تسميات الدورات والورش عبر الفروع والأقسام — كل تصنيف هنا يثبت التسمية المعيارية للبرامج التدريبية.</p>
+        <?php if (App\Core\Auth::userHasPermission('training.manage')): ?>
+            <a class="app-hero__cta" href="#catForm"><i class="fas fa-plus"></i> إضافة تصنيف جديد</a>
+        <?php endif; ?>
+    </div>
+    <div class="app-hero__stats" aria-label="إحصائيات">
+        <div class="app-stat"><i class="fas fa-layer-group"></i><strong><?php echo count($catalogs); ?></strong><span>تصنيف</span></div>
+        <div class="app-stat"><i class="fas fa-chalkboard-user"></i><strong><?php echo count(array_filter($catalogs, fn($c) => ($c->type ?? '') === 'workshop')); ?></strong><span>ورشة</span></div>
+        <div class="app-stat"><i class="fas fa-graduation-cap"></i><strong><?php echo count(array_filter($catalogs, fn($c) => ($c->type ?? '') === 'course')); ?></strong><span>دورة</span></div>
+        <div class="app-stat"><i class="fas fa-circle-check"></i><strong><?php echo count(array_filter($catalogs, fn($c) => ($c->status ?? '') === 'active')); ?></strong><span>نشط</span></div>
+    </div>
+</section>
 
 <div class="tr-card">
-    <div class="tr-title">التصنيفات الحالية</div>
-    <div class="tr-sub">توحيد تسميات الدورات والورش عبر الفروع والأقسام — <?php echo count($catalogs); ?> تصنيف</div>
+    <div class="tr-title"><i class="fas fa-layer-group"></i> التصنيفات الحالية</div>
+    <div class="tr-sub">أسماء موحدة للدورات والورش عبر الفروع والأقسام — <?php echo count($catalogs); ?> تصنيف</div>
     <div class="table-responsive">
         <table class="tr-table">
             <thead><tr><th>#</th><th>اسم التصنيف</th><th>النوع</th><th>التصنيف</th><th>الحالة</th><th>إجراءات</th></tr></thead>
@@ -55,10 +65,10 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
                     <td>
                         <div class="tr-act">
                             <?php if (App\Core\Auth::userHasPermission('training.manage')): ?>
-                                <a href="#" onclick='editCat(<?php echo json_encode(["id"=>(int)$c->id,"name"=>$c->name,"type"=>$c->type,"description"=>$c->description??"","category"=>$c->category??"","status"=>$c->status], JSON_UNESCAPED_UNICODE); ?>);return false'>✏️ تعديل</a>
+                                <a href="#" onclick='editCat(<?php echo json_encode(["id"=>(int)$c->id,"name"=>$c->name,"type"=>$c->type,"description"=>$c->description??"","category"=>$c->category??"","status"=>$c->status], JSON_UNESCAPED_UNICODE); ?>);return false' aria-label="تعديل" title="تعديل التصنيف"><i class="fas fa-pen-to-square"></i></a>
                                 <form method="POST" action="<?php echo APP_URL; ?>/training/catalogs/<?php echo (int)$c->id; ?>/delete" style="display:inline" onsubmit="return confirm('حذف التصنيف «<?php echo htmlspecialchars($c->name, ENT_QUOTES); ?>»؟')">
                                     <?php echo csrf_field(); ?>
-                                    <a class="del" href="#" onclick="this.closest('form').requestSubmit();return false">🗑️ حذف</a>
+                                    <a class="del" href="#" onclick="this.closest('form').requestSubmit();return false" aria-label="حذف" title="حذف التصنيف"><i class="fas fa-trash"></i></a>
                                 </form>
                             <?php else: ?><span style="color:#8a8a8a">—</span><?php endif; ?>
                         </div>
@@ -73,7 +83,7 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
 
 <?php if (App\Core\Auth::userHasPermission('training.manage')): ?>
 <div class="tr-card" id="catForm">
-    <div class="tr-title" id="formTitle">📂 إضافة تصنيف جديد</div>
+    <div class="tr-title" id="formTitle"><i class="fas fa-folder-plus"></i> إضافة تصنيف جديد</div>
     <form id="catalogForm" method="POST" action="<?php echo APP_URL; ?>/training/catalogs/store">
         <?php echo csrf_field(); ?>
         <div class="tr-grid2">
@@ -91,7 +101,7 @@ $typeLabel = ['course' => 'دورة', 'workshop' => 'ورشة', 'both' => 'كل�
 </div>
 <script>
 function editCat(d){
-    document.getElementById('formTitle').textContent='✏️ تعديل: '+d.name;
+    document.getElementById('formTitle').innerHTML='<i class="fas fa-pen-to-square"></i> تعديل: '+d.name;
     document.getElementById('catalogForm').action=BASE_URL+'/training/catalogs/'+d.id+'/update';
     document.getElementById('f_name').value=d.name; document.getElementById('f_type').value=d.type;
     document.getElementById('f_category').value=d.category||''; document.getElementById('f_status').value=d.status;
@@ -100,7 +110,7 @@ function editCat(d){
     document.getElementById('catForm').scrollIntoView({behavior:'smooth'});
 }
 function resetForm(){
-    document.getElementById('formTitle').textContent='📂 إضافة تصنيف جديد';
+    document.getElementById('formTitle').innerHTML='<i class="fas fa-folder-plus"></i> إضافة تصنيف جديد';
     document.getElementById('catalogForm').action=BASE_URL+'/training/catalogs/store';
     document.getElementById('catalogForm').reset(); document.getElementById('submitBtn').textContent='حفظ التصنيف';
 }

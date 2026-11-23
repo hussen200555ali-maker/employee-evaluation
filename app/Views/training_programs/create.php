@@ -2,7 +2,7 @@
 /* CD-036 : training_programs/create.php — Screen 2 & 3 (create OR edit) */
 require_once APP_ROOT . '/app/Views/layouts/header.php';
 require_once APP_ROOT . '/app/Views/layouts/_flash_messages.php';
-$type = $type ?? 'course'; $typeLabel = $typeLabel ?? 'دورة تدريبية'; $typeIcon = $typeIcon ?? '📚';
+$type = $type ?? 'course'; $typeLabel = $typeLabel ?? 'دورة تدريبية'; $typeIcon = $typeIcon ?? 'fa-graduation-cap';
 $catalogs = $catalogs ?? []; $branches = $branches ?? []; $departments = $departments ?? [];
 $p = $editProgram ?? null; $isEdit = $p !== null; $pid = $isEdit ? (int)$p->id : 0;
 ?>
@@ -21,7 +21,19 @@ $p = $editProgram ?? null; $isEdit = $p !== null; $pid = $isEdit ? (int)$p->id :
 @media(max-width:640px){.tr-grid2{grid-template-columns:1fr;}}
 </style>
 
-<div class="page-header"><h2><i class="fas fa-<?php echo $type==='workshop'?'tools':'chalkboard-teacher'; ?>"></i> <?php echo $typeIcon; ?> <?php echo $isEdit ? 'تعديل' : 'إنشاء'; ?> <?php echo htmlspecialchars($typeLabel); ?> <?php echo $isEdit ? '' : 'جديدة'; ?></h2></div>
+<section class="app-hero" aria-labelledby="tp-form-title">
+    <div class="app-hero__left">
+        <span class="app-eyebrow"><i class="fas fa-graduation-cap"></i> إدارة التدريب والتطوير</span>
+        <h1 id="tp-form-title"><?php echo $isEdit ? 'تعديل' : 'إنشاء'; ?> <span class="accent"><?php echo htmlspecialchars($typeLabel); ?></span><?php echo $isEdit ? '' : ' جديدة'; ?></h1>
+        <p>الاسم يؤخذ من الكتالوج لتوحيد التسميات — مع تحديد الفرع والقسم المنفِذين والمسؤول عن التنفيذ.</p>
+        <a class="app-hero__cta" href="<?php echo APP_URL; ?>/training/programs"><i class="fas fa-arrow-right"></i> العودة إلى السجل</a>
+    </div>
+    <div class="app-hero__stats" aria-label="اختصارات">
+        <div class="app-stat"><i class="fas fa-clipboard-list"></i><strong><?php echo count($catalogs); ?></strong><span>تصنيف متاح</span></div>
+        <div class="app-stat"><i class="fas fa-building"></i><strong><?php echo count($branches); ?></strong><span>فرع</span></div>
+        <div class="app-stat"><i class="fas fa-sitemap"></i><strong><?php echo count($departments); ?></strong><span>قسم</span></div>
+    </div>
+</section>
 
 <div class="tr-card">
     <div class="tr-sub">الاسم من الكتالوج — مع تحديد الجهة المنفّذة والمسؤول</div>
@@ -30,7 +42,7 @@ $p = $editProgram ?? null; $isEdit = $p !== null; $pid = $isEdit ? (int)$p->id :
         <input type="hidden" name="type" value="<?php echo htmlspecialchars($type); ?>">
 
         <div>
-            <label class="tr-label">اسم <?php echo htmlspecialchars($typeLabel); ?> <span class="req">*</span></label>
+            <label class="tr-label"><i class="fas fa-tag"></i> اسم <?php echo htmlspecialchars($typeLabel); ?> <span class="req">*</span></label>
             <select class="tr-input" name="catalog_id" required>
                 <option value="">اختر من الكتالوج...</option>
                 <?php foreach ($catalogs as $c): ?>
@@ -44,28 +56,28 @@ $p = $editProgram ?? null; $isEdit = $p !== null; $pid = $isEdit ? (int)$p->id :
 
         <div class="tr-grid2" style="margin-top:16px">
             <div>
-                <label class="tr-label">🏢 الفرع المنفّذ <span class="req">*</span></label>
+                <label class="tr-label"><i class="fas fa-building"></i> الفرع المنفّذ <span class="req">*</span></label>
                 <select class="tr-input" name="executing_branch_id" id="branchSel" required onchange="loadDepts(this)">
                     <option value="">اختر الفرع...</option>
                     <?php foreach ($branches as $b): ?><option value="<?php echo (int)$b->id; ?>" <?php echo ($isEdit && (int)($p->executing_branch_id ?? 0) === (int)$b->id) ? 'selected' : ''; ?>><?php echo htmlspecialchars($b->name); ?></option><?php endforeach; ?>
                 </select>
             </div>
             <div>
-                <label class="tr-label">📋 القسم المنفّذ</label>
+                <label class="tr-label"><i class="fas fa-sitemap"></i> القسم المنفّذ</label>
                 <select class="tr-input" name="executing_department_id" id="deptSel"><option value="">عام (غير محدد)</option></select>
                 <div class="hint">اختياري — إذا لم يُحدد تُحسب <?php echo htmlspecialchars($typeLabel); ?> للفرع</div>
             </div>
         </div>
 
         <div class="tr-grid2" style="margin-top:16px">
-            <div><label class="tr-label">📅 تاريخ البدء <span class="req">*</span></label><input class="tr-input" type="date" name="start_date" required value="<?php echo $isEdit ? htmlspecialchars($p->start_date ?? '') : ''; ?>"></div>
-            <div><label class="tr-label">📅 تاريخ الانتهاء <span class="req">*</span></label><input class="tr-input" type="date" name="end_date" required value="<?php echo $isEdit ? htmlspecialchars($p->end_date ?? '') : ''; ?>"></div>
+            <div><label class="tr-label"><i class="fas fa-calendar-days"></i> تاريخ البدء <span class="req">*</span></label><input class="tr-input" type="date" name="start_date" required value="<?php echo $isEdit ? htmlspecialchars($p->start_date ?? '') : ''; ?>"></div>
+            <div><label class="tr-label"><i class="fas fa-calendar-days"></i> تاريخ الانتهاء <span class="req">*</span></label><input class="tr-input" type="date" name="end_date" required value="<?php echo $isEdit ? htmlspecialchars($p->end_date ?? '') : ''; ?>"></div>
         </div>
 
-        <div style="margin-top:16px"><label class="tr-label">👤 المسؤول عن <?php echo htmlspecialchars($typeLabel); ?> <span class="req">*</span></label><input class="tr-input" name="responsible_person" required placeholder="اسم المدرب أو المسؤول" value="<?php echo $isEdit ? htmlspecialchars($p->responsible_person ?? '') : ''; ?>"></div>
+        <div style="margin-top:16px"><label class="tr-label"><i class="fas fa-user-tie"></i> المسؤول عن <?php echo htmlspecialchars($typeLabel); ?> <span class="req">*</span></label><input class="tr-input" name="responsible_person" required placeholder="اسم المدرب أو المسؤول" value="<?php echo $isEdit ? htmlspecialchars($p->responsible_person ?? '') : ''; ?>"></div>
 
         <div style="margin-top:16px;text-align:left">
-            <button class="tr-btn tr-btn-gold" type="submit"><?php echo $isEdit ? '💾 حفظ التعديلات' : 'حفظ '.htmlspecialchars($typeLabel); ?></button>
+            <button class="tr-btn tr-btn-gold" type="submit"><i class="fas fa-floppy-disk"></i> <?php echo $isEdit ? 'حفظ التعديلات' : 'حفظ '.htmlspecialchars($typeLabel); ?></button>
             <a class="tr-btn tr-btn-out" href="<?php echo APP_URL; ?>/training/programs" style="margin-right:8px">إلغاء</a>
         </div>
     </form>
