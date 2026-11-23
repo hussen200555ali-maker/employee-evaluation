@@ -1,0 +1,19 @@
+                    // CD-042: فحص التكرار بنفس مفتاح القيد الفريد uq_eval_once
+                    // (الموظف + القالب + التاريخ + السياق) — وليس بالمُقيِّم.
+                    $ctxKey=(int)($contextId??0);
+                    $ctxLabel=($ctxKey>0?' والبرنامج':'');
+                    $empLabel=($empCode!==''?$empCode:$fullName);
+                    $existingEvalQ=$pdo->prepare('SELECT id, status, evaluator_employee_id, evaluator_name FROM evaluations WHERE evaluated_employee_id=:evaluated AND template_id=:template_id AND evaluation_date=:eval_date AND IFNULL(context_id,0)=:ctx_key LIMIT 1 FOR UPDATE');
+                    $existingEvalQ->execute(['evaluated'=>$employeeId,'template_id'=>$templateId,'eval_date'=>$evaluationDate,'ctx_key'=>$ctxKey]);
+                    $existing=$existingEvalQ->fetch(PDO::FETCH_ASSOC);
+                    if($existing!==false&&$existing['status']!=='draft'){
+                        throw new RuntimeException('يوجد تقييم نهائي لنفس الموظف والقالب والتاريخ'.$ctxLabel.': '.$empLabel.' بتاريخ '.$evaluationDate.' (رقم التقييم #'.(int)$existing['id'].') — لم يُستورد أي صف.');
+                    }
+                    if($existing!==false){
+                        $existingEvaluatorId=$existing['evaluator_employee_id'];
+                        $sameEvaluator=($existingEvaluatorId!==null && (int)$existingEvaluatorId===(int)($rowEvaluatorEmployeeId??0))
+                            || ($existingEvaluatorId===null && (string)$existing['evaluator_name']===(string)$rowEvaluatorName);
+                        if(!$sameEvaluator){
+                            throw new RuntimeException('يوجد تقييم مسودة لنفس الموظف والقالب والتاريخ'.$ctxLabel.' لمقيّم آخر (رقم التقييم #'.(int)$existing['id'].') — لم يُستورد أي صف لتجنّب استبدال مسودة مقيّم آخر.');
+                        }
+                    }

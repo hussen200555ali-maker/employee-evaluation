@@ -1,0 +1,41 @@
+DIR-EXCEL-PREVIEW-DUP-CHECK-V1.0 — verification summary (2026-11-24)
+=====================================================================
+
+SCOPE
+- Modified only: app/Services/EvaluationExcelService.php
+- Insertion: validateSingleRow(), immediately before `return $errors` (new lines 796-825).
+- No UI, JS, HTML, migration, DB schema, EmployeeMatcher, scoring, or uq_eval_once changes.
+
+HASHES / REPOSITORY STATE
+- File hash BEFORE: 22891C1ABD04B4D85D3A36723BB071C4005191B2B26E97CDD97DEDAC43A24F7F
+- File hash AFTER : 8B1E5444F23488AE199D661B810201A2179E437ACC3534976F24586898628559
+- Backup: EvaluationExcelService.php.before_preview_dup (hash matches BEFORE)
+- HEAD: b2faef6b6a5c3022bfff71aafd9af192f2b71185 (no commit, no push)
+- commitBatch() duplicate-check block (original lines 463-481) byte-identical to backup:
+  COMMIT_BLOCK_UNCHANGED=True; copy saved as commitBatch_before_preview_dup.txt
+
+ACCEPTANCE PROOF (employee_evaluation_uat; full output in uat_sql_proof.log)
+- A final duplicate (eval #719, 2026-11-20): preview.invalid=1, E-017 with id+date, stored error_code=E-017, bad column H.
+- A changed date (2026-11-19): preview.invalid=0, valid=1, no errors.
+- B context duplicate (program id 41, eval #720 approved, 2026-11-21): preview.invalid=1, E-017.
+- B changed date (2026-11-22): preview.invalid=0, valid=1, no errors.
+- C prior draft, same evaluator (eval #721, status draft before preview): preview.invalid=0; commitBatch still succeeded (committed_rows=1, committed_evaluations=1) — upsert preserved.
+- C2 preview-only draft same evaluator (eval #722): preview green; prior row remained status=draft.
+- D prior draft, different evaluator (eval #723): preview.invalid=1, E-017 (mirrors commit defense).
+
+UI PROOF (ui_duplicate_preview.jpeg + browser DOM inspection)
+- Row class: xf-row--err; badge: خطأ
+- Notes column contains E-017 message with prior evaluation id and date
+- Commit form/button: absent (existing view behavior when invalid > 0)
+- Sticky note: لا يمكن الاعتماد لوجود أخطاء أو عدم توفر صفوف صالحة...
+
+REGRESSION (regression.log, runner_full.log)
+- ExcelTemplateExportSmoke 10/10, ExcelWorkflowSmoke 5/5, ExcelImportValidationSmoke 4/4, EvaluationCalculatorSmoke 3/3
+- RoleDashboardSmoke and RoleDashboardPersonaSmoke exit=0
+- runner.php: 123 pass / 5 known fail (same baseline); same five known pre-existing failures
+- php -l: No syntax errors detected
+- UTF-8 check (v40_verify_utf8.ps1): OK / ALL_CLEAN
+
+CLEANUP
+- Temporary web-root session/render files removed; temporary browser tabs closed.
+- No commit or push performed.

@@ -471,6 +471,14 @@ class EvaluationController extends Controller {
         $success = $evaluationModel->saveEvaluationResults($evaluationId, $results);
 
         if ($success) {
+            // v39: حفظ «ملاحظة ورأي المقيم» في مسار fill/submit أيضاً
+            $evaluatorNote = $this->cleanEvaluatorNote($_POST['evaluator_notes'] ?? '');
+            $db = \App\Core\Database::getInstance();
+            $db->query('UPDATE evaluations SET notes=:notes WHERE id=:id');
+            $db->bind(':notes', $evaluatorNote);
+            $db->bind(':id', $evaluationId);
+            $db->execute();
+
             $isDescriptive = ($template['evaluation_mode'] ?? 'numeric') === 'descriptive';
             // CD-026: للقوالب الوصفية، final_score على مقياس 0-100 (max_value) لا 1-5
             $finalScore = $isDescriptive
@@ -498,6 +506,16 @@ class EvaluationController extends Controller {
                 return;
             }
             Audit::log('EVALUATION_SUBMITTED', $evaluationId, 'evaluations');
+
+            // Rope 2: إشعار المشرفين باكتمال تقييم موظف — يفتح الإشعار مباشرة صفحة العرض
+            \App\Core\Auth::notifyAdmins(
+                'تقييم موظف مكتمل',
+                'تم حفظ وإرسال تقييم «' . ($evaluation->employee_name ?? '') . '» (#' . $evaluationId . ')'
+                    . ($manualGrade ? ' بتقدير «' . $manualGrade->grade_label . '»' : '')
+                    . ' بنجاح.',
+                'success',
+                '/evaluations/' . $evaluationId . '/show'
+            );
 
             // CD-036/CD-037: تحديث program_participants (الجدول الموحَّد) عند إكمال تقييم برنامج
             // context_id يشير الآن إلى training_programs.id (بعد الترحيل v4.1)
@@ -545,6 +563,7 @@ class EvaluationController extends Controller {
         $results      = $_POST['results'] ?? [];
         $evaluatorName  = trim((string)($_POST['evaluator_name'] ?? ''));
         $evaluatorTitle = trim((string)($_POST['evaluator_title'] ?? ''));
+        $evaluatorNote  = $this->cleanEvaluatorNote($_POST['evaluator_notes'] ?? '');
         $contextId    = (int)($_POST['context_id'] ?? 0);
         $contextType  = (string)($_POST['context_type'] ?? '');
 
@@ -575,10 +594,11 @@ class EvaluationController extends Controller {
                 $evaluationId = $existingId;
                 $evalModel->saveEvaluationResults($evaluationId, $results);
                 // refresh evaluator fields
-                $db->query('UPDATE evaluations SET evaluator_name=:en, evaluator_title=:et, evaluation_date=:ed WHERE id=:id');
+                $db->query('UPDATE evaluations SET evaluator_name=:en, evaluator_title=:et, evaluation_date=:ed, notes=:notes WHERE id=:id');
                 $db->bind(':en', $evaluatorName);
                 $db->bind(':et', $evaluatorTitle);
                 $db->bind(':ed', $evalDate);
+                $db->bind(':notes', $evaluatorNote);
                 $db->bind(':id', $evaluationId);
                 $db->execute();
             } else {
@@ -623,15 +643,19 @@ class EvaluationController extends Controller {
                     elseif ($tt === 'workshop' || $tt === 'employee_in_workshop') $evalType = 'workshop';
                 }
                 try {
+                    // v38: حل معرّف المستخدم قبل تحضير INSERT، حتى يُربط :user على نفس الـ statement
+                    $uid = (int)Auth::id(); if ($uid < 1) $uid = 1;
+                    $db->query('SELECT id FROM users WHERE id = :id'); $db->bind(':id', $uid);
+                    if (!$db->fetch()) $uid = 1;
                     $db->query(
                         'INSERT INTO evaluations
                             (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id,
-                             evaluator_employee_id, evaluator_name, evaluator_title,
+                             evaluator_employee_id, evaluator_name, evaluator_title, notes,
                              employee_name, employee_code, branch_name, department_name, position_name,
                              entity_type, entity_id, created_by_user_id, created_at)
                          VALUES
                             (:tpl, "draft", :date, :etype, :emp,
-                             :eval_emp, :eval_name, :eval_title,
+                             :eval_emp, :eval_name, :eval_title, :notes,
                              :emp_name, :emp_code, :branch, :dept, :pos,
                              "employee", :entity, :user, NOW())'
                     );
@@ -643,14 +667,12 @@ class EvaluationController extends Controller {
                     $db->bind(':eval_emp', $evaluatorEmpId);
                     $db->bind(':eval_name', $evaluatorName);
                     $db->bind(':eval_title', $evaluatorTitle);
+                    $db->bind(':notes', $evaluatorNote);
                     $db->bind(':emp_name', $emp->full_name);
-                    $db->bind(':emp_code', $emp->emp_code);
+                    $db->bind(':emp_code', $emp->emp_code ?? ''); // DIR-BULK-CREATE-FIX-V2.0: evaluations.employee_code NOT NULL
                     $db->bind(':branch', $emp->branch_name ?? '');
                     $db->bind(':dept', $emp->department_name ?? '');
                     $db->bind(':pos', $emp->position_title ?? '');
-                    $uid = (int)Auth::id(); if ($uid < 1) $uid = 1;
-                    $db->query('SELECT id FROM users WHERE id = :id'); $db->bind(':id', $uid);
-                    if (!$db->fetch()) $uid = 1;
                     $db->bind(':user', $uid);
                     $db->execute();
                     $evaluationId = (int)$db->lastInsertId();
@@ -732,6 +754,19 @@ class EvaluationController extends Controller {
                 'template_id' => $templateId,
                 'mode' => $existingId > 0 ? 'update' : 'create',
             ]);
+
+            // Rope 2: إشعار المشرفين باكتمال/تحديث تقييم — يفتح الإشعار مباشرة صفحة العرض
+            $savedEmployeeName = $existingId > 0
+                ? ($evaluation->employee_name ?? '')
+                : ($emp->full_name ?? '');
+            \App\Core\Auth::notifyAdmins(
+                $existingId > 0 ? 'تحديث تقييم موظف' : 'تقييم موظف مكتمل',
+                ($existingId > 0 ? 'تم تحديث تقييم «' : 'تم حفظ تقييم «') . $savedEmployeeName . '» (#' . $evaluationId . ')'
+                    . ($manualGrade ? ' بتقدير «' . $manualGrade->grade_label . '»' : '')
+                    . ' بنجاح.',
+                'success',
+                '/evaluations/' . $evaluationId . '/show'
+            );
 
             $this->json([
                 'success'       => true,
@@ -1074,6 +1109,12 @@ class EvaluationController extends Controller {
             $db->bind(':eid', $employeeId);
             $db->execute();
         }
+    }
+
+    /** v39: تنظيف «ملاحظة ورأي المقيم» — حد 4000 حرف، وnull عند الفراغ. */
+    private function cleanEvaluatorNote($value): ?string {
+        $value = trim((string)$value);
+        return $value === '' ? null : mb_substr($value, 0, 4000, 'UTF-8');
     }
 
     /** Only the assigned evaluator may change a draft; administrators retain their established report access. */

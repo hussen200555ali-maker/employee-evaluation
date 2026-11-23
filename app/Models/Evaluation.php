@@ -262,13 +262,23 @@ class Evaluation extends Model {
                     // --- منطق حساب الدرجة الموحدة (normalized_score) ---
                     $normalizedScore = 0.0;
 
-                    if ($evalType === 'numeric') {
-                        $max = (float)($section['max_value'] ?? 100);
-                        $min = (float)($section['min_value'] ?? 0);
+                    if ($evalType === 'numeric' || $evalType === 'percentage') {
+                        // CD-043 v40: النسبة المئوية تخضع لنطاقها المخصص (الافتراضي 0..100) مثل النumeric،
+                        // تحقيقاً للتطابق مع EvaluationCalculator و EvaluationExcelService::normalize().
+                        $maxRaw = $section['max_value'] ?? null;
+                        $minRaw = $section['min_value'] ?? null;
+                        $max = ($maxRaw === null || $maxRaw === '') ? 100.0 : (float)$maxRaw;
+                        $min = ($minRaw === null || $minRaw === '') ? 0.0 : (float)$minRaw;
                         if ($max > $min) {
+                            // CD-043 v41: تقصّ القيمة الخام إلى النطاق المسموح قبل التخزين،
+                            // حتى لو تجاوزت الواجهة (POST مباشر/عميل قديم). النطاق القديم غير الصالح لا يُقصّ.
+                            if (is_numeric($answerValue)) {
+                                $clamped = max($min, min($max, (float)$answerValue));
+                                if ($clamped !== (float)$answerValue) { $answerValue = (string)$clamped; }
+                            }
                             $normalizedScore = (((float)$answerValue - $min) / ($max - $min)) * 100;
                         }
-                    } elseif ($evalType === 'grade' || $evalType === 'percentage') {
+                    } elseif ($evalType === 'grade') {
                         $normalizedScore = (float)$answerValue;
                     } elseif ($evalType === 'boolean') {
                         // CD-040.2: boolean yes(1) → 100, no(0) → 0 (was left at 0.0)

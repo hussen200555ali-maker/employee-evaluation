@@ -146,19 +146,27 @@ final class BulkEvaluationController extends Controller
         $branchId = (int)($_POST['branch_id'] ?? 0);
         $deptId   = (int)($_POST['department_id'] ?? 0);
 
-        if ($fullName === '' || $empCode === '') {
-            $this->json(['error' => 'الاسم والرقم الوظيفي مطلوبان'], 400);
+        // DIR-BULK-CREATE-FIX-V2.0: يُكتفى بأحدهما؛ يُمنع فقط غياب الاثنين معاً.
+        if ($fullName === '' && $empCode === '') {
+            $this->json(['error' => 'الاسم أو الرقم الوظيفي مطلوب'], 400);
             return;
         }
 
         $db = Database::getInstance();
 
-        // Check for duplicate emp_code
-        $db->query('SELECT id FROM employees WHERE emp_code = :code');
-        $db->bind(':code', $empCode);
-        if ($db->fetch()) {
-            $this->json(['error' => 'الرقم الوظيفي موجود مسبقاً'], 409);
-            return;
+        // DIR-BULK-CREATE-FIX-V2.0: لا أكواد وهمية — يُخزَّن NULL عند غياب الرقم الحقيقي.
+        if ($fullName === '') {
+            $fullName = 'موظف بدون اسم';
+        }
+
+        // فحص التكرار للكود الحقيقي فقط (NULL لا يُكرَّر ولا يُفحص).
+        if ($empCode !== '') {
+            $db->query('SELECT id FROM employees WHERE emp_code = :code LIMIT 1');
+            $db->bind(':code', $empCode);
+            if ($db->fetch()) {
+                $this->json(['error' => 'الرقم الوظيفي موجود مسبقاً'], 409);
+                return;
+            }
         }
 
         // Insert minimal employee
@@ -166,7 +174,7 @@ final class BulkEvaluationController extends Controller
             'INSERT INTO employees (emp_code, full_name, branch_id, department_id, is_active, profile_status, created_at)
              VALUES (:code, :name, :branch, :dept, 1, "incomplete", NOW())'
         );
-        $db->bind(':code', $empCode);
+        $db->bind(':code', $empCode !== '' ? $empCode : null);
         $db->bind(':name', $fullName);
         $db->bind(':branch', $branchId > 0 ? $branchId : null);
         $db->bind(':dept', $deptId > 0 ? $deptId : null);
@@ -213,6 +221,7 @@ final class BulkEvaluationController extends Controller
         $results    = $_POST['results'] ?? [];
         $evaluatorName  = trim((string)($_POST['evaluator_name'] ?? ''));
         $evaluatorTitle = trim((string)($_POST['evaluator_title'] ?? ''));
+        $evaluatorNote  = $this->cleanEvaluatorNote($_POST['evaluator_notes'] ?? '');
 
         if ($employeeId < 1 || $templateId < 1 || empty($results)) {
             $this->json(['error' => 'بيانات ناقصة'], 400);
@@ -220,7 +229,7 @@ final class BulkEvaluationController extends Controller
         }
 
         try {
-            $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
+            $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle, $evaluatorNote);
             $this->saveResults($evaluationId, $results, $templateId);
 
             // CD-037: context + sync program_participants (parity with bulkSave)
@@ -337,7 +346,9 @@ final class BulkEvaluationController extends Controller
                 }
 
                 try {
-                    $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle);
+                    // v39: ملاحظة مستقلة لكل موظف داخل الدفعة
+                    $evaluatorNote = $this->cleanEvaluatorNote($item['evaluator_notes'] ?? '');
+                    $evaluationId = $this->createEvaluation($employeeId, $templateId, $evalDate, $evaluatorName, $evaluatorTitle, $evaluatorNote);
                     $this->saveResults($evaluationId, $results, $templateId);
 
                     // CD-041: للقالب الوصفي — احترم final_grade_id لكل موظف
@@ -419,7 +430,7 @@ final class BulkEvaluationController extends Controller
 
     // === Private helpers ===
 
-    private function createEvaluation(int $employeeId, int $templateId, string $date, string $evalName, string $evalTitle): int
+    private function createEvaluation(int $employeeId, int $templateId, string $date, string $evalName, string $evalTitle, ?string $evalNote = null): int
     {
         $db = Database::getInstance();
         $userId = (int)Auth::id();
@@ -452,12 +463,12 @@ final class BulkEvaluationController extends Controller
         $db->query(
             'INSERT INTO evaluations
                 (template_id, status, evaluation_date, evaluation_type, evaluated_employee_id,
-                 evaluator_employee_id, evaluator_name, evaluator_title,
+                 evaluator_employee_id, evaluator_name, evaluator_title, notes,
                  employee_name, employee_code, branch_name, department_name, position_name,
                  entity_type, entity_id, created_by_user_id, created_at)
              VALUES
                 (:tpl, "draft", :date, :etype, :emp,
-                 :eval_emp, :eval_name, :eval_title,
+                 :eval_emp, :eval_name, :eval_title, :notes,
                  :emp_name, :emp_code, :branch, :dept, :pos,
                  "employee", :entity, :user, NOW())'
         );
@@ -469,8 +480,9 @@ final class BulkEvaluationController extends Controller
         $db->bind(':eval_emp', $evaluatorEmpId);
         $db->bind(':eval_name', $evalName);
         $db->bind(':eval_title', $evalTitle);
+        $db->bind(':notes', $evalNote);
         $db->bind(':emp_name', $emp->full_name);
-        $db->bind(':emp_code', $emp->emp_code);
+        $db->bind(':emp_code', $emp->emp_code ?? ''); // DIR-BULK-CREATE-FIX-V2.0: evaluations.employee_code NOT NULL
         $db->bind(':branch', $emp->branch_name ?? '');
         $db->bind(':dept', $emp->department_name ?? '');
         $db->bind(':pos', $emp->position_title ?? '');
@@ -520,11 +532,25 @@ final class BulkEvaluationController extends Controller
                 $score = isset($data['score']) ? (float)$data['score'] : null;
                 if ($score !== null) {
                     $rawValue = (string)$score;
-                    // Normalize: percentage/grade use raw value; numeric scales to 0-100
-                    if ($type === 'numeric') {
-                        $max = (float)($section['max_value'] ?? 100);
-                        $min = (float)($section['min_value'] ?? 0);
-                        $normalizedScore = ($max > $min) ? ((($score - $min) / ($max - $min)) * 100) : $score;
+                    // CD-043 v40: تطابق Evaluation.php — numeric وpercentage يحترمان min/max،
+                    // وboolean يُخزَّن 100/0 (كان 1/0)، وgrade يبقى قيمته الخام.
+                    if ($type === 'numeric' || $type === 'percentage') {
+                        $maxRaw = $section['max_value'] ?? null;
+                        $minRaw = $section['min_value'] ?? null;
+                        $max = ($maxRaw === null || $maxRaw === '') ? 100.0 : (float)$maxRaw;
+                        $min = ($minRaw === null || $minRaw === '') ? 0.0 : (float)$minRaw;
+                        if ($max > $min) {
+                            // CD-043 v41: تقصّ الخام إلى النطاق قبل التخزين (مطابق Evaluation.php)
+                            if (is_numeric($data['score'] ?? null)) {
+                                $clamped = max($min, min($max, $score));
+                                if ($clamped !== $score) { $score = $clamped; $rawValue = (string)$clamped; }
+                            }
+                            $normalizedScore = (($score - $min) / ($max - $min)) * 100;
+                        } else {
+                            $normalizedScore = 0.0;
+                        }
+                    } elseif ($type === 'boolean') {
+                        $normalizedScore = ((float)$score === 1.0) ? 100.0 : 0.0;
                     } else {
                         $normalizedScore = $score;
                     }
@@ -611,6 +637,13 @@ final class BulkEvaluationController extends Controller
             $db->bind(':eid', $employeeId);
             $db->execute();
         }
+    }
+
+    /** v39: تنظيف «ملاحظة ورأي المقيم» — حد 4000 حرف، وnull عند الفراغ. */
+    private function cleanEvaluatorNote($value): ?string
+    {
+        $value = trim((string)$value);
+        return $value === '' ? null : mb_substr($value, 0, 4000, 'UTF-8');
     }
 
     private function isDescriptiveTemplate(int $templateId): bool

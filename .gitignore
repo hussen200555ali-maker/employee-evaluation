@@ -36,3 +36,24 @@ Desktop.ini
 
 # CD-042: temp Excel test files
 tests/tmp-excel/
+
+# --- CD-043: Git rescue — sensitive/large generated artifacts ---
+# نسخ قاعدة البيانات والنسخ الاحتياطية
+docs/CD-043/backups/**/*.sql
+docs/CD-043/backups/**/db/*
+docs/CD-043/exports/*.xlsx
+
+# ملفات الجلسات المؤقتة
+*_session.php
+settings.php.repaired
+
+# Keep backup/export directories out of the rescue commits; allow only small text proof files.
+docs/CD-043/backups/**
+!docs/CD-043/backups/2026-11-24_excel_preview_dup/
+docs/CD-043/backups/2026-11-24_excel_preview_dup/*
+!docs/CD-043/backups/2026-11-24_excel_preview_dup/verification_summary.txt
+!docs/CD-043/backups/2026-11-24_excel_preview_dup/commitBatch_before_preview_dup.txt
+docs/CD-043/exports/**
+
+# External analysis documents (not project source)
+docs/تحليل وحدة التصدير والاستيربد/

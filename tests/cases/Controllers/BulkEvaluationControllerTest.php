@@ -220,6 +220,129 @@ class BulkEvaluationControllerTest extends TestCase
         }
     }
 
+    /**
+     * DIR-BULK-CREATE-FIX-V2.0: إدخال الكود وحده ينجح ويُخزَّن اسم بديل ثابت (بلا كود وهمي).
+     */
+    public function testQuickAddAcceptsCodeOnlyAndStoresPlaceholderName(): void
+    {
+        $db = Database::getInstance();
+        $db->beginTransaction();
+        $previousSession = $_SESSION;
+        $level = ob_get_level();
+
+        try {
+            $this->loginEvaluator();
+            $csrf = Auth::generateCsrfToken();
+            $code = 'CODEONLY-' . bin2hex(random_bytes(3));
+
+            $_POST = [
+                '_token' => $csrf, 'full_name' => '', 'emp_code' => $code,
+                'branch_id' => 0, 'department_id' => 0,
+            ];
+
+            ob_start();
+            (new BulkEvaluationController())->quickAdd();
+            $raw = (string)ob_get_clean();
+            $data = json_decode($raw, true);
+
+            $this->assertTrue(!empty($data['success']), 'إدخال الكود فقط يجب أن ينجح. الاستجابة: ' . $raw);
+            $this->assertSame($code, (string)($data['employee']['emp_code'] ?? ''));
+            $placeholderName = trim((string)($data['employee']['full_name'] ?? ''));
+            $this->assertSame('موظف بدون اسم', $placeholderName, 'الاسم البديل المتوقع عند غيابه.');
+
+            $stmt = $db->getPdo()->prepare('SELECT profile_status FROM employees WHERE id = :id');
+            $stmt->execute(['id' => (int)($data['employee']['id'] ?? 0)]);
+            $this->assertSame('incomplete', (string)$stmt->fetchColumn());
+        } finally {
+            while (ob_get_level() > $level) { ob_end_clean(); }
+            $_SESSION = $previousSession;
+            $_POST = [];
+            $db->rollBack();
+        }
+    }
+
+    /**
+     * DIR-BULK-CREATE-FIX-V2.0: الاختبار الحاسم — موظفان بالاسم فقط ينجحان وemp_code = NULL.
+     */
+    public function testQuickAddAcceptsTwoNameOnlyEmployeesWithNullCodes(): void
+    {
+        $db = Database::getInstance();
+        $db->beginTransaction();
+        $previousSession = $_SESSION;
+        $level = ob_get_level();
+
+        try {
+            $this->loginEvaluator();
+            $csrf = Auth::generateCsrfToken();
+            $name = 'موظف بلا كود ' . bin2hex(random_bytes(3));
+            $codes = [];
+            $ids = [];
+
+            for ($i = 1; $i <= 2; $i++) {
+                $_POST = [
+                    '_token' => $csrf, 'full_name' => $name, 'emp_code' => '',
+                    'branch_id' => 0, 'department_id' => 0,
+                ];
+                ob_start();
+                (new BulkEvaluationController())->quickAdd();
+                $raw = (string)ob_get_clean();
+                $data = json_decode($raw, true);
+
+                $this->assertTrue(!empty($data['success']), 'الإضافة رقم ' . $i . ' بالاسم فقط فشلت. الاستجابة: ' . $raw);
+                $empCodeField = array_key_exists('emp_code', $data['employee'] ?? []) ? $data['employee']['emp_code'] : 'MISSING';
+                $this->assertNull($empCodeField, 'يجب ألا يُولَّد أي كود — emp_code = NULL.');
+                $this->assertSame($name, (string)($data['employee']['full_name'] ?? ''));
+                $ids[] = (int)($data['employee']['id'] ?? 0);
+            }
+
+            $stmt = $db->getPdo()->prepare('SELECT COUNT(*) FROM employees WHERE id IN (?, ?) AND emp_code IS NULL AND profile_status = "incomplete"');
+            $stmt->execute([$ids[0], $ids[1]]);
+            $this->assertSame(2, (int)$stmt->fetchColumn(), 'يجب أن يُخزَّن NULL لكلا الموظفين.');
+        } finally {
+            while (ob_get_level() > $level) { ob_end_clean(); }
+            $_SESSION = $previousSession;
+            $_POST = [];
+            $db->rollBack();
+        }
+    }
+
+    /**
+     * DIR-BULK-CREATE-FIX-V2.0: غياب الاسم والكود معاً يُرفض بـ 400.
+     */
+    public function testQuickAddRejectsWhenBothNameAndCodeAreMissing(): void
+    {
+        $db = Database::getInstance();
+        $db->beginTransaction();
+        $previousSession = $_SESSION;
+        $level = ob_get_level();
+
+        try {
+            $this->loginEvaluator();
+            $csrf = Auth::generateCsrfToken();
+
+            $_POST = [
+                '_token' => $csrf, 'full_name' => '', 'emp_code' => '',
+                'branch_id' => 0, 'department_id' => 0,
+            ];
+
+            http_response_code(200);
+            ob_start();
+            (new BulkEvaluationController())->quickAdd();
+            $raw = (string)ob_get_clean();
+            $data = json_decode($raw, true);
+
+            $this->assertTrue(isset($data['error']), 'متوقع رفض الطلب عند غياب الحقلين. الاستجابة: ' . $raw);
+            $this->assertSame(400, http_response_code(), 'كود الحالة يجب أن يكون 400.');
+            $this->assertStringContainsString('أو الرقم', (string)($data['error'] ?? ''));
+        } finally {
+            while (ob_get_level() > $level) { ob_end_clean(); }
+            http_response_code(200);
+            $_SESSION = $previousSession;
+            $_POST = [];
+            $db->rollBack();
+        }
+    }
+
     public function testSaveSingleCreatesCompletedEvaluationWithScore(): void
     {
         $db = Database::getInstance();

@@ -409,17 +409,36 @@ final class EvaluationExcelService
                 } else {
                     $employee=false; $employeeId=0;
                     if($empCode!==''){ $employee=$this->findEmployeeByCode($empCode); }
-                    if($employee===false&&$empCode===''&&$fullName!==''){ $employee=$this->findEmployeeByName($fullName,$branchName,$departmentName); }
+                    // DIR-BULK-CREATE-FIX-V2.0: إن لم يُوجد بالكود الحقيقي بعد، نبحث بالاسم.
+                    if($employee===false&&$fullName!==''){ $employee=$this->findEmployeeByName($fullName,$branchName,$departmentName); }
+                    // DIR-BULK-CREATE-FIX-V2.0: تحديث NULL بالكود الحقيقي من Excel بدل إنشاء موظف مكرر.
+                    if($employee!==false&&$empCode!==''&&($employee['emp_code']===null||$employee['emp_code']==='')){
+                        $pdo->prepare('UPDATE employees SET emp_code = :code WHERE id = :id AND (emp_code IS NULL OR emp_code = "")')
+                            ->execute(['code'=>$empCode,'id'=>(int)$employee['id']]);
+                        $employee['emp_code']=$empCode;
+                    }
+                    // DIR-BULK-CREATE-FIX-V2.1: تناظر تحديث الاسم — الاسم الوهمي فقط.
+                    if ($employee !== false) {
+                        $currentName = trim((string)($employee['full_name'] ?? ''));
+                        $incomingName = trim((string)$fullName);
+                        $isPlaceholder = ($currentName === '' || $currentName === 'موظف بدون اسم');
+                        if ($isPlaceholder && $incomingName !== '' && $incomingName !== 'موظف بدون اسم') {
+                            $pdo->prepare('UPDATE employees SET full_name = :name WHERE id = :id AND (full_name = "موظف بدون اسم" OR full_name IS NULL OR full_name = "")')
+                                ->execute(['name' => $incomingName, 'id' => (int)$employee['id']]);
+                            $employee['full_name'] = $incomingName;
+                        }
+                    }
                     if($employee===false){
                         $bId=$branchMap[$branchName]??null;
                         $dId=$departmentMap[$departmentName]??null;
-                        $check=$pdo->prepare('SELECT id FROM employees WHERE emp_code=:code LIMIT 1');
-                        $check->execute(['code'=>$empCode!==''?$empCode:'AUTO_'.uniqid()]);
-                        if($check->fetch()!==false&&$empCode!==''){ throw new RuntimeException('رمز الموظف موجود مسبقاً: '.$empCode); }
-                        $newCode=$empCode!==''?$empCode:'EMP'.str_pad((string)(1000+random_int(1,8999)),4,'0',STR_PAD_LEFT);
-                        $pdo->prepare('INSERT INTO employees (emp_code, full_name, nickname, branch_id, department_id, is_active) VALUES (:emp_code, :full_name, :nickname, :branch_id, :department_id, 1)')->execute(['emp_code'=>$newCode,'full_name'=>$fullName!==''?$fullName:'موظف بدون اسم','nickname'=>$nickname!==''?$nickname:null,'branch_id'=>$bId,'department_id'=>$dId]);
+                        if($empCode!==''){
+                            $check=$pdo->prepare('SELECT id FROM employees WHERE emp_code=:code LIMIT 1');
+                            $check->execute(['code'=>$empCode]);
+                            if($check->fetch()!==false){ throw new RuntimeException('رمز الموظف موجود مسبقاً: '.$empCode); }
+                        }
+                        // DIR-BULK-CREATE-FIX-V2.0: لا توليد EMP/AUTO — نُخزّن NULL عند غياب الكود.
+                        $pdo->prepare('INSERT INTO employees (emp_code, full_name, nickname, branch_id, department_id, is_active) VALUES (:emp_code, :full_name, :nickname, :branch_id, :department_id, 1)')->execute(['emp_code'=>$empCode!==''?$empCode:null,'full_name'=>$fullName!==''?$fullName:'موظف بدون اسم','nickname'=>$nickname!==''?$nickname:null,'branch_id'=>$bId,'department_id'=>$dId]);
                         $employeeId=(int)$pdo->lastInsertId();
-                        if($empCode===''){ $empCode=$newCode; }
                         $createdEmployees++;
                     } else { $employeeId=(int)$employee['id']; }
                     $contextType=null; $contextId=null;
@@ -774,6 +793,36 @@ final class EvaluationExcelService
             }
         }
         if(isset($payload['notes'])&&mb_strlen((string)$payload['notes'])>4000){ $errors[]=['code'=>'NOTES_TOO_LONG','message'=>'ملاحظة عامة طويلة جداً (4000 حرف كحد أقصى).','column'=>$this->colLetter(6+count($sections))]; }
+        // DIR-EXCEL-PREVIEW-DUP-CHECK-V1.0: كشف مبكر لتكرار uq_eval_once في مرحلة المعاينة.
+        // مرآة فحص الحفظ (الموظف + القالب + التاريخ + context_id) — دون تعديل خط الدفاع الأخير.
+        // يُرفض: تقييم نهائي، أو مسودة لمقيّم آخر. يُسمح: مسودة لنفس مقيّم الصف (Upsert).
+        if($errors===[] && in_array($targetType,['employee','employee_in_course','employee_in_workshop','skill'],true)
+            && $existingEmployee!==false && $existingEmployee!==null && (int)($existingEmployee['id']??0)>0
+            && (int)($payload['template_id']??0)>0 && (string)($payload['evaluation_date']??'')!==''){
+            $previewPdo=$this->database->getPdo();
+            $previewDupQ=$previewPdo->prepare('SELECT id, status, evaluator_employee_id, evaluator_name FROM evaluations WHERE evaluated_employee_id=:evaluated AND template_id=:template_id AND evaluation_date=:eval_date AND IFNULL(context_id,0)=:ctx_key LIMIT 1');
+            $previewDupQ->execute([
+                'evaluated'=>(int)$existingEmployee['id'],
+                'template_id'=>(int)$payload['template_id'],
+                'eval_date'=>(string)$payload['evaluation_date'],
+                'ctx_key'=>(int)($payload['_context_id']??0),
+            ]);
+            $priorPreview=$previewDupQ->fetch(PDO::FETCH_ASSOC);
+            if($priorPreview!==false){
+                $rowEvaluatorName=trim((string)($payload['evaluator_name']??''));
+                $previewEvaluatorId=null;
+                if($rowEvaluatorName!==''){
+                    $foundEval=$this->findEmployeeByName($rowEvaluatorName,'','');
+                    if($foundEval!==false) $previewEvaluatorId=(int)$foundEval['id'];
+                }
+                $priorEvaluatorId=$priorPreview['evaluator_employee_id'];
+                $sameEvaluator=($priorEvaluatorId!==null && (int)$priorEvaluatorId===(int)($previewEvaluatorId??0))
+                    || ($priorEvaluatorId===null && (string)$priorPreview['evaluator_name']===$rowEvaluatorName);
+                if($priorPreview['status']!=='draft' || !$sameEvaluator){
+                    $errors[]=['code'=>'E-017','message'=>'يوجد تقييم سابق لنفس الموظف في نفس السياق (رقم التقييم #'.(int)$priorPreview['id'].' بتاريخ '.(string)$payload['evaluation_date'].'). غيّر التاريخ أو السياق أو احذف الصف.','column'=>$this->colLetter(6+count($sections)+1)];
+                }
+            }
+        }
         return $errors;
     }
     private function getTemplateTargetType(int $tid): string {
@@ -967,10 +1016,16 @@ final class EvaluationExcelService
             return round((float)$value,4);
         }
         $number=(float)$value;
-        if($section['evaluation_type']==='numeric'){
-            $min=(float)($section['min_value']??0);
-            $max=(float)($section['max_value']??100);
-            return $max>$min?round((($number-$min)/($max-$min))*100,4):0.0;
+        // CD-043 v40: تطابق Evaluation.php — النسبة المئوية تُحوَّل من نطاقها المخصص إلى 0..100،
+        // تماماً كما يفعل validate() أعلاه (كانت تُخزَّن خاماً قبل هذا الإصلاح).
+        if(in_array($section['evaluation_type'],['numeric','percentage'],true)){
+            $minRaw=$section['min_value']??null;
+            $maxRaw=$section['max_value']??null;
+            $min=($minRaw===null||$minRaw==='')?0.0:(float)$minRaw;
+            $max=($maxRaw===null||$maxRaw==='')?100.0:(float)$maxRaw;
+            // CD-043 v41: تقصّ دفاعي إلى النطاق (validate() يرفض أصلاً القيم خارج النطاق)
+            if($max>$min){ $number=max($min,min($max,$number)); return round((($number-$min)/($max-$min))*100,4); }
+            return 0.0;
         }
         return round($number,4);
     }
