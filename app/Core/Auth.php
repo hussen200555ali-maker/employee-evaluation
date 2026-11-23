@@ -363,9 +363,11 @@ class Auth {
     }
 
     /**
-     * إرسال إشعار (type=warning) إلى جميع مستخدمي دور Admin النشطين.
+     * إرسال إشعار (type=warning افتراضيًا) إلى جميع مستخدمي دور Admin النشطين.
+     * يُقبل اختياريًا نوع الإشعار ورابط متعلق يفتح مباشرة من الجرس أو صفحة الإشعارات.
+     * الأسبقية للنوع 'warning' حفاظًا على سلوك النداءات الحالية.
      */
-    public static function notifyAdmins(string $title, string $message): void {
+    public static function notifyAdmins(string $title, string $message, string $type = 'warning', ?string $relatedUrl = null): void {
         $roleIds = self::adminRoleIds();
         if ($roleIds === []) {
             return;
@@ -377,13 +379,15 @@ class Auth {
             }
             $in = implode(',', $ph);
             $db = \App\Core\Database::getInstance();
-            $db->query("INSERT INTO notifications (user_id, title, message, type, created_at)
-                        SELECT id, :title, :message, 'warning', NOW()
+            $db->query("INSERT INTO notifications (user_id, title, message, type, related_url, created_at)
+                        SELECT id, :title, :message, :type, :related_url, NOW()
                         FROM users
                         WHERE status = 'active'
                         AND id IN (SELECT ur.user_id FROM user_roles ur WHERE ur.role_id IN ($in))");
             $db->bind(':title', $title);
             $db->bind(':message', $message);
+            $db->bind(':type', $type);
+            $db->bind(':related_url', $relatedUrl);
             foreach ($roleIds as $i => $rid) {
                 $db->bind(':rid' . $i, $rid);
             }

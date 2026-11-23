@@ -32,6 +32,9 @@ $router->get('dashboard', 'App\Controllers\DashboardController@index');
 $router->get('notifications', 'App\Controllers\NotificationController@index');
 $router->post('notifications/read/:id', 'App\Controllers\NotificationController@markRead');
 $router->post('notifications/read-all', 'App\Controllers\NotificationController@markAllRead');
+$router->post('notifications/delete/:id', 'App\Controllers\NotificationController@destroy');
+$router->post('notifications/clear-read', 'App\Controllers\NotificationController@clearRead');
+$router->post('notifications/clear-all', 'App\Controllers\NotificationController@clearAll');
 
 /*
 |==========================================================================

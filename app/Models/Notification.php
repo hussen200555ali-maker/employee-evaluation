@@ -7,9 +7,10 @@ use PDO;
 /**
  * إشعارات المستخدم (بند 15).
  *
- * لا يحتوي أي DELETE — سياسة الاحتفاظ:
- * تُحذف فقط الإشعارات غير المقروءة الأقدم من 90 يومًا ضمن cron التنظيف لبند 13
- * (is_read=0 AND created_at < NOW() - INTERVAL 90 DAY)؛ المقروءة تبقى للتدقيق.
+ * ملاحظة سياساتية (v21/2026-11-19 — بطلب صريح من المستخدم):
+ * أُضيفت دوال الحذف أدناه (deleteForUser/deleteReadForUser/deleteAllForUser)
+ * مشروطة دائماً بـ user_id = المُستخدم الحالي — لا يمكن حذف إشعارات الغير.
+ * سياسة الـ cron (حذف unread الأقدم من 90 يوماً، لبند 13) تبقى كما هي دون تعديل.
  * الإشعارات القديمة (قبل بند 14) قابلة للعرض حتى لو كانت related_url فارغة.
  */
 class Notification extends Model {
@@ -40,11 +41,11 @@ class Notification extends Model {
 
     /**
      * أحدث إشعارات المستخدم (لشاشة الجرس).
-     * @return array<int, array{id:int,title:string,message:string,is_read:int,related_url:?string,created_at:string}>
+     * @return array<int, array{id:int,title:string,message:string,type:string,is_read:int,related_url:?string,created_at:string}>
      */
     public function recentForUser(int $userId, int $limit = 5): array {
         $stmt = $this->db->getPdo()->prepare(
-            'SELECT id, title, message, is_read, related_url, created_at
+            'SELECT id, title, message, type, is_read, related_url, created_at
              FROM notifications
              WHERE user_id = :uid
              ORDER BY created_at DESC, id DESC
@@ -75,6 +76,37 @@ class Notification extends Model {
         );
         $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->execute();
+    }
+
+    /** حذف إشعار واحد — مشروط بملكيته للمستخدم الحالي (لا يمكن حذف إشعارات الغير). @return bool */
+    public function deleteForUser(int $userId, int $id): bool {
+        $stmt = $this->db->getPdo()->prepare(
+            'DELETE FROM notifications WHERE id = :id AND user_id = :uid'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount() > 0;
+    }
+
+    /** حذف كل الإشعارات المقروءة للمستخدم الحالي. @return int عدد المحذوفة */
+    public function deleteReadForUser(int $userId): int {
+        $stmt = $this->db->getPdo()->prepare(
+            'DELETE FROM notifications WHERE user_id = :uid AND is_read = 1'
+        );
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
+
+    /** حذف كل إشعارات المستخدم الحالي (مقروءة وغير مقروءة). @return int عدد المحذوفة */
+    public function deleteAllForUser(int $userId): int {
+        $stmt = $this->db->getPdo()->prepare(
+            'DELETE FROM notifications WHERE user_id = :uid'
+        );
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 
     /** تنفيذ استعلام جلب بمصفوفة مسماة — نمط DB المعتمد في المشروع. */
