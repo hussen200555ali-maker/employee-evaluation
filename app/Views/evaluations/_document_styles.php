@@ -45,6 +45,9 @@
 .eval-table tbody tr:last-child td{ border-bottom:1px solid #e8eaed;}
 .eval-table tbody td:first-child{ color:#1e293b; font-weight:500; font-size:12px;}
 .eval-table tbody td:nth-child(2){ text-align:center; width:22%;}
+.eval-table tbody td.text-plain{ text-align:right; white-space:normal; line-height:1.55; font-size:11px; color:#1a2332; font-weight:500; width:68%;}
+.eval-table thead th.desc-th{ text-align:right; padding-left:14px;}
+.cell-plain{ display:block; padding:2px 0; }
 .eval-table tbody td:last-child{ color:#64748b; font-size:11.5px; text-align:center;}
 .badge{ display:inline-block; min-width:68px; padding:5px 10px; border-radius:20px; font-size:11.5px; font-weight:700; text-align:center; border:1px solid;}
 .badge-excellent{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0;}

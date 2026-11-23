@@ -34,7 +34,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 #confirmModal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(12,40,35,0.5); z-index:9999; align-items:center; justify-content:center; }
 #confirmModal.show { display:flex; }
 .modal-box { background:#fff; border-radius:12px; max-width:460px; width:90%; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.15); }
-.modal-header { background:#8b2222; color:#fff; padding:14px 20px; font-weight:700; font-size:15px; }
+.modal-header { background: linear-gradient(120deg,#093f37,#0d6658); color:#fff; padding:14px 20px; font-weight:800; font-size:15px; letter-spacing:-.01em; display:flex; align-items:center; gap:.5rem; }
 .modal-body { padding:20px; }
 .modal-body p { font-size:13px; line-height:1.7; margin-bottom:8px; }
 .modal-body .warn-box { background:rgba(139,34,34,0.05); border:1px solid rgba(139,34,34,0.1); border-radius:8px; padding:10px 14px; margin:12px 0; font-size:12px; color:#8b2222; }
@@ -50,8 +50,18 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
 </style>
 
 <div class="container-fluid">
-    <h2><?= htmlspecialchars($pageTitle ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
-    <hr>
+    <section class="app-hero" aria-labelledby="rc-title" style="margin-bottom:1rem">
+        <div class="app-hero__left">
+            <span class="app-eyebrow"><i class="fas fa-file-lines"></i> التقارير الإدارية</span>
+            <h1 id="rc-title">إنشاء <span class="accent">تقرير</span> موظف</h1>
+            <p>ابحث عن الموظف حسب الاسم أو الرقم الوظيفي، ثم أصدر تقرير أداء رسمي معتمداً من النظام — مرفق بتوقيع إلكتروني وخاتم المنظمة.</p>
+        </div>
+        <div class="app-hero__stats" aria-label="اختصارات">
+            <div class="app-stat"><i class="fas fa-building"></i><strong><?php echo isset($branches) && is_array($branches) ? count($branches) : 3; ?></strong><span>فرع</span></div>
+            <div class="app-stat"><i class="fas fa-sitemap"></i><strong><?php echo isset($departments) && is_array($departments) ? count($departments) : 7; ?></strong><span>قسم</span></div>
+            <div class="app-stat"><i class="fas fa-stamp"></i><strong><?php echo isset($results) ? count($results) : 0; ?></strong><span>نتائج معاينة</span></div>
+        </div>
+    </section>
 
     <?php if (!empty($scopeLabel) && (($scope['mode'] ?? 'all') !== 'all')): ?>
         <div class="scope-note">
@@ -179,7 +189,7 @@ require_once APP_ROOT . '/app/Views/layouts/header.php';
         var branchId = this.value;
         deptFilter.innerHTML = '<option value="0">كل الأقسام</option>';
 
-        // «كل الفروع» ← البحث يشمل كل الفروع وأقسامها، بلا فلتر أقسام ظاهر.
+        // «كل الفروڻ ← البحث يشمل كل الفروع وأقسامها، بلا فلتر أقسام ظاهر.
         if (branchId <= 0) {
             setDeptVisible(false);
             return;

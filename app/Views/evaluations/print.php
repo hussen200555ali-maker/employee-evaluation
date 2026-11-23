@@ -46,6 +46,9 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
 .eval-table td{ padding:4px 7px; border:1px solid #e8eaed; font-size:10px;}
 .eval-table td:first-child{ }
 .eval-table td:nth-child(2){ text-align:center; width:20%;}
+.eval-table td.text-plain{ text-align:right; white-space:normal; line-height:1.45; font-size:9px; color:#1a2332; font-weight:500; width:66%;}
+.eval-table th.desc-th{ text-align:right; padding-left:10px;}
+.cell-plain{ display:block; padding:1px 0; }
 .badge{ display:inline-block; min-width:48px; padding:2px 6px; border-radius:20px; font-size:9.5px; font-weight:700; text-align:center; border:1px solid;}
 .badge-excellent{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0;}
 .badge-good{ background:#eff6ff; color:#1e40af; border-color:#bfdbfe;}
@@ -94,6 +97,11 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
       'skill'                => ['مهاري', 'eval-type-skill', 'fas fa-bullseye'],
     ];
     $typeInfo = $typeLabels[$targetKey] ?? $typeLabels['employee'];
+    $toArabic = static function (int $n): string {
+        $digits = [0 => '٠', 1 => '١', 2 => '٢', 3 => '٣', 4 => '٤', 5 => '٥', 6 => '٦', 7 => '٧', 8 => '٨', 9 => '٩'];
+        return implode('', array_map(static fn(string $d): string => $digits[(int) $d] ?? $d, str_split((string) $n)));
+    };
+    $sectionNum = 0;
   ?>
   <?php $emp = (new \App\Models\Employee())->findById((int)$evaluation->evaluated_employee_id); ?>
   <header class="doc-header">
@@ -118,7 +126,7 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
   <div style="padding:14px 18px 10px;">
     <?php if ($emp): ?>
     <div class="section">
-      <div class="section-head"><div class="section-num">—</div><h2>بيانات الموظف</h2><div class="line"></div></div>
+      <div class="section-head"><div class="section-num"><?= $toArabic(++$sectionNum) ?></div><h2>بيانات الموظف</h2><div class="line"></div></div>
       <div class="program-card"><div class="program-grid" style="grid-template-columns: repeat(2, 1fr);">
         <div class="program-cell"><label>الاسم</label><span><?php echo htmlspecialchars($emp->full_name ?? '—'); ?></span></div>
         <div class="program-cell"><label>الرقم الوظيفي</label><span><?php echo htmlspecialchars($emp->emp_code ?? '—'); ?></span></div>
@@ -129,7 +137,7 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
     <?php endif; ?>
     <?php if (!empty($program)): ?>
     <div class="section">
-      <div class="section-head"><div class="section-num">٢</div><h2>بيانات البرنامج التدريبي</h2><div class="line"></div></div>
+      <div class="section-head"><div class="section-num"><?= $toArabic(++$sectionNum) ?></div><h2>بيانات البرنامج التدريبي</h2><div class="line"></div></div>
       <div class="program-card">
         <div class="program-card-head">
           <h3><?php echo ($program->type ?? '') === 'workshop' ? 'الورشة التدريبية' : 'الدورة التدريبية'; ?></h3>
@@ -147,24 +155,34 @@ body{ margin:0; background:#fff; color:var(--text); font-size:11px;}
     <?php endif; ?>
 
     <div class="section">
-      <div class="section-head"><div class="section-num"><?php echo !empty($program) ? '٣' : '٢'; ?></div><h2>معايير التقييم</h2><div class="line"></div></div>
+      <div class="section-head"><div class="section-num"><?= $toArabic(++$sectionNum) ?></div><h2>معايير التقييم</h2><div class="line"></div></div>
       <?php foreach($template['criteria'] as $criterion): ?>
       <div class="criterion-card">
         <div class="criterion-head"><h3><i class="fas fa-tasks"></i> <?php echo htmlspecialchars($criterion['criterion_name']); ?></h3><span class="count"><?php echo count($criterion['sections']); ?> بنود</span></div>
-        <table class="eval-table"><thead><tr><th style="width:42%">عنصر التقييم</th><th>المستوى</th><th style="width:36%">ملاحظات</th></tr></thead><tbody>
+        <?php $descriptiveCourse = ($template['target_type'] ?? '') === 'employee_in_course' && ($template['evaluation_mode'] ?? '') === 'descriptive'; $levelHeader = $descriptiveCourse ? 'الوصف' : 'المستوى'; ?>
+        <table class="eval-table"><thead><tr><th style="width:32%">عنصر التقييم</th><th class="<?php echo $descriptiveCourse ? 'desc-th' : ''; ?>"><?php echo $levelHeader; ?></th><?php if (!$descriptiveCourse): ?><th style="width:28%">ملاحظات</th><?php endif; ?></tr></thead><tbody>
         <?php foreach($criterion['sections'] as $section): ?>
-          <?php $answer=$answers[$section['id']]??null; $display=null; $notes=''; $cls='badge-na';
+          <?php $answer=$answers[$section['id']]??null; $display=null; $notes=''; $cls='badge-na'; $sType=(string)($section['evaluation_type'] ?? ''); $isBadgeable = in_array($sType, ['grade','overall_grade','percentage','numeric','boolean','scale','multiple_choice'], true);
             if($answer){ if($section['evaluation_type']==='grade'){ $opts=json_decode($section['evaluation_options'],true); foreach($opts as $opt){ if((string)($opt['value']??'')===(string)$answer->raw_value || (string)($opt['label']??'')===(string)$answer->raw_value){ $display=$opt['label']; break; } } } else $display=$answer->raw_value; $notes=$answer->notes ?? ''; $low=strtolower((string)$display); if($display!==null && (strpos($low,'ممتاز')!==false || $display==='طبق' || $display==='قرأ' || $display==='رفع' || $display==='إلتزم')) $cls='badge-excellent'; elseif($display!==null && (strpos($low,'جيد')!==false || $display==='96' || $display==='91')) $cls='badge-good'; elseif($display==='—' || $display===null) $cls='badge-na'; else $cls='badge-average'; }
           ?>
-          <tr><td><?php echo htmlspecialchars($section['section_name']); ?></td><td><span class="badge <?php echo $cls; ?>"><?php echo htmlspecialchars($display ?? '—'); ?></span></td><td><?php echo $notes ? nl2br(htmlspecialchars($notes)) : '<span style="color:#cbd5e1;">—</span>'; ?></td></tr>
+          <tr><td><?php echo htmlspecialchars($section['section_name']); ?></td><td class="<?php echo $isBadgeable ? '' : 'text-plain'; ?>"><?php if ($display === null || $display === ''): ?><span class="badge badge-na">—</span><?php elseif ($isBadgeable): ?><span class="badge <?php echo $cls; ?>"><?php echo htmlspecialchars($display); ?></span><?php else: ?><div class="cell-plain"><?php echo nl2br(htmlspecialchars($display)); ?></div><?php endif; ?></td><?php if (!$descriptiveCourse): ?><td><?php echo $notes ? nl2br(htmlspecialchars($notes)) : '<span style="color:#cbd5e1;">—</span>'; ?></td><?php endif; ?></tr>
         <?php endforeach; ?>
         </tbody></table>
       </div>
       <?php endforeach; ?>
     </div>
 
+    <?php if (!empty($evaluation->notes)): ?>
     <div class="section">
-      <div class="section-head"><div class="section-num"><?php echo !empty($program) ? '٤' : '٣'; ?></div><h2>بيانات القائم بالتقييم</h2><div class="line"></div></div>
+      <div class="section-head"><div class="section-num"><?= $toArabic(++$sectionNum) ?></div><h2>ملاحظات ورأي المقيّم</h2><div class="line"></div></div>
+      <div class="program-card" style="padding:14px 18px;">
+        <div style="white-space:pre-wrap;font-size:11px;line-height:1.8;color:#1a2332;"><?php echo nl2br(htmlspecialchars((string)$evaluation->notes)); ?></div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <div class="section">
+      <div class="section-head"><div class="section-num"><?= $toArabic(++$sectionNum) ?></div><h2>بيانات القائم بالتقييم</h2><div class="line"></div></div>
       <div class="evaluator-card">
         <div class="eval-person"><div class="lbl"><i class="fas fa-user-tie"></i> الاسم</div><div class="val"><?php echo htmlspecialchars($evaluation->evaluator_name ?? $evaluator->full_name ?? 'غير محدد'); ?></div></div>
         <div class="eval-person"><div class="lbl"><i class="fas fa-award"></i> الصفة</div><div class="val"><?php echo htmlspecialchars($evaluation->evaluator_title ?? $evaluator->position_title ?? '—'); ?></div></div>
