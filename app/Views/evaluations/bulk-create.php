@@ -93,6 +93,10 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-matrix tbody tr:nth-child(even):hover{background:#f3f9f6;}
 .cd041-c-idx{width:34px;color:var(--cd041-muted);font-weight:700;}
 .cd041-c-emp{text-align:start !important;min-width:160px;max-width:220px;}
+.cd041-c-note{text-align:center !important;min-width:120px;max-width:180px;}
+.cd041-gen-note-btn{font-size:11px;padding:3px 7px;border:1px solid var(--cd041-border);border-radius:6px;background:#fff;cursor:pointer;color:var(--cd041-brand);}
+.cd041-gen-note-btn.has{background:#ecfdf5;border-color:#10b981;color:#065f46;}
+.cd041-gen-note-preview{display:block;font-size:9px;color:var(--cd041-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
 .cd041-c-emp .cd041-emp-name{font-weight:700;color:var(--cd041-brand);font-size:12px;}
 .cd041-c-emp .cd041-emp-meta{font-size:10px;color:var(--cd041-muted);margin-top:1px;}
 .cd041-c-score{width:62px;}
@@ -115,6 +119,8 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-notes-btn:hover{border-color:var(--cd041-gold);}
 .cd041-notes-btn.has{background:#fdf3e2;border-color:var(--cd041-gold);color:var(--cd041-brand);}
 .cd041-grade-sel{border:1px solid var(--cd041-border);border-radius:6px;padding:4px 6px;font-size:11px;font-family:'Cairo',sans-serif;background:#fff;max-width:100px;}
+/* CD-043 v44: قائمة تقدير داخل خلية القسم (مختلفة عن عمود «التقدير» النهائي) */
+.cd041-grade-mini{width:100%;max-width:92px;padding:3px 4px;}
 .cd041-grade-readonly{font-weight:700;color:var(--cd041-brand);font-size:12px;padding:4px 6px;display:inline-block;min-width:48px;}
 .cd041-score{font-weight:800;color:var(--cd041-brand);font-size:13px;}
 .cd041-score.low{color:var(--cd041-err);}
@@ -137,6 +143,19 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-modal-body{padding:18px;}
 .cd041-modal-body textarea{width:100%;min-height:140px;border:1px solid var(--cd041-border);border-radius:8px;padding:10px 12px;font-size:13px;font-family:'Cairo',sans-serif;resize:vertical;}
 .cd041-modal-body textarea:focus{outline:none;border-color:var(--cd041-gold);box-shadow:0 0 0 3px rgba(200,148,63,.15);}
+/* CD-043 v45: معاينة بصرية للتقييم الجماعي */
+.cd041-pv-modal{width:880px;}
+.cd041-pv-top{padding:12px 16px;background:#f5f8f6;border-bottom:1px solid var(--cd041-border);font-size:12px;color:var(--cd041-brand);}
+.cd041-pv-empty{padding:26px;text-align:center;color:var(--cd041-muted);font-size:13px;}
+.cd041-pv-emp{border:1px solid var(--cd041-border);border-radius:10px;padding:12px 14px;margin-bottom:12px;background:#fff;}
+.cd041-pv-emp-h{display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px dashed var(--cd041-border);padding-bottom:8px;margin-bottom:8px;}
+.cd041-pv-emp-n{font-weight:800;color:var(--cd041-brand);font-size:14px;}
+.cd041-pv-emp-m{font-size:11px;color:var(--cd041-muted);}
+.cd041-pv-crit{font-weight:700;color:var(--cd041-brand);font-size:12px;margin:10px 0 5px;border-inline-start:3px solid var(--cd041-gold);padding-inline-start:7px;}
+.cd041-pv-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:4px 0;border-bottom:1px solid #f0f3f1;}
+.cd041-pv-row span:last-child{font-weight:700;color:var(--cd041-brand);}
+.cd041-pv-note{font-size:11px;color:var(--cd041-muted);padding:3px 0 3px 8px;}
+.cd041-pv-total{margin-top:10px;padding:8px 10px;background:#f5f8f6;border-radius:7px;font-size:12px;font-weight:700;color:var(--cd041-brand);}
 .cd041-charcount{text-align:end;font-size:11px;color:var(--cd041-muted);margin-top:4px;}
 .cd041-modal-foot{padding:12px 18px;border-top:1px solid var(--cd041-border);display:flex;gap:10px;align-items:center;}
 .cd041-chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cd041-muted);cursor:pointer;}
@@ -188,6 +207,10 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
     .cd041-setup,.cd041-prog-grid,.cd041-qa-grid{grid-template-columns:1fr 1fr;}
     .cd041-summary{grid-template-columns:1fr 1fr;}
 }
+/* CD-043 v41: تلميح خفيف عند تقصّ القيمة إلى حد النطاق */
+.cd-range-hint{position:absolute;left:4px;top:100%;transform:translateY(3px);background:#fff8e1;color:#8a6100;border:1px solid #f0d68a;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;z-index:30;opacity:0;pointer-events:none;transition:opacity .25s;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.cd-range-hint.show{opacity:1}
+.cd-clamped{outline:2px solid #c8943f!important;outline-offset:1px}
 </style>
 
 <div class="cd041-wrap">
@@ -351,7 +374,7 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
     <!-- ============ Save bar ============ -->
     <div class="cd041-card cd041-savebar">
         <button type="button" class="cd041-btn cd041-btn-danger" onclick="cd041_reset()">تصفير الكل</button>
-        <button type="button" class="cd041-btn cd041-btn-ghost" onclick="cd041_preview()">معاينة الحمولة</button>
+        <button type="button" class="cd041-btn cd041-btn-ghost" onclick="cd041_preview()"><i class="fas fa-eye"></i> معاينة</button>
         <button type="button" class="cd041-btn cd041-btn-primary" id="cd041-savebtn" onclick="cd041_saveAll()"><i class="fas fa-save"></i> حفظ الكل</button>
         <span class="cd041-save-status" id="cd041-save-status"></span>
     </div>
@@ -398,6 +421,21 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
     </div>
 </div>
 
+<!-- ============ Visual preview modal (CD-043 v45) ============ -->
+<div class="cd041-modal-bg" id="cd041-preview-modal">
+    <div class="cd041-modal cd041-pv-modal">
+        <div class="cd041-modal-head">
+            <i class="fas fa-eye" style="color:var(--cd041-gold);"></i>
+            <h3>معاينة التقييمات</h3>
+            <button type="button" class="cd041-close" onclick="cd041_closePreview()">&times;</button>
+        </div>
+        <div class="cd041-modal-body" id="cd041-preview-body"></div>
+        <div class="cd041-modal-foot">
+            <button type="button" class="cd041-btn cd041-btn-primary" onclick="cd041_closePreview()">إغلاق</button>
+        </div>
+    </div>
+</div>
+
 <div class="cd041-toast" id="cd041-toast"></div>
 
 <script>
@@ -412,6 +450,7 @@ var cd041_template = null;        // full schema
 var cd041_columns  = [];          // flattened sections (excluding overall_grade)
 var cd041_employees = [];         // [{id, emp_code, full_name, branch_name, department_name, position_title}]
 var cd041_results  = {};          // {empId: {sectionId: {score, text, notes}}}
+var cd041_general_notes = {};     // v39: {empId: 'ملاحظة ورأي المقيم'} — مستقلة لكل موظف
 var cd041_final_grades = {};      // {empId: gradeId}
 var cd041_existing = {};          // {empId: evaluationId} for duplicate detection
 var cd041_state = {};             // {empId: {status, id, msg}}  (CD-042)
@@ -465,7 +504,7 @@ document.getElementById('cd041-template').addEventListener('change', function(){
                 cd041_columns.push(sec);
             });
         });
-        cd041_results = {}; cd041_final_grades = {}; cd041_existing = {};
+        cd041_results = {}; cd041_general_notes = {}; cd041_final_grades = {}; cd041_existing = {};
         var ctx = cd041_targetToContext(cd041_template.target_type);
         var pw = document.getElementById('cd041-prog-wrap');
         if(ctx){ pw.classList.add('open'); cd041_loadPrograms(ctx); }
@@ -641,7 +680,7 @@ function cd041_checkAllExisting(){
 }
 function cd041_removeEmployee(id){
     cd041_employees = cd041_employees.filter(function(e){return e.id!==id;});
-    delete cd041_results[id]; delete cd041_final_grades[id]; delete cd041_state[id]; delete cd041_existing[id];
+    delete cd041_results[id]; delete cd041_general_notes[id]; delete cd041_final_grades[id]; delete cd041_state[id]; delete cd041_existing[id];
     cd041_renderMatrix();
     cd041_markDirty();
 }
@@ -665,7 +704,7 @@ function cd041_quickAddEmployee(){
     fd.append('branch_id', document.getElementById('cd041-qa-emp-branch').value);
     fd.append('department_id', document.getElementById('cd041-qa-emp-dept').value);
     fd.append('_token', CD041_CSRF);
-    if(!fd.get('full_name')){ cd041_toast('أدخل الاسم','err'); return; }
+    if(!fd.get('full_name') && !fd.get('emp_code')){ cd041_toast('أدخل الاسم أو الرقم الوظيفي','err'); return; }
     fetch(CD041_APP_URL+'/api/employees/quick-add',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(res){
         if(res.success && res.employee){
             cd041_addEmployee(res.employee);
@@ -682,7 +721,7 @@ function cd041_quickAddEvaluator(){
     fd.append('branch_id', document.getElementById('cd041-qa-eval-branch').value);
     fd.append('department_id', document.getElementById('cd041-qa-eval-dept').value);
     fd.append('_token', CD041_CSRF);
-    if(!fd.get('full_name')){ cd041_toast('أدخل الاسم','err'); return; }
+    if(!fd.get('full_name') && !fd.get('emp_code')){ cd041_toast('أدخل الاسم أو الرقم الوظيفي','err'); return; }
     fetch(CD041_APP_URL+'/api/employees/quick-add',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(res){
         if(res.success && res.employee){
             cd041_evaluator_emp=res.employee;
@@ -722,6 +761,7 @@ function cd041_renderHead(){
         critHtml+
         '<th rowspan="2" class="cd041-c-score">النتيجة</th>'+
         '<th rowspan="2" class="cd041-c-grade">التقدير</th>'+
+        '<th rowspan="2" class="cd041-c-note">ملاحظة ورأي المقيم</th>'+
         '<th rowspan="2" class="cd041-c-status">الحالة</th>'+
         '<th rowspan="2" class="cd041-c-act"></th>';
     head.parentNode.insertBefore(critTr, head);
@@ -747,16 +787,35 @@ function cd041_cellHtml(col, empId){
         return ' <button type="button" class="cd041-notes-btn '+(has?'has':'')+'" onclick="cd041_openNotesModal('+empId+','+col.id+')" title="'+(isExisting?'محفوظ — عرض فقط':'ملاحظات')+'">📝</button>';
     };
     if(t==='percentage'){
-        var v=r.score||''; var pct=v!==''?Math.max(0,Math.min(100,parseFloat(v)||0)):0;
-        return '<input type="number" class="cd041-input-mini" min="0" max="100" step="1" value="'+cd041_esc(v)+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'pct\')"'+dis+'><div class="cd041-progress" id="cd041-bar-'+empId+'-'+col.id+'"><span style="width:'+pct+'%"></span></div>'+notesBtn();
+        // CD-043 v40: احترام نطاق القسم المئوي (الافتراضي 0..100)
+        var mn=(col.min_value===null||col.min_value===undefined||col.min_value==='')?0:parseFloat(col.min_value);
+        var mx=(col.max_value===null||col.max_value===undefined||col.max_value==='')?100:parseFloat(col.max_value);
+        if(isNaN(mn)) mn=0; if(isNaN(mx)) mx=100;
+        var v=r.score||''; var raw=v!==''?parseFloat(v):NaN;
+        var pct=(!isNaN(raw)&&mx>mn)?Math.max(0,Math.min(100,((raw-mn)/(mx-mn))*100)):0;
+        return '<input type="number" class="cd041-input-mini" min="'+mn+'" max="'+mx+'" step="1" value="'+cd041_esc(v)+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'pct\','+mn+','+mx+')"'+dis+'><div class="cd041-progress" id="cd041-bar-'+empId+'-'+col.id+'"><span style="width:'+pct+'%"></span></div>'+notesBtn();
     }
     if(t==='numeric'){
-        var mv=col.max_value||100;
-        return '<input type="number" class="cd041-input-mini" min="0" max="'+mv+'" step="0.5" value="'+cd041_esc(r.score||'')+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'num\')"'+dis+'>'+notesBtn();
+        // CD-043 v41: النumeric يحترم أيضاً min/max المضبوطين في المنشئ (كان min=0 ثابتاً)
+        var mn=(col.min_value===null||col.min_value===undefined||col.min_value==='')?0:parseFloat(col.min_value);
+        var mx=(col.max_value===null||col.max_value===undefined||col.max_value==='')?100:parseFloat(col.max_value);
+        if(isNaN(mn)) mn=0; if(isNaN(mx)) mx=100;
+        return '<input type="number" class="cd041-input-mini" min="'+mn+'" max="'+mx+'" step="0.5" value="'+cd041_esc(r.score||'')+'" oninput="cd041_onNum(this,'+empId+','+col.id+',\'num\','+mn+','+mx+')"'+dis+'>'+notesBtn();
     }
     if(t==='boolean'){
         var on = r.score==='1', off = r.score==='0';
         return '<div class="cd041-bool"><button type="button" class="'+(on?'on-yes':'')+'" onclick="cd041_onBool('+empId+','+col.id+',1,this)"'+dis+'>نعم</button><button type="button" class="'+(off?'on-no':'')+'" onclick="cd041_onBool('+empId+','+col.id+',0,this)"'+dis+'>لا</button></div>'+notesBtn();
+    }
+    if(t==='grade'){
+        // CD-043 v44: كانت خلية التقدير تُعرض فارغة → الصف لا يكتمل أبداً ولا تظهر النتيجة.
+        var opts='<option value="">— اختر —</option>';
+        (col.options||[]).forEach(function(o){
+            var ov=(o&&typeof o==='object')?o.value:o;
+            var lbl=(o&&typeof o==='object')?o.label:o;
+            var sel=(r.score!==undefined&&String(ov)===String(r.score))?' selected':'';
+            opts+='<option value="'+cd041_esc(ov)+'"'+sel+'>'+cd041_esc(lbl)+'</option>';
+        });
+        return '<select class="cd041-grade-sel cd041-grade-mini" onchange="cd041_onGrade('+empId+','+col.id+',this.value)"'+dis+'>'+opts+'</select>'+notesBtn();
     }
     if(t==='textarea'){
         var has = r.text && r.text.trim();
@@ -773,6 +832,12 @@ function cd041_gradeCellHtml(empId){
         return '<select class="cd041-grade-sel" onchange="cd041_onFinalGrade('+empId+',this.value)"'+(isEx?' disabled':'')+'>'+opts+'</select>';
     }
     return '<span class="cd041-grade-readonly" id="cd041-grade-'+empId+'">-</span>';
+}
+function cd041_generalNoteHtml(empId){
+    var note=cd041_general_notes[empId]||'';
+    var has=note.trim()?true:false;
+    var locked=!!cd041_existing[empId];
+    return '<button type="button" class="cd041-gen-note-btn '+(has?'has':'')+'" onclick="cd041_openGeneralNoteModal('+empId+')" title="'+(locked?'عرض فقط':'ملاحظة ورأي المقيم')+'">📝 '+(has?'معدّلة':'إضافة')+'</button>'+(has?'<span class="cd041-gen-note-preview" title="'+cd041_esc(note)+'">'+cd041_esc(note.slice(0,24))+'</span>':'');
 }
 function cd041_renderMatrix(){
     cd041_renderHead();
@@ -804,6 +869,7 @@ function cd041_renderMatrix(){
             cd041_columns.forEach(function(col){ rows+='<td>'+cd041_cellHtml(col,emp.id)+'</td>'; });
             rows+='<td class="cd041-c-score"><span class="cd041-score" id="cd041-score-'+emp.id+'">-</span></td>';
             rows+='<td class="cd041-c-grade">'+cd041_gradeCellHtml(emp.id)+'</td>';
+            rows+='<td class="cd041-c-note">'+cd041_generalNoteHtml(emp.id)+'</td>';
             rows+='<td class="cd041-c-status"><span class="cd041-status empty" id="cd041-status-'+emp.id+'">فارغ</span></td>';
         }
         rows+='<td class="cd041-c-act"><button type="button" class="cd041-remove" title="حذف" onclick="cd041_removeEmployee('+emp.id+')"><i class="fas fa-times"></i></button></td>';
@@ -823,16 +889,48 @@ function cd041_setResult(empId, secId, key, val){
 function cd041_delResult(empId, secId, key){
     if(cd041_results[empId] && cd041_results[empId][secId]){ delete cd041_results[empId][secId][key]; if(!cd041_results[empId][secId].score && !cd041_results[empId][secId].text && !cd041_results[empId][secId].notes) delete cd041_results[empId][secId]; }
 }
-function cd041_onNum(el, empId, secId, kind){
+/* CD-043 v41: تلميح خفيف داخل خلية الجدول (لا يغيّر ارتفاع الصف) */
+function cd041_rangeHint(input,lo,hi,value){
+    var host=input.parentElement; if(!host) return;
+    host.style.position='relative';
+    var hint=host.querySelector('.cd-range-hint');
+    if(!hint){ hint=document.createElement('span'); hint.className='cd-range-hint'; host.appendChild(hint); }
+    var isMin=parseFloat(value)<=parseFloat(lo), edge=isMin?lo:hi;
+    hint.textContent='ⓘ الحد '+(isMin?'الأدنى ':'الأقصى ')+String(edge);
+    hint.classList.add('show'); input.classList.add('cd-clamped');
+    clearTimeout(input._cdRangeTimer);
+    input._cdRangeTimer=setTimeout(function(){hint.classList.remove('show');input.classList.remove('cd-clamped');},2200);
+}
+function cd041_onNum(el, empId, secId, kind, mn, mx){
     var v=el.value;
     if(v===''){ cd041_delResult(empId,secId,'score'); }
-    else { var n=parseFloat(v); if(isNaN(n)) return; if(kind==='pct') n=Math.max(0,Math.min(100,n)); cd041_setResult(empId,secId,'score',String(n)); if(kind==='pct'){ var bar=document.getElementById('cd041-bar-'+empId+'-'+secId); if(bar){ bar.querySelector('span').style.width=Math.max(0,Math.min(100,n))+'%'; } } }
+    else {
+        var n=parseFloat(v); if(isNaN(n)) return;
+        mn=(mn===undefined||mn===null||isNaN(parseFloat(mn)))?0:parseFloat(mn);
+        mx=(mx===undefined||mx===null||isNaN(parseFloat(mx)))?100:parseFloat(mx);
+        // CD-043 v41: تقصّ فوري مع إعادة الكتابة داخل الخلية — العرض = المخزن
+        if(mx>mn){
+            var c=Math.max(mn,Math.min(mx,n));
+            if(c!==n){ n=c; el.value=String(n); cd041_rangeHint(el,mn,mx,n); }
+        }
+        cd041_setResult(empId,secId,'score',String(n));
+        if(kind==='pct'){
+            var bar=document.getElementById('cd041-bar-'+empId+'-'+secId);
+            if(bar){ bar.querySelector('span').style.width=((mx>mn)?Math.max(0,Math.min(100,((n-mn)/(mx-mn))*100)):0)+'%'; }
+        }
+    }
     cd041_updateRow(empId);
 }
 function cd041_onBool(empId, secId, val, btn){
     cd041_setResult(empId,secId,'score',val?'1':'0');
     var wrap=btn.parentNode; [].forEach.call(wrap.querySelectorAll('button'),function(b){b.className='';});
     btn.className = val?'on-yes':'on-no';
+    cd041_updateRow(empId);
+}
+/* CD-043 v44: اختيار تقدير داخل خلية القسم يُخزَّن كقيمة الخيار الرقمية (مطابق لـ Evaluation.php) */
+function cd041_onGrade(empId, secId, val){
+    if(val==='') cd041_delResult(empId,secId,'score');
+    else cd041_setResult(empId,secId,'score',String(val));
     cd041_updateRow(empId);
 }
 function cd041_onFinalGrade(empId, val){
@@ -845,12 +943,25 @@ function cd041_onFinalGrade(empId, val){
 function cd041_norm(sec, r){
     if(!r) return null;
     var t=cd041_type(sec.type||sec.evaluation_type);
-    if(t==='textarea') return null;
+    if(t==='textarea'||t==='text'||t==='overall_grade') return null;
     if(t==='boolean'){ return r.score==='1'?100:(r.score==='0'?0:null); }
+    if(t==='grade'){
+        // قيمة الخيار هي الدرجة مباشرة (لا تُمرَّر عبر min/max مثل النumeric/النسبة).
+        var raw=r.score, opts=sec.options||[];
+        for(var i=0;i<opts.length;i++){
+            var o=opts[i]; var ov=(o&&typeof o==='object')?o.value:o;
+            if(String(ov)===String(raw)){ var gv=parseFloat(ov); return isNaN(gv)?null:gv; }
+        }
+        var direct=parseFloat(raw); return isNaN(direct)?null:direct;
+    }
     var v=parseFloat(r.score); if(isNaN(v)) return null;
-    if(t==='percentage') return Math.max(0,Math.min(100,v));
-    var max=parseFloat(sec.max_value)||100; if(max<=0) return null;
-    return Math.max(0,Math.min(100,(v/max)*100));
+    // CD-043 v40: النسبة المئوية تستخدم نطاقها المخصص (الافتراضي 0..100) مثل النumeric تماماً
+    var min=sec.min_value, max=sec.max_value;
+    min=(min===null||min===undefined||min==='')?0:parseFloat(min);
+    max=(max===null||max===undefined||max==='')?100:parseFloat(max);
+    if(isNaN(min)) min=0; if(isNaN(max)) max=100;
+    if(max<=min) return 0; // مطابق لـ Evaluation.php: لا تحويل عند نطاق غير صالح
+    return Math.max(0,Math.min(100,((v-min)/(max-min))*100));
 }
 function cd041_calcScore(empId){
     if(!cd041_template) return null;
@@ -869,11 +980,15 @@ function cd041_calcScore(empId){
     (cd041_template.criteria||[]).forEach(function(crit){
         var cw=parseFloat(crit.weight)||0; var sum=0, wsum=0;
         (crit.sections||[]).forEach(function(sec){
-            if(cd041_type(sec.type||sec.evaluation_type)==='overall_grade') return;
+            var t=cd041_type(sec.type||sec.evaluation_type);
+            if(t==='overall_grade'||t==='textarea'||t==='text') return;
             var sw=parseFloat(sec.weight)||0;
             var r=(cd041_results[empId]||{})[sec.id];
             var n=cd041_norm(sec,r);
-            if(n!==null){ sum+=n*sw; wsum+=sw; }
+            // CD-043 v40: الإجابة الغائبة تُحفظ 0 في الخادم — لا تُستبعد من المقام،
+            // وإلا تضخّم المعاينة عند غياب أقسام غير مرسومة (مثل grade في الوضع الرقمي).
+            if(n===null) n=0;
+            sum+=n*sw; wsum+=sw;
         });
         if(wsum>0){ total += (sum/wsum)*cw; cwUsed+=cw; }
     });
@@ -950,7 +1065,7 @@ function cd041_openNotesModal(empId, secId){
     document.getElementById('cd041-modal-meta').textContent = 'الموظف: '+emp.full_name+' ('+emp.emp_code+')';
     var r=(cd041_results[empId]||{})[secId]||{};
     var ph = col.notes_placeholder || 'اكتب ملاحظاتك هنا...';
-    var ta=document.getElementById('cd041-modal-text'); ta.value=r.notes||'';
+    var ta=document.getElementById('cd041-modal-text'); ta.value=r.notes||''; ta.maxLength=2000;
     var locked = !!cd041_existing[empId]; // CD-042: صف محفوظ/موجود → عرض فقط
     ta.readOnly = locked;
     var sbtn = document.getElementById('cd041-modal-save');
@@ -969,11 +1084,28 @@ function cd041_openTextModal(empId, secId){
     document.getElementById('cd041-modal-title').textContent = 'إدخال نصي: '+cd041_short(col.name,30);
     document.getElementById('cd041-modal-meta').textContent = 'الموظف: '+emp.full_name+' ('+emp.emp_code+')';
     var r=(cd041_results[empId]||{})[secId]||{};
-    var ta=document.getElementById('cd041-modal-text'); ta.value=r.text||''; ta.readOnly=false;
+    var ta=document.getElementById('cd041-modal-text'); ta.value=r.text||''; ta.readOnly=false; ta.maxLength=2000;
     var sbtn = document.getElementById('cd041-modal-save'); if(sbtn) sbtn.style.display='';
     document.getElementById('cd041-modal-cc').textContent=ta.value.length+'/2000';
     document.getElementById('cd041-modal-all-wrap').style.display='';
     document.getElementById('cd041-modal-all').checked=false;
+    document.getElementById('cd041-modal').classList.add('open'); ta.focus();
+}
+function cd041_openGeneralNoteModal(empId){
+    var emp=cd041_employees.filter(function(e){return e.id===empId;})[0];
+    if(!emp) return;
+    cd041_modal_ctx={empId:empId, mode:'general_note'};
+    document.getElementById('cd041-modal-title').textContent='ملاحظة ورأي المقيم';
+    document.getElementById('cd041-modal-meta').textContent='الموظف: '+emp.full_name+' ('+emp.emp_code+')';
+    var ta=document.getElementById('cd041-modal-text');
+    ta.value=cd041_general_notes[empId]||'';
+    ta.maxLength=4000;
+    ta.placeholder='اكتب ملاحظتك العامة ورأيك في تقييم هذا الموظف...';
+    var locked=!!cd041_existing[empId];
+    ta.readOnly=locked;
+    var sbtn=document.getElementById('cd041-modal-save'); if(sbtn) sbtn.style.display=locked?'none':'';
+    document.getElementById('cd041-modal-cc').textContent=ta.value.length+'/4000';
+    document.getElementById('cd041-modal-all-wrap').style.display='none'; // ملاحظة كل موظف مستقلة
     document.getElementById('cd041-modal').classList.add('open'); ta.focus();
 }
 function cd041_closeModal(){ document.getElementById('cd041-modal').classList.remove('open'); cd041_modal_ctx=null; }
@@ -1001,6 +1133,11 @@ function cd041_saveModal(){
             cd041_setResult(ctx.empId, ctx.secId, 'notes', nts);
             cd041_updateRow(ctx.empId);
         }
+        cd041_renderMatrix();
+    } else if(ctx.mode==='general_note'){
+        var gn=document.getElementById('cd041-modal-text').value.trim().slice(0,4000);
+        if(gn===''){ delete cd041_general_notes[ctx.empId]; }
+        else { cd041_general_notes[ctx.empId]=gn; }
         cd041_renderMatrix();
     } else if(ctx.mode==='preview'){
         cd041_closeModal();
@@ -1033,6 +1170,15 @@ function cd041_fillDefault(){
             if(t==='percentage'){ cd041_setResult(emp.id,col.id,'score','100'); }
             else if(t==='numeric'){ cd041_setResult(emp.id,col.id,'score',String(col.max_value||100)); }
             else if(t==='boolean'){ cd041_setResult(emp.id,col.id,'score','1'); }
+            else if(t==='grade'){
+                // أعلى قيمة خيار = الدرجة الكاملة (مثلاً «جيد» = 100).
+                var best=null,bv=-Infinity;
+                (col.options||[]).forEach(function(o){
+                    var ov=(o&&typeof o==='object')?o.value:o; var nv=parseFloat(ov);
+                    if(!isNaN(nv)&&nv>bv){ bv=nv; best=ov; }
+                });
+                if(best!==null) cd041_setResult(emp.id,col.id,'score',String(best));
+            }
         });
     });
     cd041_renderMatrix();
@@ -1055,14 +1201,14 @@ function cd041_applyGradeToAll(){
 function cd041_clearAll(){
     if(!cd041_employees.length){ return; }
     if(!confirm('تفريغ كل النتائج؟')) return;
-    cd041_employees.forEach(function(emp){ cd041_results[emp.id]={}; cd041_final_grades[emp.id]=null; });
+    cd041_employees.forEach(function(emp){ cd041_results[emp.id]={}; delete cd041_general_notes[emp.id]; cd041_final_grades[emp.id]=null; });
     cd041_renderMatrix();
     cd041_markDirty();
     cd041_toast('تم التفريغ','ok');
 }
 function cd041_reset(){
     if(!confirm('تصفير الكل سيحذف الموظفين والنتائج. متابعة؟')) return;
-    cd041_employees=[]; cd041_results={}; cd041_final_grades={}; cd041_program=null;
+    cd041_employees=[]; cd041_results={}; cd041_general_notes={}; cd041_final_grades={}; cd041_program=null;
     document.getElementById('cd041-prog-info').classList.remove('open');
     document.getElementById('cd041-program').value='';
     cd041_renderMatrix();
@@ -1090,7 +1236,7 @@ function cd041_buildPayload(){
         if(cd041_template && (cd041_template.evaluation_mode==='numeric'||cd041_template.evaluation_mode==='mixed')){
             var g=cd041_deriveGrade(cd041_calcScore(emp.id)); finalGradeId = g?g.id:null;
         }
-        return {employee_id: emp.id, results: res, final_grade_id: finalGradeId};
+        return {employee_id: emp.id, results: res, final_grade_id: finalGradeId, evaluator_notes: cd041_general_notes[emp.id]||''};
     });
     return {
         _token: CD041_CSRF,
@@ -1105,16 +1251,52 @@ function cd041_buildPayload(){
 }
 
 /* ===== preview & save ===== */
+/* CD-043 v45/v46: معاينة بصرية فقط — لا عرض لحمولة JSON */
+function cd041_previewValue(sec, r){
+    r=r||{}; var t=cd041_type(sec.type||sec.evaluation_type);
+    if(r.score===undefined||r.score===null||r.score==='') return '—';
+    if(t==='textarea') return r.text||'—';
+    if(t==='boolean') return r.score==='1'?'نعم':(r.score==='0'?'لا':'—');
+    if(t==='grade'){
+        var opts=sec.options||[];
+        for(var i=0;i<opts.length;i++){ var o=opts[i]; var ov=(o&&typeof o==='object')?o.value:o; if(String(ov)===String(r.score)) return (o&&typeof o==='object'&&o.label)?o.label:String(ov); }
+        return String(r.score);
+    }
+    return String(r.score)+(t==='percentage'?'٪':'');
+}
+function cd041_closePreview(){ document.getElementById('cd041-preview-modal').classList.remove('open'); }
 function cd041_preview(){
     if(!cd041_template){ cd041_toast('اختر القالب','err'); return; }
     var p=cd041_buildPayload();
-    cd041_modal_ctx={mode:'preview'};
-    document.getElementById('cd041-modal-title').textContent='معاينة الحمولة (JSON)';
-    document.getElementById('cd041-modal-meta').textContent='عدد التقييمات: '+p.evaluations.length+' · القالب: '+cd041_template.id;
-    var ta=document.getElementById('cd041-modal-text'); ta.value=JSON.stringify(p,null,2); ta.readOnly=true;
-    document.getElementById('cd041-modal-cc').textContent=ta.value.length+' حرف';
-    document.getElementById('cd041-modal-all-wrap').style.display='none';
-    document.getElementById('cd041-modal').classList.add('open');
+    var html='<div class="cd041-pv-top">القالب: '+cd041_esc(cd041_template.template_name||cd041_template.id)+
+             ' · التاريخ: '+cd041_esc(p.evaluation_date||'—')+
+             ' · المقيّم: '+cd041_esc(p.evaluator_name||'—')+(p.evaluator_title?' — '+cd041_esc(p.evaluator_title):'')+
+             ' · عدد التقييمات: '+p.evaluations.length+'</div>';
+    if(!p.evaluations.length){
+        html+='<div class="cd041-pv-empty">لا توجد تقييمات بعد. أضف موظفين من مربع «بحث وإضافة موظف» ثم افتح المعاينة مرة أخرى.</div>';
+    } else {
+        p.evaluations.forEach(function(ev){
+            var emp=cd041_employees.filter(function(e){return String(e.id)===String(ev.employee_id);})[0]||{};
+            html+='<div class="cd041-pv-emp"><div class="cd041-pv-emp-h"><span class="cd041-pv-emp-n">'+cd041_esc(emp.full_name||('موظف #'+ev.employee_id))+'</span>'+
+                  '<span class="cd041-pv-emp-m">'+cd041_esc(emp.emp_code||'')+(emp.branch_name?' · '+cd041_esc(emp.branch_name):'')+'</span></div>';
+            (cd041_template.criteria||[]).forEach(function(crit){
+                var secs=(crit.sections||[]).filter(function(sec){return cd041_type(sec.type||sec.evaluation_type)!=='overall_grade';});
+                if(!secs.length) return;
+                html+='<div class="cd041-pv-crit">'+cd041_esc(crit.name||crit.criterion_name||'')+' ('+cd041_esc(crit.weight||crit.criterion_weight||0)+'%)</div>';
+                secs.forEach(function(sec){
+                    var r=ev.results[sec.id]||{};
+                    html+='<div class="cd041-pv-row"><span>'+cd041_esc(sec.name||'')+'</span><span>'+cd041_esc(cd041_previewValue(sec,r))+'</span></div>';
+                    if(r.notes) html+='<div class="cd041-pv-note">📝 '+cd041_esc(r.notes)+'</div>';
+                });
+            });
+            var sc=cd041_calcScore(emp.id), g=cd041_deriveGrade(sc);
+            html+='<div class="cd041-pv-total">النتيجة: '+(sc===null?'—':cd041_esc(sc))+' · التقدير: '+cd041_esc(g?g.label:'—')+'</div>';
+            if(ev.evaluator_notes) html+='<div class="cd041-pv-note">ملاحظة ورأي المقيم: '+cd041_esc(ev.evaluator_notes)+'</div>';
+            html+='</div>';
+        });
+    }
+    document.getElementById('cd041-preview-body').innerHTML=html;
+    document.getElementById('cd041-preview-modal').classList.add('open');
 }
 var cd041_saving = false;
 function cd041_saveAll(){
@@ -1173,7 +1355,7 @@ function cd041_saveAll(){
             if(cd041_template && (cd041_template.evaluation_mode==='numeric'||cd041_template.evaluation_mode==='mixed')){
                 var g=cd041_deriveGrade(cd041_calcScore(emp.id)); finalGradeId = g?g.id:null;
             }
-            return {employee_id: emp.id, results: res, final_grade_id: finalGradeId};
+            return {employee_id: emp.id, results: res, final_grade_id: finalGradeId, evaluator_notes: cd041_general_notes[emp.id]||''};
         });
         var payload={
             _token: CD041_CSRF,
@@ -1326,8 +1508,8 @@ function cd041_newBatch(){
 /* undo reset */
 var cd041_resetSnapshot=null, cd041_undoTimer=null;
 function cd041_reset(){
-    cd041_resetSnapshot = { employees: cd041_employees.slice(), results: JSON.parse(JSON.stringify(cd041_results)), grades: JSON.parse(JSON.stringify(cd041_final_grades)), state: JSON.parse(JSON.stringify(cd041_state)), existing: JSON.parse(JSON.stringify(cd041_existing)) };
-    cd041_employees=[]; cd041_results={}; cd041_final_grades={}; cd041_state={}; cd041_existing={};
+    cd041_resetSnapshot = { employees: cd041_employees.slice(), results: JSON.parse(JSON.stringify(cd041_results)), generalNotes: JSON.parse(JSON.stringify(cd041_general_notes)), grades: JSON.parse(JSON.stringify(cd041_final_grades)), state: JSON.parse(JSON.stringify(cd041_state)), existing: JSON.parse(JSON.stringify(cd041_existing)) };
+    cd041_employees=[]; cd041_results={}; cd041_general_notes={}; cd041_final_grades={}; cd041_state={}; cd041_existing={};
     cd041_renderMatrix(); cd041_updateSummary();
     cd041_dirty=false; cd041_clearDraft();
     var u=document.getElementById('cd041-undo'); if(u){ u.classList.add('show'); }
@@ -1338,6 +1520,7 @@ function cd041_undoReset(){
     if(!cd041_resetSnapshot) return;
     cd041_employees=cd041_resetSnapshot.employees;
     cd041_results=cd041_resetSnapshot.results;
+    cd041_general_notes=cd041_resetSnapshot.generalNotes||{};
     cd041_final_grades=cd041_resetSnapshot.grades;
     cd041_state=cd041_resetSnapshot.state;
     cd041_existing=cd041_resetSnapshot.existing;
@@ -1355,7 +1538,7 @@ function cd041_saveDraft(){
         var pending = cd041_employees.some(function(emp){ var st=(cd041_state[emp.id]||{}).status; return !st||st==='pending'||st==='error'; });
         if(!cd041_employees.length || !pending){ cd041_clearDraft(); return; }
         var key = cd041_draftKey();
-        var data = { employees: cd041_employees, results: cd041_results, grades: cd041_final_grades, state: cd041_state, existing: cd041_existing, evaluator: document.getElementById('cd041-evaluator').value, title: document.getElementById('cd041-evaluator-title').value, date: document.getElementById('cd041-date').value, template: cd041_template?cd041_template.id:null };
+        var data = { employees: cd041_employees, results: cd041_results, generalNotes: cd041_general_notes, grades: cd041_final_grades, state: cd041_state, existing: cd041_existing, evaluator: document.getElementById('cd041-evaluator').value, title: document.getElementById('cd041-evaluator-title').value, date: document.getElementById('cd041-date').value, template: cd041_template?cd041_template.id:null };
         localStorage.setItem(key, JSON.stringify(data));
         // إزالة المسودات القديمة (تاريخ/قالب سابق) — best-effort
         Object.keys(localStorage).forEach(function(k){ if(k.indexOf('cd041_draft_')===0 && k!==key) localStorage.removeItem(k); });
@@ -1367,7 +1550,7 @@ function cd041_restoreDraft(){
         var d = JSON.parse(raw);
         if(!d || !d.employees || !d.employees.length) return;
         if(!confirm('تم العثور على مسودة غير محفوظة. استعادتها؟')) { cd041_clearDraft(); return; }
-        cd041_employees = d.employees; cd041_results = d.results||{}; cd041_final_grades = d.grades||{}; cd041_state = d.state||{}; cd041_existing = d.existing||{};
+        cd041_employees = d.employees; cd041_results = d.results||{}; cd041_general_notes = d.generalNotes||{}; cd041_final_grades = d.grades||{}; cd041_state = d.state||{}; cd041_existing = d.existing||{};
         if(d.evaluator) document.getElementById('cd041-evaluator').value = d.evaluator;
         if(d.title) document.getElementById('cd041-evaluator-title').value = d.title;
         cd041_renderMatrix(); cd041_updateSummary();

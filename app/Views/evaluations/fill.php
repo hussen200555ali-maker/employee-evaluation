@@ -58,11 +58,11 @@ function cd039_render_section($section, $criterion_id, $savedAnswers, $gradingSc
 
     switch($type){
         case 'percentage':
-            $out .= '<div class="cd039-perc"><div class="piw"><input type="number" class="cd039-eval cd039-score" data-max="'.$mv.'" name="'.$name.'[score]" min="0" max="'.$mv.'" step="1" placeholder="أدخل النسبة" value="'.cd039_esc($raw).'" oninput="cd039_updateBar(this);cd039_calc()"><span class="sign">٪</span></div><div class="ptr"><div class="pfill" style="width:'.cd039_esc($raw !== '' ? min(100,(float)$raw) : 0).'%"></div></div></div>';
-            $out .= '<div class="cd039-scale"><span>٠</span><span>'.cd039_arabic_num((int)round($mv/2)).'</span><span>'.cd039_arabic_num($mv).'</span></div>';
+            $out .= '<div class="cd039-perc"><div class="piw"><input type="number" class="cd039-eval cd039-score" data-max="'.$mv.'" data-min="'.$mn.'" name="'.$name.'[score]" min="'.$mn.'" max="'.$mv.'" step="1" placeholder="أدخل النسبة" value="'.cd039_esc($raw).'" oninput="cd039_clampInput(this);cd039_updateBar(this);cd039_calc()"><span class="sign">٪</span></div><div class="ptr"><div class="pfill" style="width:'.cd039_esc($raw !== '' && $mv>$mn ? max(0,min(100,(((float)$raw-$mn)/($mv-$mn))*100)) : 0).'%"></div></div></div>';
+            $out .= '<div class="cd039-scale"><span>'.cd039_arabic_num($mn).'</span><span>'.cd039_arabic_num((int)round(($mn+$mv)/2)).'</span><span>'.cd039_arabic_num($mv).'</span></div>';
             break;
         case 'numeric':
-            $out .= '<div class="cd039-num"><input type="number" class="cd039-eval cd039-score" data-max="'.$mv.'" name="'.$name.'[score]" min="'.$mn.'" max="'.$mv.'" step="1" placeholder="أدخل الدرجة" value="'.cd039_esc($raw).'" oninput="cd039_calc()"><span class="nmax">من '.cd039_arabic_num($mv).'</span></div>';
+            $out .= '<div class="cd039-num"><input type="number" class="cd039-eval cd039-score" data-max="'.$mv.'" data-min="'.$mn.'" name="'.$name.'[score]" min="'.$mn.'" max="'.$mv.'" step="1" placeholder="أدخل الدرجة" value="'.cd039_esc($raw).'" oninput="cd039_clampInput(this);cd039_calc()"><span class="nmax">من '.cd039_arabic_num($mn).' إلى '.cd039_arabic_num($mv).'</span></div>';
             break;
         case 'grade':
             $opts = is_string($section['evaluation_options'] ?? '') ? json_decode($section['evaluation_options']) : ($section['evaluation_options'] ?? []);
@@ -75,7 +75,7 @@ function cd039_render_section($section, $criterion_id, $savedAnswers, $gradingSc
                     $optsHtml .= '<option value="'.cd039_esc($val).'" '.$sel.'>'.cd039_esc($lbl).'</option>';
                 }
             }
-            $out .= '<div class="cd039-grade"><select class="cd039-eval" name="'.$name.'[score]"><option value="">— اختر التقدير —</option>'.$optsHtml.'</select></div>';
+            $out .= '<div class="cd039-grade"><select class="cd039-eval" name="'.$name.'[score]" onchange="cd039_calc()"><option value="">— اختر التقدير —</option>'.$optsHtml.'</select></div>';
             break;
         case 'boolean':
             $yesChk = ($raw === '1' || $raw === 1) ? 'sel-yes' : '';
@@ -130,6 +130,16 @@ function cd039_render_section($section, $criterion_id, $savedAnswers, $gradingSc
     return $out;
 }
 $cd039_global_gradingScales = $gradingScales ?? [];
+// CD-043 v40: نفس مصدر التسمية المستخدم في Evaluation::updateScoreAndStatus()
+$cd039_grading_json = [];
+foreach ($cd039_global_gradingScales as $gs) {
+    $cd039_grading_json[] = [
+        'scale_name'  => $gs->scale_name ?? '',
+        'grade_label' => $gs->grade_label ?? '',
+        'min_value'   => (float)($gs->min_value ?? 0),
+        'max_value'   => (float)($gs->max_value ?? 0),
+    ];
+}
 $cd039_global_template_mode = $template['evaluation_mode'] ?? 'numeric';
 // patch: overall_grade needs template mode inside the function — pass via closure var
 ?>
@@ -239,7 +249,7 @@ endforeach;
       <div class="cd039-ev-field"><label>اسم المُقيِّم <span class="cd039-req">*</span></label><input type="text" name="evaluator_name" value="<?= cd039_esc($evaluation->evaluator_name ?? '') ?>" placeholder="الاسم الكامل" required></div>
       <div class="cd039-ev-field"><label>صفة المُقيِّم</label><input type="text" name="evaluator_title" value="<?= cd039_esc($evaluation->evaluator_title ?? '') ?>" placeholder="مدير مباشر / مشرف"></div>
       <div class="cd039-ev-field"><label>تاريخ التقييم <span class="cd039-req">*</span></label><input type="date" name="evaluation_date" value="<?= cd039_esc($evaluation->evaluation_date ?? date('Y-m-d')) ?>" required></div>
-      <div class="cd039-ev-field full"><label>ملاحظات المُقيِّم العامة</label><textarea name="evaluator_notes" rows="3" placeholder="ملاحظات شاملة عن أداء الموظف..."></textarea></div>
+      <div class="cd039-ev-field full"><label>ملاحظة ورأي المقيم</label><textarea name="evaluator_notes" rows="3" maxlength="4000" placeholder="اكتب ملاحظتك العامة ورأيك في هذا التقييم..."><?= cd039_esc($evaluation->notes ?? '') ?></textarea></div>
     </div>
   </div>
 </div>
@@ -351,46 +361,99 @@ endforeach;
 .cd039-btn-l{background:#e8e8e8;color:#6c757d}
 .cd039-req{color:#c8943f;font-weight:800}
 @media(max-width:768px){.cd039-info-grid,.cd039-pi-grid,.cd039-ev-grid{grid-template-columns:1fr}.cd039-perc{flex-wrap:wrap}.cd039-perc .ptr{flex-basis:100%}.cd039-grade select,.cd039-overall-inline select{max-width:100%}}
+/* CD-043 v41: تلميح خفيف عند تقصّ القيمة إلى حد النطاق */
+.cd-range-hint{position:absolute;left:4px;top:100%;transform:translateY(3px);background:#fff8e1;color:#8a6100;border:1px solid #f0d68a;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;z-index:20;opacity:0;pointer-events:none;transition:opacity .25s;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.cd-range-hint.show{opacity:1}
+.cd-clamped{outline:2px solid #c8943f!important;outline-offset:1px}
 </style>
 
 <script>
 const evaluationTemplate = <?php echo json_encode($template, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK); ?>;
+const CD039_GRADING_JSON = <?php echo json_encode($cd039_grading_json, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK); ?>;
 function cd039_arabic_num(n){return String(n).replace(/[0-9]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'[+d];});}
 function cd039_grade_text(s){if(s>=90)return 'ممتاز';if(s>=80)return 'جيد جدًا';if(s>=70)return 'جيد';if(s>=60)return 'مقبول';return s>0?'ضعيف':'—';}
-
-function cd039_calc(){
-  // aggregate per-criterion and total
-  var critScores = {};
-  evaluationTemplate.criteria.forEach(function(c){ critScores[c.id] = {sum:0, n:0, weight: parseFloat(c.criterion_weight)||0}; });
-  var totalSum=0, totalN=0;
-  document.querySelectorAll('.cd039-score').forEach(function(inp){
-    var field = inp.closest('.cd039-field');
-    if(!field) return;
-    var sid = field.dataset.sectionId, cid = field.dataset.criterionId;
-    var v = parseFloat(inp.value)||0;
-    var max = parseFloat(inp.getAttribute('data-max'))||100;
-    if(max>0){
-      var norm = (v/max)*100;
-      if(critScores[cid]){ critScores[cid].sum += norm; critScores[cid].n++; }
-      totalSum += norm; totalN++;
+function cd039_grade_from_scale(s){
+  var score=parseFloat(s); if(isNaN(score)) return '—';
+  var rows=CD039_GRADING_JSON||[];
+  function within(g){var mn=parseFloat(g.min_value),mx=parseFloat(g.max_value);return !isNaN(mn)&&!isNaN(mx)&&score>=mn&&score<=mx;}
+  var preferred=rows.filter(function(g){return String(g.scale_name||'')==='السلم الخماسي'&&within(g);});
+  var pool=preferred.length?preferred:rows.filter(within);
+  return pool.length?pool[0].grade_label:cd039_grade_text(score);
+}
+// CD-043 v40: قراءة قيمة القسم من DOM ثم تحويلها إلى 0..100 بنفس منطق Evaluation.php
+function cd039_section_score(sec){
+  var field=document.querySelector('.cd039-field[data-section-id="'+sec.id+'"]');
+  if(!field) return null;
+  var type=sec.evaluation_type||'numeric';
+  if(type==='textarea'||type==='text'||type==='overall_grade') return null;
+  if(type==='grade'){
+    var sel=field.querySelector('.cd039-grade select');
+    if(!sel||sel.value==='') return null;
+    var raw=sel.value, opts=sec.evaluation_options||[], val=null;
+    if(typeof opts==='string'){ try{opts=JSON.parse(opts);}catch(e){opts=[];} }
+    for(var i=0;i<opts.length;i++){
+      var o=opts[i]; var ov=(o&&typeof o==='object')?(o.value!==undefined?o.value:o['value']):o;
+      if(String(ov)===String(raw)){ val=parseFloat(ov); break; }
     }
+    return (val===null||isNaN(val))?null:val;
+  }
+  var inp=field.querySelector('.cd039-score');
+  if(!inp||inp.value==='') return null;
+  var v=parseFloat(inp.value); if(isNaN(v)) return null;
+  if(type==='boolean') return v===1?100:0;
+  var mn=sec.min_value, mx=sec.max_value;
+  mn=(mn===null||mn===undefined||mn==='')?0:parseFloat(mn);
+  mx=(mx===null||mx===undefined||mx==='')?100:parseFloat(mx);
+  if(isNaN(mn)) mn=0; if(isNaN(mx)) mx=100;
+  return (mx>mn)?((v-mn)/(mx-mn))*100:v;
+}
+function cd039_calc(){
+  // CD-043 v40: متوسط مرجّح بأوزان الأقسام/المعايير — مطابق لـ EvaluationCalculator
+  var critScores={}, total=0;
+  (evaluationTemplate.criteria||[]).forEach(function(c){
+    var cw=parseFloat(c.criterion_weight)||0, cSum=0;
+    (c.sections||[]).forEach(function(sec){
+      var n=cd039_section_score(sec);
+      if(n===null) return;
+      cSum += n*((parseFloat(sec.section_weight)||0)/100);
+    });
+    critScores[c.id]=cSum*(cw/100);
+    total += critScores[c.id];
   });
-  // per-criterion badge
   Object.keys(critScores).forEach(function(cid){
-    var c = critScores[cid];
-    var avg = c.n>0 ? Math.round(c.sum/c.n*10)/10 : 0;
-    var el = document.getElementById('crit-score-'+cid);
-    if(el) el.textContent = cd039_arabic_num(avg.toFixed(1));
+    var el=document.getElementById('crit-score-'+cid);
+    if(el) el.textContent=cd039_arabic_num((Math.round(critScores[cid]*10)/10).toFixed(1));
   });
-  // total
-  var total = totalN>0 ? Math.round(totalSum/totalN*10)/10 : 0;
-  var ts = document.getElementById('totalScore'); if(ts) ts.textContent = cd039_arabic_num(total.toFixed(1));
-  var tg = document.getElementById('totalGrade'); if(tg) tg.textContent = cd039_grade_text(total);
+  var score=Math.round(total*10)/10;
+  var ts=document.getElementById('totalScore'); if(ts) ts.textContent=cd039_arabic_num(score.toFixed(1));
+  var tg=document.getElementById('totalGrade'); if(tg) tg.textContent=cd039_grade_from_scale(score);
+}
+/* CD-043 v41: تقصّ فوري إلى [min,max] مع إعادة الكتابة داخل الحقل + تلميح خفيف */
+function cd039_rangeHint(input,lo,hi,value){
+  var host=input.closest('.cd039-field')||input.parentElement; if(!host) return;
+  host.style.position='relative';
+  var hint=host.querySelector('.cd-range-hint');
+  if(!hint){ hint=document.createElement('span'); hint.className='cd-range-hint'; host.appendChild(hint); }
+  var isMin=parseFloat(value)<=parseFloat(lo), edge=isMin?lo:hi;
+  hint.textContent='ⓘ تم ضبط القيمة إلى الحد '+(isMin?'الأدنى ':'الأقصى ')+cd039_arabic_num(edge);
+  hint.classList.add('show'); input.classList.add('cd-clamped');
+  clearTimeout(input._cdRangeTimer);
+  input._cdRangeTimer=setTimeout(function(){hint.classList.remove('show');input.classList.remove('cd-clamped');},2200);
+}
+function cd039_clampInput(input){
+  if(input.value==='') return;
+  var lo=parseFloat(input.getAttribute('data-min')), hi=parseFloat(input.getAttribute('data-max'));
+  if(isNaN(lo)) lo=0; if(isNaN(hi)) hi=100;
+  var v=parseFloat(input.value); if(isNaN(v)) return;
+  if(!(hi>lo)) return; // نطاق قديم غير صالح — سلوك v40 محفوظ
+  var c=Math.max(lo,Math.min(hi,v));
+  if(c!==v){ input.value=String(c); cd039_rangeHint(input,lo,hi,c); }
 }
 function cd039_updateBar(input){
   var max = parseFloat(input.getAttribute('data-max'))||100;
-  var v = Math.min(max, Math.max(0, parseFloat(input.value)||0));
-  var pct = (v/max)*100;
+  var min = parseFloat(input.getAttribute('data-min'))||0;
+  var v = Math.min(max, Math.max(min, parseFloat(input.value)||min));
+  var pct = max>min ? ((v-min)/(max-min))*100 : 0;
   var ctrl = input.closest('.cd039-perc'); var fill = ctrl ? ctrl.querySelector('.pfill') : null;
   if(fill) fill.style.width = pct+'%';
   cd039_calc();

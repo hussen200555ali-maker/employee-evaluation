@@ -265,7 +265,7 @@ if (!empty($cd040_grading_scales)) {
     <div class="cd040-ev-grid">
       <div class="cd040-ev-field"><label>اسم المُقيِّم</label><input type="text" name="evaluator_name" id="evalNameInput" value="<?= htmlspecialchars($cd040_evaluatorName ?? ($cd040_evaluation->evaluator_name ?? '')) ?>" placeholder="الاسم الكامل"></div>
       <div class="cd040-ev-field"><label>صفة المُقيِّم</label><input type="text" name="evaluator_title" id="evalTitleInput" value="<?= htmlspecialchars($cd040_evaluatorTitle ?? ($cd040_evaluation->evaluator_title ?? '')) ?>" placeholder="مدير مباشر / مشرف"></div>
-      <div class="cd040-ev-field full"><label>ملاحظات عامة</label><textarea name="evaluator_notes" rows="2" placeholder="ملاحظات شاملة..."></textarea></div>
+      <div class="cd040-ev-field full"><label>ملاحظة ورأي المقيم</label><textarea name="evaluator_notes" id="evaluatorNotes" rows="3" maxlength="4000" placeholder="اكتب ملاحظتك العامة ورأيك في هذا التقييم..."><?= htmlspecialchars($cd040_evaluation->notes ?? '', ENT_QUOTES) ?></textarea></div>
     </div>
   </div>
 </div>
@@ -483,12 +483,18 @@ if (!empty($cd040_grading_scales)) {
 .cd040-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 22px;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
 .cd040-toast.show{opacity:1}
 @media(max-width:768px){.cd040-tb-grid,.cd040-cfg-grid,.cd040-pi-grid,.cd040-ev-grid,.cd040-qa-grid,.cd040-prog-filters{grid-template-columns:1fr}.cd040-perc{flex-wrap:wrap}.cd040-perc .ptr{flex-basis:100%}.cd040-grade select,.cd040-overall-inline select{max-width:100%}.cd040-OH-pills{grid-template-columns:repeat(2,1fr)}.cd040-OH-top{flex-wrap:wrap}.cd040-OH-badge{white-space:normal}}
+/* CD-043 v41: تلميح خفيف عند تقصّ القيمة إلى حد النطاق */
+.cd-range-hint{position:absolute;left:4px;top:100%;transform:translateY(3px);background:#fff8e1;color:#8a6100;border:1px solid #f0d68a;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;z-index:20;opacity:0;pointer-events:none;transition:opacity .25s;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.cd-range-hint.show{opacity:1}
+.cd-clamped{outline:2px solid #c8943f!important;outline-offset:1px}
 </style>
 
 <script>
 const CD040_APP_URL = "<?= APP_URL ?>";
 const CD040_MODE = "<?= $cd040_mode ?>";
 const CD040_SAVED_ANSWERS = <?= json_encode($cd040_answers_json) ?>;
+// CD-043 v40: سلم التقديرات من قاعدة البيانات — نفس مصدر Evaluation::updateScoreAndStatus()
+const CD040_GRADING_JSON = <?= json_encode($cd040_grading_json, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK) ?>;
 const CD040_EVAL_TEMPLATE_ID = <?= (int)($cd040_evaluation->template_id ?? 0) ?>;
 let cd040_currentSchema = null;
 let cd040_allPrograms = [];
@@ -498,6 +504,15 @@ let cd040_lastEvalResults = [];
 function cd040_arabic_num(n){return String(n).replace(/[0-9]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'[+d];});}
 function cd040_arabic(n){return cd040_arabic_num(n);}
 function cd040_grade_text(s){if(s>=90)return 'ممتاز';if(s>=80)return 'جيد جدًا';if(s>=70)return 'جيد';if(s>=60)return 'مقبول';return s>0?'ضعيف':'—';}
+// CD-043 v40: مصفوفة من grading_scales (نطاق min/max) بدل عتبات ثابتة — تطابق التسمية المحفوظة
+function cd040_grade_from_scale(s){
+  var score=parseFloat(s); if(isNaN(score)) return '—';
+  var rows=(typeof CD040_GRADING_JSON!=='undefined'&&CD040_GRADING_JSON)?CD040_GRADING_JSON:[];
+  function within(g){var mn=parseFloat(g.min_value),mx=parseFloat(g.max_value);return !isNaN(mn)&&!isNaN(mx)&&score>=mn&&score<=mx;}
+  var preferred=rows.filter(function(g){return String(g.scale_name||'')==='السلم الخماسي'&&within(g);});
+  var pool=preferred.length?preferred:rows.filter(within);
+  return pool.length?pool[0].grade_label:cd040_grade_text(score);
+}
 function cd040_esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 const CD040_TYPE={percentage:{dot:'#1b6b32',label:'نسبة مئوية'},numeric:{dot:'#1565c0',label:'رقمي'},grade:{dot:'#c8943f',label:'تقدير'},textarea:{dot:'#7b1fa2',label:'نصي'},boolean:{dot:'#c62828',label:'نعم / لا'},overall_grade:{dot:'#c8943f',label:'تقدير عام'},formula:{dot:'#dc3545',label:'صيغة'},auto:{dot:'#0dcaf0',label:'تلقائي'},helper:{dot:'#6c757d',label:'مساعد'}};
@@ -635,7 +650,8 @@ function cd040_doQuickAdd(formId,codeId,nameId,branchId,deptId,posId,target){
   var name=document.getElementById(nameId).value.trim();
   var branch=document.getElementById(branchId).value;
   var dept=document.getElementById(deptId).value;
-  if(!code||!name||!branch){cd040_toast('⚠️ الرقم والاسم والفرد مطلوبة','#c62828');return;}
+  if(!code && !name){cd040_toast('⚠️ الرقم الوظيفي أو الاسم مطلوب','#c62828');return;}
+  if(!branch){cd040_toast('⚠️ الفرع مطلوب','#c62828');return;}
   var fd=new FormData();
   fd.append('full_name',name);fd.append('emp_code',code);
   fd.append('branch_id',branch);fd.append('department_id',dept||0);
@@ -731,9 +747,9 @@ function cd040_renderSection(sec,cid){
   var name='results['+cid+']['+sid+']';
   var html='<div class="cd040-field" data-section-id="'+sid+'" data-criterion-id="'+cid+'" data-type="'+cd040_esc(type)+'"><div class="cd040-fh"><div><div class="cd040-fn">'+cd040_esc(sec.name)+'</div></div>'+cd040_badge(type)+'</div>';
   switch(type){
-    case 'percentage':html+='<div class="cd040-perc"><div class="piw"><input type="number" class="cd040-score" data-max="'+mv+'" name="'+name+'[score]" min="0" max="'+mv+'" step="1" placeholder="أدخل النسبة" oninput="cd040_updateBar(this);cd040_calc()"><span class="sign">٪</span></div><div class="ptr"><div class="pfill" style="width:0%"></div></div></div><div class="cd040-scale"><span>٠</span><span>'+cd040_arabic(Math.round(mv/2))+'</span><span>'+cd040_arabic(mv)+'</span></div>';break;
-    case 'numeric':html+='<div class="cd040-num"><input type="number" class="cd040-score" data-max="'+mv+'" name="'+name+'[score]" min="'+mn+'" max="'+mv+'" step="1" placeholder="أدخل الدرجة" oninput="cd040_calc()"><span class="nmax">من '+cd040_arabic(mv)+'</span></div>';break;
-    case 'grade':var opts=(sec.options||[]).map(function(o){var v=o.value!==undefined?o.value:o;var l=o.label!==undefined?o.label:o;return '<option value="'+cd040_esc(v)+'">'+cd040_esc(l)+'</option>';}).join('');html+='<div class="cd040-grade"><select name="'+name+'[score]"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';break;
+    case 'percentage':html+='<div class="cd040-perc"><div class="piw"><input type="number" class="cd040-score" data-max="'+mv+'" data-min="'+mn+'" name="'+name+'[score]" min="'+mn+'" max="'+mv+'" step="1" placeholder="أدخل النسبة" oninput="cd040_clampInput(this);cd040_updateBar(this);cd040_calc()"><span class="sign">٪</span></div><div class="ptr"><div class="pfill" style="width:0%"></div></div></div><div class="cd040-scale"><span>'+cd040_arabic(mn)+'</span><span>'+cd040_arabic(Math.round((mn+mv)/2))+'</span><span>'+cd040_arabic(mv)+'</span></div>';break;
+    case 'numeric':html+='<div class="cd040-num"><input type="number" class="cd040-score" data-max="'+mv+'" data-min="'+mn+'" name="'+name+'[score]" min="'+mn+'" max="'+mv+'" step="1" placeholder="أدخل الدرجة" oninput="cd040_clampInput(this);cd040_calc()"><span class="nmax">من '+cd040_arabic(mn)+' إلى '+cd040_arabic(mv)+'</span></div>';break;
+    case 'grade':var opts=(sec.options||[]).map(function(o){var v=o.value!==undefined?o.value:o;var l=o.label!==undefined?o.label:o;return '<option value="'+cd040_esc(v)+'">'+cd040_esc(l)+'</option>';}).join('');html+='<div class="cd040-grade"><select name="'+name+'[score]" onchange="cd040_calc()"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';break;
     case 'boolean':html+='<div class="cd040-bool"><button type="button" class="cd040-bopt" data-val="1" onclick="cd040_bool(this)">✓ نعم</button><button type="button" class="cd040-bopt" data-val="0" onclick="cd040_bool(this)">✕ لا</button><input type="hidden" class="cd040-score" data-max="1" name="'+name+'[score]" value=""></div>';break;
     case 'textarea':var to=sec.options||{};var mc=to.max_chars||1000;html+='<div class="cd040-text"><textarea name="'+name+'[text]" rows="4" maxlength="'+mc+'" placeholder="اكتب... (حد أقصى '+cd040_arabic(mc)+' حرف)"></textarea></div>';break;
     case 'overall_grade':var scale=sec.scale_name||'السلم الخماسي';var grades=sec.grades||[];var opts=grades.map(function(g){return '<option value="'+cd040_esc(g.label)+'">'+cd040_esc(g.label)+' ('+g.value+')</option>';}).join('');html+='<div class="cd040-overall-inline"><div class="cd040-oh"><div class="cd040-og"><div class="cd040-oi">★</div><div><div class="cd040-ot">التقدير العام</div><div class="cd040-os">سلم: '+cd040_esc(scale)+'</div></div></div>'+cd040_badge('overall_grade')+'</div><select name="'+name+'[grade_label]"><option value="">— اختر التقدير —</option>'+opts+'</select></div>';break;
@@ -761,14 +777,80 @@ function cd040_prefillAnswers(){
 }
 
 /* ===== live score ===== */
-function cd040_calc(){
-  var sum=0,n=0;
-  document.querySelectorAll('.cd040-score').forEach(function(inp){var v=parseFloat(inp.value)||0;var max=parseFloat(inp.getAttribute('data-max'))||100;if(max>0&&inp.value!==''){sum+=(v/max)*100;n++;}});
-  var avg=n>0?Math.round(sum/n*10)/10:0;
-  var sv=document.getElementById('liveScore');if(sv)sv.textContent=cd040_arabic(avg.toFixed(1));
-  var gv=document.getElementById('liveGrade');if(gv)gv.textContent=cd040_grade_text(avg);
+/* CD-043 v40: معاينة مطابقة لـ EvaluationCalculator — أوزان المعايير/Aقسام + قيم grade + min/max */
+function cd040_section_score(sec){
+  var field=document.querySelector('.cd040-field[data-section-id="'+sec.id+'"]');
+  if(!field) return null;
+  var type=sec.type||'numeric';
+  if(type==='textarea'||type==='text'||type==='overall_grade') return null;
+  if(type==='grade'){
+    var sel=field.querySelector('.cd040-grade select');
+    if(!sel||sel.value==='') return null;
+    var raw=sel.value, val=null, opts=sec.options||[];
+    for(var i=0;i<opts.length;i++){
+      var o=opts[i];
+      var ov=(o&&typeof o==='object')?(o.value!==undefined?o.value:o['value']):o;
+      if(String(ov)===String(raw)){ val=parseFloat(ov); break; }
+    }
+    return (val===null||isNaN(val))?null:val;
+  }
+  var inp=field.querySelector('.cd040-score');
+  if(!inp||inp.value==='') return null;
+  var v=parseFloat(inp.value); if(isNaN(v)) return null;
+  if(type==='boolean') return v===1?100:0;
+  // النسبة المئوية والنumeric كلاهما يُحوَّل من نطاقه إلى 0..100 (الافتراض 0..100 عند NULL)
+  var mn=sec.min_value, mx=sec.max_value;
+  mn=(mn===null||mn===undefined||mn==='')?0:parseFloat(mn);
+  mx=(mx===null||mx===undefined||mx==='')?100:parseFloat(mx);
+  if(isNaN(mn)) mn=0; if(isNaN(mx)) mx=100;
+  if(mx>mn) return ((v-mn)/(mx-mn))*100;
+  return v;
 }
-function cd040_updateBar(input){var max=parseFloat(input.getAttribute('data-max'))||100;var v=Math.min(max,Math.max(0,parseFloat(input.value)||0));var ctrl=input.closest('.cd040-perc');var fill=ctrl?ctrl.querySelector('.pfill'):null;if(fill)fill.style.width=((v/max)*100)+'%';}
+function cd040_calc(){
+  var total=0, any=false, sch=cd040_currentSchema;
+  ((sch&&sch.criteria)||[]).forEach(function(c){
+    var cw=parseFloat(c.weight)||0, cSum=0;
+    (c.sections||[]).forEach(function(sec){
+      var n=cd040_section_score(sec);
+      if(n===null) return;
+      any=true;
+      cSum += n*((parseFloat(sec.weight)||0)/100);
+    });
+    total += cSum*(cw/100);
+  });
+  var score=any?Math.round(total*10)/10:0;
+  var sv=document.getElementById('liveScore');if(sv)sv.textContent=cd040_arabic(score.toFixed(1));
+  var gv=document.getElementById('liveGrade');if(gv)gv.textContent=cd040_grade_from_scale(score);
+}
+/* CD-043 v41: تقصّ فوري إلى [min,max] مع إعادة الكتابة داخل الحقل + تلميح خفيف */
+function cd040_rangeHint(input,lo,hi,value){
+  var host=input.closest('.cd040-field')||input.parentElement; if(!host) return;
+  host.style.position='relative';
+  var hint=host.querySelector('.cd-range-hint');
+  if(!hint){ hint=document.createElement('span'); hint.className='cd-range-hint'; host.appendChild(hint); }
+  var edge=parseFloat(value)<=parseFloat(lo)?lo:hi;
+  hint.textContent='ⓘ تم ضبط القيمة إلى الحد '+(parseFloat(value)<=parseFloat(lo)?'الأدنى ':'الأقصى ')+cd040_arabic(edge);
+  hint.classList.add('show'); input.classList.add('cd-clamped');
+  clearTimeout(input._cdRangeTimer);
+  input._cdRangeTimer=setTimeout(function(){hint.classList.remove('show');input.classList.remove('cd-clamped');},2200);
+}
+function cd040_clampInput(input){
+  if(input.value==='') return;
+  var lo=parseFloat(input.getAttribute('data-min')), hi=parseFloat(input.getAttribute('data-max'));
+  if(isNaN(lo)) lo=0; if(isNaN(hi)) hi=100;
+  var v=parseFloat(input.value); if(isNaN(v)) return;
+  if(!(hi>lo)) return; // نطاق قديم غير صالح — سلوك v40 محفوظ
+  var c=Math.max(lo,Math.min(hi,v));
+  if(c!==v){ input.value=String(c); cd040_rangeHint(input,lo,hi,c); }
+}
+function cd040_updateBar(input){
+  var max=parseFloat(input.getAttribute('data-max'))||100;
+  var min=parseFloat(input.getAttribute('data-min'))||0;
+  var v=Math.max(min,Math.min(max,parseFloat(input.value)||min));
+  var ctrl=input.closest('.cd040-perc');var fill=ctrl?ctrl.querySelector('.pfill'):null;
+  if(fill)fill.style.width=((max>min?((v-min)/(max-min))*100:0))+'%';
+  cd040_calc();
+}
 function cd040_bool(btn){var wrap=btn.parentElement;wrap.querySelectorAll('.cd040-bopt').forEach(function(s){s.classList.remove('sel-yes','sel-no');});var isYes=btn.getAttribute('data-val')==='1';btn.classList.add(isYes?'sel-yes':'sel-no');var hidden=wrap.querySelector('input[type=hidden]');if(hidden){hidden.value=isYes?'1':'0';cd040_calc();}}
 
 /* ===== program picker + filters ===== */
@@ -849,6 +931,11 @@ function cd040_showPreview(){
   html+='<div class="cd040-pv-row"><span>القالب</span><span>'+cd040_esc(tplName)+'</span></div>';
   html+='<div class="cd040-pv-row"><span>البرنامج</span><span>'+cd040_esc(progName)+'</span></div>';
   html+='<div class="cd040-pv-row"><span>تاريخ التقييم</span><span>'+cd040_esc(evalDate)+'</span></div></div>';
+  var evalNoteEl=document.getElementById('evaluatorNotes');
+  var evalNote=evalNoteEl?evalNoteEl.value.trim():'';
+  if(evalNote){
+    html+='<div class="cd040-pv-section"><h4>ملاحظة ورأي المقيم</h4><div class="cd040-pv-row"><span>'+cd040_esc(evalNote)+'</span></div></div>';
+  }
   // التقدير العام (ناتج النظام) في المعاينة
   var gradeSel=document.getElementById('finalGradeSelect');
   var gradeCard=document.getElementById('manualGradeCard');

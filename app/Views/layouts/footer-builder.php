@@ -25,7 +25,8 @@
     </script>
   
     <!-- 2. ملف الجافاسكريبت الخاص بالباني (يتم تحميله أخيراً) -->
-    <script src="<?php echo APP_URL; ?>/public/js/builder.js"></script>
+    <!-- CD-043 v42: رقم إصدار لمنع المتصفح من استخدام نسخة مؤقتة قديمة من builder.js -->
+    <script src="<?php echo APP_URL; ?>/public/js/builder.js?v=41"></script>
 
 </body>
 </html>

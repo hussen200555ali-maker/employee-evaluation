@@ -127,8 +127,9 @@ document.addEventListener('DOMContentLoaded', function() {
             notesRequired: false, 
             notesPlaceholder: 'اكتب ملاحظاتك هنا...', 
             options: (sectionType === 'grade') ? [{ label: 'جيد', value: 100 }, { label: 'متوسط', value: 64 }, { label: 'ضعيف', value: 34 }] : [], 
-            min_value: (sectionType === 'numeric' || sectionType === 'helper') ? 0 : null, 
-            max_value: (sectionType === 'numeric' || sectionType === 'helper') ? 999999 : null,
+            // CD-043 v40: النسبة المئوية لها نطاق افتراضي 0..100 مثلما يتوقع المحرك EvaluationCalculator
+            min_value: (sectionType === 'numeric' || sectionType === 'helper' || sectionType === 'percentage') ? 0 : null,
+            max_value: (sectionType === 'numeric' || sectionType === 'helper') ? 999999 : (sectionType === 'percentage' ? 100 : null),
             formula: (sectionType === 'formula') ? '' : null,
             formulaDisplay: (sectionType === 'formula') ? '' : null,
             readonly: (sectionType === 'formula' || sectionType === 'auto') ? true : false,
@@ -319,6 +320,9 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
                 propertiesHTML += `<hr><h6><i class="fas fa-star text-warning"></i> إعدادات خيارات التقدير</h6><div id="grade-options-container">`;
                 (selectedElement.options || []).forEach((option, index) => { propertiesHTML += `<div class="input-group input-group-sm mb-2 grade-option-row"><input type="text" class="form-control option-label" placeholder="التسمية" value="${option.label || ''}" data-index="${index}"><input type="number" class="form-control option-value" placeholder="القيمة" value="${option.value || ''}" data-index="${index}"><button class="btn btn-outline-danger remove-option-btn" title="حذف" data-index="${index}"><i class="fas fa-times"></i></button></div>`; });
                 propertiesHTML += `</div><button class="btn btn-sm btn-outline-primary w-100" id="add-option-btn"><i class="fas fa-plus"></i> إضافة خيار</button>`;
+            } else if (selectedElement.sectionType === 'percentage') {
+                // CD-043 v40: نطاق النسبة المئوية قابل للضبط (الافتراضي 0..100)
+                propertiesHTML += `<hr><h6><i class="fas fa-percent text-success"></i> إعدادات النطاق المئوي</h6><div class="row g-2"><div class="col"><label class="form-label form-label-sm">القيمة الدنيا</label><input type="number" class="form-control form-control-sm" data-prop="min_value" value="${selectedElement.min_value ?? 0}"></div><div class="col"><label class="form-label form-label-sm">القيمة القصوى</label><input type="number" class="form-control form-control-sm" data-prop="max_value" value="${selectedElement.max_value ?? 100}"></div></div><div class="alert alert-info py-2 mt-2"><small><i class="fas fa-info-circle"></i> تُحوَّل القيمة إلى درجة من 100 حسب هذا النطاق في الحفظ والمعاينة والاستيراد.</small></div>`;
             } else if (selectedElement.sectionType === 'numeric') {
                 propertiesHTML += `<hr><h6><i class="fas fa-hashtag text-info"></i> إعدادات النطاق الرقمي</h6><div class="row g-2"><div class="col"><label class="form-label form-label-sm">القيمة الدنيا</label><input type="number" class="form-control form-control-sm" data-prop="min_value" value="${selectedElement.min_value ?? 0}"></div><div class="col"><label class="form-label form-label-sm">القيمة القصوى</label><input type="number" class="form-control form-control-sm" data-prop="max_value" value="${selectedElement.max_value ?? 5}"></div></div>`;
             } else if (selectedElement.sectionType === 'formula') {
@@ -536,6 +540,22 @@ function handleManualWeightChange(id, newWeight, isCriterion) {
                 let overallGradeCount = 0;
                 formStructure.criteria.forEach(c => (c.sections || []).forEach(s => { if (s.sectionType === 'overall_grade') overallGradeCount++; }));
                 if (overallGradeCount > 1) { e.preventDefault(); alert('لا يُسمح بإضافة "التقدير العام" إلا مرة واحدة في القالب.'); return; }
+
+                // CD-043 v41: نطاق صالح للأنواع الرقمية/المئوية قبل الحفظ (يمنع التقصّ الغامض)
+                for (const criterion of formStructure.criteria) {
+                    for (const s of (criterion.sections || [])) {
+                        if (!['numeric', 'percentage', 'helper'].includes(s.sectionType)) continue;
+                        const loRaw = s.min_value, hiRaw = s.max_value;
+                        const lo = (loRaw === null || loRaw === undefined || loRaw === '') ? 0 : parseFloat(loRaw);
+                        const hi = (hiRaw === null || hiRaw === undefined || hiRaw === '')
+                            ? (s.sectionType === 'helper' ? 999999 : 100) : parseFloat(hiRaw);
+                        if (isNaN(lo) || isNaN(hi) || hi <= lo) {
+                            e.preventDefault();
+                            alert(`خطأ في القسم "${s.name || 'بدون اسم'}" بمعيار "${criterion.name}": القيمة القصوى يجب أن تكون أكبر من القيمة الدنيا.`);
+                            return;
+                        }
+                    }
+                }
 
                 // القالب الوصفي: لا شرط 100%، ولا شرط "التقدير العام"
                 // CD-040.3.1: التقدير العام أصبح «ناتج نظام» تلقائي — لا يُشترط وجوده كقسم
