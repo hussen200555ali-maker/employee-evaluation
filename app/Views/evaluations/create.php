@@ -1,4 +1,5 @@
 <?php
+use App\Core\Auth;
 // المسار: app/Views/evaluations/create.php (CD-040.1 — Unified + full mockup parity)
 // صفحة واحدة موحّدة بتصميم CD-038 — مطابقة للنموذج التفاعلي في:
 // التصميم، البحث، الفلاتر المتتالية، الإضافة السريعة، منقّي البرنامج، المعاينة، الحفظ
@@ -123,7 +124,13 @@ if (!empty($cd040_grading_scales)) {
         </select>
       </div>
       <div class="cd040-qa-field"><label>القسم</label><select id="qaEmpDept" disabled><option value="">— اختر —</option></select></div>
-      <div class="cd040-qa-field"><label>المنصب</label><input type="text" id="qaEmpPos" placeholder="مثال: محلل نظم"></div>
+      <div class="cd040-qa-field">
+        <label>المنصب</label>
+        <select id="qaEmpPos" disabled><option value="">— بدون منصب —</option></select>
+        <?php if (Auth::userHasPermission('positions.manage')): ?>
+          <a class="cd040-qa-pos-manage" href="<?= APP_URL ?>/employees/positions" target="_blank" rel="noopener noreferrer">إدارة المناصب ↗</a>
+        <?php endif; ?>
+      </div>
     </div>
   </div>
   <div class="cd040-qa-btns">
@@ -149,7 +156,13 @@ if (!empty($cd040_grading_scales)) {
         </select>
       </div>
       <div class="cd040-qa-field"><label>القسم</label><select id="qaEvalDept" disabled><option value="">— اختر —</option></select></div>
-      <div class="cd040-qa-field"><label>المنصب</label><input type="text" id="qaEvalPos" placeholder="مثال: مدير"></div>
+      <div class="cd040-qa-field">
+        <label>المنصب</label>
+        <select id="qaEvalPos" disabled><option value="">— بدون منصب —</option></select>
+        <?php if (Auth::userHasPermission('positions.manage')): ?>
+          <a class="cd040-qa-pos-manage" href="<?= APP_URL ?>/employees/positions" target="_blank" rel="noopener noreferrer">إدارة المناصب ↗</a>
+        <?php endif; ?>
+      </div>
     </div>
   </div>
   <div class="cd040-qa-btns">
@@ -461,6 +474,8 @@ if (!empty($cd040_grading_scales)) {
 .cd040-qa-field label{display:block;font-size:11px;color:#0c2823;font-weight:600;margin-bottom:3px}
 .cd040-qa-field input,.cd040-qa-field select{width:100%;padding:8px 10px;border:1px solid #e0e8e4;border-radius:6px;font-family:'Cairo';font-size:12px;background:#fff}
 .cd040-qa-field input:focus,.cd040-qa-field select:focus{border-color:#c8943f;outline:none}
+.cd040-qa-pos-manage{display:inline-block;margin-top:4px;font-size:10px;font-weight:700;color:#0c2823;text-decoration:none}
+.cd040-qa-pos-manage:hover{color:#c8943f;text-decoration:underline}
 .cd040-qa-btns{padding:8px 16px;background:#f5f8f6;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #e0e8e4}
 .cd040-qa-btns .cd040-btn{padding:8px 18px;font-size:12px}
 /* modal */
@@ -535,6 +550,24 @@ function cd040_loadDepts(branchId, selectId){
 function cd040_onEmpBranch(v){cd040_loadDepts(v,'empDeptFilter');cd040_filterEmpResults();}
 function cd040_onEvalBranch(v){cd040_loadDepts(v,'evalDeptFilter');cd040_filterEvalResults();}
 function cd040_onQaBranch(v,deptId){cd040_loadDepts(v,deptId);}
+
+/* ===== positions — الخيارات من GET /api/positions فقط ===== */
+function cd040_loadPositions(selectId){
+  var sel=document.getElementById(selectId);
+  if(!sel)return;
+  sel.innerHTML='<option value="">... جارٍ تحميل المناصب</option>';
+  sel.disabled=true;
+  fetch(CD040_APP_URL+'/api/positions',{headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(function(r){return r.json();})
+    .then(function(list){
+      var html='<option value="">— بدون منصب —</option>';
+      (list||[]).forEach(function(p){
+        html+='<option value="'+cd040_esc(p.id)+'">'+cd040_esc(p.title)+'</option>';
+      });
+      sel.innerHTML=html;sel.disabled=false;
+    })
+    .catch(function(){sel.innerHTML='<option value="">— تعذر تحميل المناصب —</option>';});
+}
 
 /* ===== employee search (with client-side branch/dept filter) ===== */
 let cd040_searchTimer;
@@ -639,6 +672,8 @@ document.addEventListener('click',function(e){
 function cd040_showQuickAdd(id){
   document.querySelectorAll('.cd040-results').forEach(function(b){b.classList.remove('show');});
   document.getElementById('empSearch').value='';document.getElementById('evalSearch').value='';
+  if(id==='quickAddEmp')cd040_loadPositions('qaEmpPos');
+  if(id==='quickAddEval')cd040_loadPositions('qaEvalPos');
   var el=document.getElementById(id); if(el)el.classList.add('show');
   el.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -653,8 +688,10 @@ function cd040_doQuickAdd(formId,codeId,nameId,branchId,deptId,posId,target){
   if(!code && !name){cd040_toast('⚠️ الرقم الوظيفي أو الاسم مطلوب','#c62828');return;}
   if(!branch){cd040_toast('⚠️ الفرع مطلوب','#c62828');return;}
   var fd=new FormData();
+  var pos=document.getElementById(posId).value;
   fd.append('full_name',name);fd.append('emp_code',code);
   fd.append('branch_id',branch);fd.append('department_id',dept||0);
+  fd.append('position_id',pos);
   fd.append('_token',document.querySelector('input[name=_token],input[name=_csrf]')?.value||'');
   fetch(CD040_APP_URL+'/api/employees/quick-add',{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}})
     .then(function(r){return r.json();})

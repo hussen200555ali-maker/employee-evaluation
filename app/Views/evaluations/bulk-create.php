@@ -1,4 +1,5 @@
 <?php
+use App\Core\Auth;
 // CD-041: التقييم الجماعي — تصميم مصفوفة (Matrix) بديل كامل للإصدار السابق
 // عقد الإرسال: results مسطح حسب section_id — {score|text|grade_label, notes}
 require_once APP_ROOT . '/app/Views/layouts/header.php';
@@ -63,6 +64,8 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
 .cd041-qa.open{display:block;}
 .cd041-qa-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;}
 .cd041-qa legend{font-size:12px;font-weight:700;color:var(--cd041-brand);margin-bottom:8px;}
+.cd041-pos-manage{display:inline-block;margin-top:4px;font-size:10px;font-weight:700;color:var(--cd041-brand);text-decoration:none;}
+.cd041-pos-manage:hover{color:var(--cd041-gold);text-decoration:underline;}
 
 .cd041-toolbar{padding:12px 18px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 .cd041-btn{padding:8px 14px;border:1px solid var(--cd041-border);background:#fff;color:var(--cd041-text);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;transition:all .15s;}
@@ -265,7 +268,13 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
                 </select>
             </div>
             <div class="cd041-fld"><label>القسم</label><select id="cd041-qa-eval-dept" class="cd041-sel" disabled><option value="">— اختر الفرع أولًا —</option></select></div>
-            <div class="cd041-fld"><label>المسمى الوظيفي</label><select id="cd041-qa-eval-pos" class="cd041-sel" disabled><option value="">— اختر —</option></select></div>
+            <div class="cd041-fld">
+                <label>المسمى الوظيفي</label>
+                <select id="cd041-qa-eval-pos" class="cd041-sel" disabled><option value="">— بدون منصب —</option></select>
+                <?php if (Auth::userHasPermission('positions.manage')): ?>
+                    <a class="cd041-pos-manage" href="<?= APP_URL ?>/employees/positions" target="_blank" rel="noopener noreferrer">إدارة المناصب ↗</a>
+                <?php endif; ?>
+            </div>
             <div class="cd041-fld" style="align-self:end;"><button type="button" class="cd041-btn cd041-btn-primary" onclick="cd041_quickAddEvaluator()">حفظ المقيم</button></div>
         </div>
     </div>
@@ -328,7 +337,13 @@ $cd041_scales_json    = json_encode($gradingScales ?? [], JSON_UNESCAPED_UNICODE
                 </select>
             </div>
             <div class="cd041-fld"><label>القسم</label><select id="cd041-qa-emp-dept" class="cd041-sel" disabled><option value="">— اختر الفرع أولًا —</option></select></div>
-            <div class="cd041-fld"><label>المسمى الوظيفي</label><select id="cd041-qa-emp-pos" class="cd041-sel" disabled><option value="">— اختر —</option></select></div>
+            <div class="cd041-fld">
+                <label>المسمى الوظيفي</label>
+                <select id="cd041-qa-emp-pos" class="cd041-sel" disabled><option value="">— بدون منصب —</option></select>
+                <?php if (Auth::userHasPermission('positions.manage')): ?>
+                    <a class="cd041-pos-manage" href="<?= APP_URL ?>/employees/positions" target="_blank" rel="noopener noreferrer">إدارة المناصب ↗</a>
+                <?php endif; ?>
+            </div>
             <div class="cd041-fld" style="align-self:end;"><button type="button" class="cd041-btn cd041-btn-primary" onclick="cd041_quickAddEmployee()">حفظ الموظف</button></div>
         </div>
     </div>
@@ -537,7 +552,7 @@ function cd041_loadPositions(selId){
     if(!sel) return;
     sel.innerHTML='<option value="">— جارٍ التحميل —</option>';
     fetch(CD041_APP_URL+'/api/positions').then(function(r){return r.json();}).then(function(list){
-        var html='<option value="">— اختر المسمى —</option>';
+        var html='<option value="">— بدون منصب —</option>';
         (list||[]).forEach(function(p){ html+='<option value="'+p.id+'">'+cd041_esc(p.title)+'</option>'; });
         sel.innerHTML=html; sel.disabled=false;
     }).catch(function(){ sel.innerHTML='<option value="">— تعذر التحميل —</option>'; });
@@ -703,6 +718,7 @@ function cd041_quickAddEmployee(){
     fd.append('emp_code', document.getElementById('cd041-qa-emp-code').value.trim());
     fd.append('branch_id', document.getElementById('cd041-qa-emp-branch').value);
     fd.append('department_id', document.getElementById('cd041-qa-emp-dept').value);
+    fd.append('position_id', document.getElementById('cd041-qa-emp-pos').value);
     fd.append('_token', CD041_CSRF);
     if(!fd.get('full_name') && !fd.get('emp_code')){ cd041_toast('أدخل الاسم أو الرقم الوظيفي','err'); return; }
     fetch(CD041_APP_URL+'/api/employees/quick-add',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(res){
@@ -711,7 +727,7 @@ function cd041_quickAddEmployee(){
             document.getElementById('cd041-qa-emp').classList.remove('open');
             ['cd041-qa-emp-code','cd041-qa-emp-name'].forEach(function(i){document.getElementById(i).value='';});
             cd041_toast('تمت إضافة الموظف بنجاح','ok');
-        } else { cd041_toast(res.message||'فشل الإضافة','err'); }
+        } else { cd041_toast(res.error||res.message||'فشل الإضافة','err'); }
     }).catch(function(){ cd041_toast('خطأ في الاتصال','err'); });
 }
 function cd041_quickAddEvaluator(){
@@ -720,6 +736,7 @@ function cd041_quickAddEvaluator(){
     fd.append('emp_code', document.getElementById('cd041-qa-eval-code').value.trim());
     fd.append('branch_id', document.getElementById('cd041-qa-eval-branch').value);
     fd.append('department_id', document.getElementById('cd041-qa-eval-dept').value);
+    fd.append('position_id', document.getElementById('cd041-qa-eval-pos').value);
     fd.append('_token', CD041_CSRF);
     if(!fd.get('full_name') && !fd.get('emp_code')){ cd041_toast('أدخل الاسم أو الرقم الوظيفي','err'); return; }
     fetch(CD041_APP_URL+'/api/employees/quick-add',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(res){
@@ -728,7 +745,7 @@ function cd041_quickAddEvaluator(){
             document.getElementById('cd041-evaluator').value=res.employee.full_name;
             document.getElementById('cd041-qa-eval').classList.remove('open');
             cd041_toast('تمت إضافة المقيم','ok');
-        } else { cd041_toast(res.message||'فشل الإضافة','err'); }
+        } else { cd041_toast(res.error||res.message||'فشل الإضافة','err'); }
     }).catch(function(){ cd041_toast('خطأ في الاتصال','err'); });
 }
 

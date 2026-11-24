@@ -146,6 +146,14 @@ final class BulkEvaluationController extends Controller
         $branchId = (int)($_POST['branch_id'] ?? 0);
         $deptId   = (int)($_POST['department_id'] ?? 0);
 
+        // CD-043: المنصب اختياري — الفراغ يعني NULL، وأي قيمة غير فارغة تُتحقق من positions.
+        $positionRaw = $_POST['position_id'] ?? '';
+        if (is_array($positionRaw)) {
+            $this->json(['error' => 'المنصب غير صالح'], 400);
+            return;
+        }
+        $positionRaw = trim((string)$positionRaw);
+
         // DIR-BULK-CREATE-FIX-V2.0: يُكتفى بأحدهما؛ يُمنع فقط غياب الاثنين معاً.
         if ($fullName === '' && $empCode === '') {
             $this->json(['error' => 'الاسم أو الرقم الوظيفي مطلوب'], 400);
@@ -157,6 +165,25 @@ final class BulkEvaluationController extends Controller
         // DIR-BULK-CREATE-FIX-V2.0: لا أكواد وهمية — يُخزَّن NULL عند غياب الرقم الحقيقي.
         if ($fullName === '') {
             $fullName = 'موظف بدون اسم';
+        }
+
+        // CD-043: التحقق من المنصب — ctype_digit + وجود فعلي في جدول positions.
+        $positionId    = null;
+        $positionTitle = '';
+        if ($positionRaw !== '') {
+            if (!ctype_digit($positionRaw)) {
+                $this->json(['error' => 'المنصب غير صالح'], 400);
+                return;
+            }
+            $db->query('SELECT id, title FROM positions WHERE id = :id LIMIT 1');
+            $db->bind(':id', (int)$positionRaw);
+            $positionRow = $db->fetch();
+            if (!$positionRow) {
+                $this->json(['error' => 'المنصب غير موجود'], 400);
+                return;
+            }
+            $positionId    = (int)$positionRow->id;
+            $positionTitle = (string)$positionRow->title;
         }
 
         // فحص التكرار للكود الحقيقي فقط (NULL لا يُكرَّر ولا يُفحص).
@@ -171,13 +198,14 @@ final class BulkEvaluationController extends Controller
 
         // Insert minimal employee
         $db->query(
-            'INSERT INTO employees (emp_code, full_name, branch_id, department_id, is_active, profile_status, created_at)
-             VALUES (:code, :name, :branch, :dept, 1, "incomplete", NOW())'
+            'INSERT INTO employees (emp_code, full_name, branch_id, department_id, position_id, is_active, profile_status, created_at)
+             VALUES (:code, :name, :branch, :dept, :position, 1, "incomplete", NOW())'
         );
         $db->bind(':code', $empCode !== '' ? $empCode : null);
         $db->bind(':name', $fullName);
         $db->bind(':branch', $branchId > 0 ? $branchId : null);
         $db->bind(':dept', $deptId > 0 ? $deptId : null);
+        $db->bind(':position', $positionId);
 
         if (!$db->execute()) {
             $this->json(['error' => 'تعذر إنشاء الموظف'], 500);
@@ -187,10 +215,11 @@ final class BulkEvaluationController extends Controller
         $employeeId = (int)$db->lastInsertId();
 
         // Return the new employee data
-        $db->query('SELECT e.id, e.emp_code, e.full_name, d.name AS department_name, b.name AS branch_name
+        $db->query('SELECT e.id, e.emp_code, e.full_name, d.name AS department_name, b.name AS branch_name, p.title AS position_title
                     FROM employees e
                     LEFT JOIN departments d ON d.id = e.department_id
                     LEFT JOIN branches b ON b.id = e.branch_id
+                    LEFT JOIN positions p ON p.id = e.position_id
                     WHERE e.id = :id');
         $db->bind(':id', $employeeId);
         $emp = $db->fetch();
@@ -203,6 +232,8 @@ final class BulkEvaluationController extends Controller
                 'full_name'       => $emp->full_name,
                 'department_name' => $emp->department_name ?? '',
                 'branch_name'     => $emp->branch_name ?? '',
+                'position_id'     => $positionId,
+                'position_title'  => $emp->position_title ?? $positionTitle,
             ],
         ]);
     }
