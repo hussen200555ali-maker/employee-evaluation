@@ -77,7 +77,7 @@ class BuilderController extends Controller {
         }
 
         // 1. تجميع البيانات الأساسية للقالب - 7 أنواع عامة
-        $allowedTypes = ['employee','employee_in_course','employee_in_workshop','course','workshop','unit','admin'];
+        $allowedTypes = ['employee','employee_in_course','employee_in_workshop','course','workshop','unit','admin','skill'];
         $ttype = $_POST['target_type'] ?? 'employee';
         if (!in_array($ttype, $allowedTypes)) $ttype='employee';
         $allowedModes = ['numeric', 'descriptive', 'mixed'];

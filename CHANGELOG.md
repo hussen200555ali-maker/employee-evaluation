@@ -1,5 +1,11 @@
 # سجل التغييرات
 
+## 2026-11-24 — DIR-RATING-SETTINGS-AUDIT-V1.0: أرشفة صفحة إعدادات التصنيف (تجميد الكود)
+
+- **السبب:** صفحة `/settings/rating` كانت «جزيرة معزولة»؛ تحفظ في `rating_settings` بينما التقييم والتقارير تقرأ فعلياً من `grading_scales`، فكانت تُخدع المستخدم بدعوى «تنعكس فوراً على كل التقارير».
+- **ما تغير:** أُخفي رابط «إعدادات التصنيف» من القائمة الجانبية، وعُطّل مسار الحفظ `POST settings/rating/save`، وأصبح `GET settings/rating` مجرد توجيه آمن إلى `/grading-scales` مع رسالة: «تم نقل إعدادات التصنيف إلى صفحة سلم التقديرات» (لا 404 للروابط المحفوظة).
+- **الدين التقني (Technical Debt):** `app/Models/RatingSetting.php`، `app/Views/settings/rating.php`، جدول `rating_settings` وبياناته، وطريقة `SettingsController::saveRating()` أصبحت **كوداً ميتاً**؛ يُخطط لحذفها بالكامل في **v2.0** مع حذف المسار المتبقي. لم يُمسّ `grading_scales` ولا صفحة `/grading-scales`.
+
 ## 2026-11-24 — CD-043: Smart Prefill Refactor — Phase 1 (قيد المراجعة)
 
 - توحيد مسار العدّ والتنزيل في `EvaluationExcelController::resolveExportRequest()` بحيث تُطبَّق قواعد الاستراتيجية والنطاق والحدود نفسه في `exportCount()` و`downloadExport()`.

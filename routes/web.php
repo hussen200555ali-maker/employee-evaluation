@@ -341,11 +341,11 @@ $router->get('api/to-hijri', 'App\Controllers\ApiController@toHijri');
 
 /*
 |==========================================================================
-| إعدادات التصنيف الديناميكي
+| إعدادات التصنيف الديناميكي — مؤرشفة: GET للتوجيه فقط، POST معطل
 |==========================================================================
 */
-$router->get('settings/rating', 'App\Controllers\SettingsController@rating');
-$router->post('settings/rating/save', 'App\Controllers\SettingsController@saveRating');
+$router->get('settings/rating', 'App\Controllers\SettingsController@rating'); // مؤرشف: يعيد التوجيه إلى /grading-scales
+// أُرشفت: $router->post('settings/rating/save', 'App\Controllers\SettingsController@saveRating');
 
 /*
 |==========================================================================

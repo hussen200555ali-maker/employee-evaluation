@@ -13,9 +13,10 @@ class SettingsController extends Controller {
     }
 
     public function rating(){
-        $model=new RatingSetting();
-        $settings=$model->getAll();
-        $this->view('settings/rating', ['pageTitle'=>'إعدادات التصنيف','settings'=>$settings]);
+        // DIR-RATING-SETTINGS-AUDIT-V1.0: الصفحة مؤرشفة (كود ميت).
+        // نُبقي المسار حياً لتوجيه الروابط المحفوظة بدل عرض 404.
+        Flash::set('تم نقل إعدادات التصنيف إلى صفحة سلم التقديرات', 'info');
+        $this->redirect('/grading-scales');
     }
 
     public function saveRating(){

@@ -185,6 +185,13 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
             </form>
         </div>
         
+        <!-- DIR-TEMPLATES-UI-REDESIGN-V1.1: callout موحّد بدل alert() — بلا تغيير في منطق التحقق -->
+        <div class="tp-callout" id="tpBuilderCallout" role="alert">
+            <i class="fas fa-circle-exclamation"></i>
+            <span class="tp-callout__text" id="tpBuilderCalloutText"></span>
+            <button type="button" class="tp-callout__close" id="tpBuilderCalloutClose" aria-label="إخفاء">&times;</button>
+        </div>
+
         <div class="row g-3 align-items-center mt-1 p-3 bg-light border-top border-bottom">
             <div class="col-md-4">
                 <div class="form-check form-switch">
@@ -230,6 +237,83 @@ require_once APP_ROOT . '/app/Views/layouts/header-builder.php';
     const initialFormStructure = <?php echo $formStructureJson; ?>;
     // CD-023: أسماء السلالم النشطة (لخصائص "التقدير العام")
     const gradingScaleNames = <?php echo json_encode($gradingScaleNames ?? []); ?>;
+</script>
+
+<script>
+/* DIR-TEMPLATES-UI-REDESIGN-V1.1 — تحسينات عرض فقط:
+   بطاقات قابلة للطي + شريط وزن لكل معيار + callout بدل alert().
+   لا يلمس builder.js ولا أي معرّف أو class أو حقل مخفي أصلي. */
+(function () {
+    'use strict';
+    var host = document.getElementById('form-structure-container');
+
+    function pctFromBadge(badge) {
+        var raw = String(badge ? badge.textContent : '').replace(/[^\d.,]/g, '').replace(',', '.');
+        var value = parseFloat(raw);
+        return isNaN(value) ? 0 : value;
+    }
+
+    function decorateCriterion(wrapper) {
+        var header = wrapper.querySelector(':scope > .criterion-header');
+        if (!header) { return; }
+
+        if (!header.querySelector(':scope > .tp-fold')) {
+            var fold = document.createElement('button');
+            fold.type = 'button';
+            fold.className = 'tp-fold';
+            fold.title = 'طي / توسيع المعيار';
+            fold.setAttribute('aria-label', 'طي أو توسيع المعيار');
+            fold.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            fold.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var collapsed = wrapper.classList.toggle('tp-collapsed');
+                fold.innerHTML = collapsed ? '<i class="fas fa-chevron-down"></i>' : '<i class="fas fa-chevron-up"></i>';
+            });
+            header.appendChild(fold);
+        }
+
+        if (!header.querySelector(':scope > .tp-weightbar')) {
+            var badge = header.querySelector('.weight-badge');
+            var value = pctFromBadge(badge);
+            var bar = document.createElement('div');
+            bar.className = 'tp-weightbar' + (value > 0 && Math.abs(value - 100) > 0.01 ? ' is-invalid' : '');
+            bar.style.setProperty('--tp-fill', Math.max(0, Math.min(100, value)) + '%');
+            bar.innerHTML = '<i></i>';
+            bar.title = 'مجموع أوزان الأقسام المرجَّحة: ' + value.toFixed(2) + '%';
+            header.appendChild(bar);
+        }
+    }
+
+    function decorateAll() {
+        if (!host) { return; }
+        Array.prototype.forEach.call(host.querySelectorAll('.criterion-wrapper'), decorateCriterion);
+    }
+
+    if (host) {
+        decorateAll();
+        if (typeof MutationObserver !== 'undefined') {
+            new MutationObserver(decorateAll).observe(host, { childList: true, subtree: true });
+        }
+    }
+
+    var box = document.getElementById('tpBuilderCallout');
+    var text = document.getElementById('tpBuilderCalloutText');
+    var close = document.getElementById('tpBuilderCalloutClose');
+
+    function showCallout(message) {
+        if (!box || !text) { return; }
+        text.textContent = String(message == null ? '' : message);
+        box.classList.add('is-visible');
+    }
+    function hideCallout() {
+        if (box) { box.classList.remove('is-visible'); }
+    }
+    if (close) { close.addEventListener('click', hideCallout); }
+
+    // رسائل التحقق من builder.js تظهر كـ callout داخل الصفحة
+    // مع الإبقاء على شرط التحقق ومنع الحفظ كما هو تماماً.
+    window.alert = showCallout;
+})();
 </script>
 
 <?php 

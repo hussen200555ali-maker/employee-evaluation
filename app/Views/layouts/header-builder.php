@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="<?php echo APP_URL; ?>/public/css/modern-ui.css">
     <link rel="stylesheet" href="<?php echo APP_URL; ?>/public/css/product-ui.css">
     <link rel="stylesheet" href="<?php echo APP_URL; ?>/public/css/builder.css">
+    <link rel="stylesheet" href="<?php echo APP_URL; ?>/public/css/builder-ui.css?v=1.0">
 </head>
 <body class="builder-body">
     <!-- لا يوجد أي محتوى مرئي هنا، فقط وسم body المفتوح -->

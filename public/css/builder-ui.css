@@ -1,0 +1,240 @@
+/* ==========================================================================
+   builder-ui.css — DIR-TEMPLATES-UI-REDESIGN-V1.1
+   طبقة هوية إضافية فوق builder.css — كل المحددات بم specificity أعلى
+   (body.builder ...) لضمان الفوز بغض النظر عن ترتيب تحميل builder.css.
+   صفر تغيير في المعرّفات أو الـ hooks التي يستخدمها builder.js.
+   ========================================================================== */
+body.builder-body {
+    --bu-brand: #0d5e52;
+    --bu-brand-dark: #0b2e2a;
+    --bu-gold: #c8943f;
+    --bu-ink: #16302b;
+    --bu-muted: #6f817b;
+    --bu-border: #dce7e2;
+    --bu-soft: #f8fbf9;
+    --bu-bg: #f3f6f8;
+    --bu-danger: #b42318;
+    font-family: 'Cairo', Tahoma, sans-serif;
+    background: var(--bu-bg);
+    color: var(--bu-ink);
+}
+
+/* ---------- Panels ---------- */
+body.builder-body .form-builder-container { background: var(--bu-bg); }
+body.builder-body .sidebar-panel,
+body.builder-body .properties-panel {
+    width: 292px;
+    background: #fff;
+    border-color: var(--bu-border);
+    box-shadow: 0 0 18px rgba(16, 42, 67, .07);
+}
+body.builder-body .sidebar-header {
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #0b2e2a, #0b5d52 65%, #0f766e);
+    border-bottom: 1px solid #0a3f38;
+    color: #fff;
+}
+body.builder-body .sidebar-header h5 { color: #fff; font-weight: 800; }
+body.builder-body .sidebar-header .btn-light {
+    background: rgba(255, 255, 255, .92);
+    color: var(--bu-brand);
+    border: 1px solid rgba(255, 255, 255, .9);
+    font-weight: 800;
+}
+body.builder-body .element-library,
+body.builder-body .properties-body { padding: 14px; }
+body.builder-body .element-group { margin-bottom: 14px; }
+body.builder-body .element-group h6 {
+    color: var(--bu-brand);
+    font-weight: 800;
+    font-size: .84rem;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--bu-border);
+}
+body.builder-body .draggable-element {
+    background: #fff;
+    border: 1px solid var(--bu-border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: border-color .15s, background-color .15s, transform .15s;
+}
+body.builder-body .draggable-element:hover {
+    background: #eef7f3;
+    border-color: #9fd7cd;
+    transform: translateY(-1px);
+}
+body.builder-body .draggable-element strong { color: var(--bu-ink); font-size: .82rem; }
+body.builder-body .draggable-element small { color: var(--bu-muted); font-size: .71rem; }
+
+/* ---------- Toolbar / workspace ---------- */
+body.builder-body .main-workspace { background: var(--bu-bg); }
+body.builder-body .toolbar {
+    padding: 14px 18px;
+    background: #fff;
+    border-bottom: 1px solid var(--bu-border);
+}
+body.builder-body .toolbar h4 { color: var(--bu-ink); font-weight: 800; }
+body.builder-body .workspace-canvas {
+    padding: 18px;
+    background-image: radial-gradient(rgba(13, 94, 82, .1) 1px, transparent 1px);
+    background-size: 18px 18px;
+}
+body.builder-body .btn-success { background: var(--bu-brand); border-color: var(--bu-brand); color: #fff; font-weight: 800; }
+body.builder-body .btn-success:hover,
+body.builder-body .btn-success:focus { background: #084941; border-color: #084941; }
+body.builder-body .btn-outline-secondary { color: var(--bu-brand); border-color: var(--bu-brand); font-weight: 800; }
+body.builder-body .btn-outline-secondary:hover { background: var(--bu-brand); color: #fff; }
+body.builder-body .btn-light.border { border-color: var(--bu-border) !important; color: var(--bu-ink); font-weight: 700; }
+body.builder-body .form-control:focus,
+body.builder-body .form-select:focus {
+    border-color: var(--bu-brand);
+    box-shadow: 0 0 0 3px rgba(13, 94, 82, .16);
+}
+body.builder-body .form-check-input:checked { background-color: var(--bu-brand); border-color: var(--bu-brand); }
+
+/* ---------- Weight status bar ---------- */
+body.builder-body .weight-strip {
+    margin: 0;
+    padding: 10px 18px;
+    background: #fff;
+    border-top: 1px solid var(--bu-border);
+    border-bottom: 1px solid var(--bu-border);
+}
+body.builder-body .weight-badge {
+    border-radius: 999px;
+    font-weight: 800;
+    background: #eaf6f0;
+    color: #176446;
+}
+body.builder-body .weight-badge.invalid,
+body.builder-body .weight-badge.total.invalid { background: #fef3f2; color: #912018; }
+body.builder-body .weight-badge.total { background: #fff7e6; color: #8a621e; }
+
+/* ---------- Callout بدل alert() ---------- */
+body.builder-body .tp-callout {
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0 18px 12px;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid #fecdca;
+    background: #fef3f2;
+    color: #912018;
+    font-size: .84rem;
+    font-weight: 700;
+    line-height: 1.7;
+    box-shadow: 0 4px 12px rgba(180, 35, 24, .08);
+}
+body.builder-body .tp-callout.is-visible { display: flex; }
+body.builder-body .tp-callout i { margin-top: 3px; }
+body.builder-body .tp-callout__text { flex: 1; }
+body.builder-body .tp-callout__close {
+    border: 0; background: transparent; color: inherit; cursor: pointer;
+    font-size: 1rem; line-height: 1; opacity: .75; padding: 0 2px;
+}
+
+/* ---------- Criterion cards ---------- */
+body.builder-body .criterion-wrapper {
+    border: 1px solid var(--bu-border);
+    border-radius: 12px;
+    background: #fff;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(16, 42, 67, .06), 0 8px 24px rgba(16, 42, 67, .05);
+    transition: border-color .15s, box-shadow .15s;
+}
+body.builder-body .criterion-wrapper.selected {
+    border-color: var(--bu-brand);
+    box-shadow: 0 0 0 3px rgba(13, 94, 82, .16);
+}
+body.builder-body .criterion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    background: linear-gradient(120deg, #093f37, #0d6658);
+    color: #fff;
+}
+body.builder-body .criterion-header h6 { margin: 0; color: #fff; font-weight: 800; font-size: .9rem; }
+body.builder-body .criterion-header .section-ref-badge { background: var(--bu-gold); color: #0b2e2a; }
+body.builder-body .criterion-header .weight-badge { background: rgba(255, 255, 255, .16); color: #fff; }
+body.builder-body .criterion-header .weight-badge.invalid { background: #7f1d1d; color: #fff; }
+body.builder-body .criterion-header .meta-info { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+body.builder-body .criterion-body { padding: 12px; background: #fbfdfc; }
+body.builder-body .criterion-wrapper.tp-collapsed .criterion-body { display: none; }
+
+/* زر الطي — يُحقن ديناميكياً دون لمس builder.js */
+body.builder-body .tp-fold {
+    display: inline-grid; place-items: center;
+    width: 26px; height: 26px; padding: 0;
+    border-radius: 7px; border: 1px solid rgba(255, 255, 255, .35);
+    background: rgba(255, 255, 255, .12); color: #fff;
+    cursor: pointer; font-size: .72rem;
+}
+body.builder-body .tp-fold:hover { background: rgba(255, 255, 255, .24); }
+
+/* شريط وزن لكل معيار — يُ حقن ديناميكياً من النص المعروض أصلاً */
+body.builder-body .tp-weightbar {
+    flex: 1 1 100%;
+    height: 6px;
+    margin-top: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .22);
+    overflow: hidden;
+}
+body.builder-body .tp-weightbar > i {
+    display: block; height: 100%;
+    width: var(--tp-fill, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, #f6d28b, var(--bu-gold));
+    transition: width .2s ease;
+}
+body.builder-body .tp-weightbar.is-invalid > i { background: linear-gradient(90deg, #fca5a5, #dc2626); }
+
+/* ---------- Sections ---------- */
+body.builder-body .section-item {
+    border: 1px solid var(--bu-border);
+    border-right: 3px solid #9fd7cd;
+    border-radius: 9px;
+    background: #fff;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    font-size: .82rem;
+}
+body.builder-body .section-item:hover { border-color: #91c7b7; background: #f8fcfb; }
+body.builder-body .section-item.selected { background: #eef7f3; border-color: var(--bu-brand); border-right-color: var(--bu-gold); }
+body.builder-body .section-ref-badge { background: #eaf6f0; color: var(--bu-brand); }
+body.builder-body .drop-zone {
+    border: 1.5px dashed #9fd7cd;
+    border-radius: 10px;
+    background: #f6fbfa;
+    color: var(--bu-brand);
+    font-weight: 700;
+    font-size: .8rem;
+}
+body.builder-body .drop-zone.drag-over { background: #e2f2ec; border-color: var(--bu-brand); }
+
+/* ---------- Properties ---------- */
+body.builder-body .properties-body .form-group { margin-bottom: 12px; }
+body.builder-body .properties-body label { color: #334e68; font-size: .78rem; font-weight: 800; }
+body.builder-body .properties-body hr { border-color: var(--bu-border); }
+body.builder-body .properties-body h6 { color: var(--bu-brand); font-weight: 800; font-size: .82rem; }
+body.builder-body .properties-body .alert { border-radius: 9px; font-size: .76rem; }
+body.builder-body .formula-hint { background: var(--bu-soft); border-radius: 8px; padding: 8px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+    body.builder-body .form-builder-container { height: auto; min-height: 100vh; }
+    body.builder-body .main-workspace { overflow-y: visible; }
+    body.builder-body .sidebar-panel,
+    body.builder-body .properties-panel { width: 100%; box-shadow: none; }
+    body.builder-body .form-builder-container { flex-direction: column; }
+    body.builder-body .sidebar-panel { order: 1; border-left: 0; border-bottom: 1px solid var(--bu-border); }
+    body.builder-body .main-workspace { order: 2; }
+    body.builder-body .properties-panel { order: 3; border-right: 0; border-top: 1px solid var(--bu-border); }
+}

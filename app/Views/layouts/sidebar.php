@@ -233,9 +233,8 @@ $__avatarLetter = mb_substr(trim((string)$__displayName) !== '' ? (string)$__dis
                             <li><a class="sidebar-sublink <?php echo $__isActive('/templates') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/templates"><i class="fas fa-drafting-compass fa-fw me-2"></i> القوالب</a></li>
                             <li><a class="sidebar-sublink <?php echo $__isActive('/builder/create') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/builder/create"><i class="fas fa-plus-circle fa-fw me-2"></i> إنشاء قالب جديد</a></li>
                             <?php endif; ?>
-                            <?php if (Auth::userHasPermission('settings.manage')): ?>
-                            <li><a class="sidebar-sublink <?php echo $__isActive('/settings/rating') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/settings/rating"><i class="fas fa-sliders-h fa-fw me-2"></i> إعدادات التصنيف</a></li>
-                            <?php endif; ?>
+                            <!-- DIR-RATING-SETTINGS-AUDIT-V1.0: تم أرشفة "إعدادات التصنيف"؛ المصدر الفعلي هو /grading-scales. -->
+
                             <?php if (Auth::userHasPermission('grading_scales.manage')): ?>
                             <li><a class="sidebar-sublink <?php echo $__isActive('/grading-scales') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/grading-scales"><i class="fas fa-star fa-fw me-2"></i> سلم التقديرات</a></li>
                             <?php endif; ?>
