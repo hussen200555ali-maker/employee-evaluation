@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services\Excel;
 
 use App\Core\Database;
+use App\Services\ReportScopeService;
 use PDO;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
@@ -98,7 +99,7 @@ final class ExcelTemplateBuilder
             return ['total_available' => 0, 'exported_rows' => 0, 'capped' => false, 'prefill_strategy' => 'blank'];
         }
         if ($strategy === 'org') {
-            $total = $this->countOrgRows($branchId, $departmentId);
+            $total = $this->countOrgRows($branchId, $departmentId, $options);
         } elseif ($strategy === 'previous_evals') {
             $total = $this->countPreviousEvaluationRows($layout, $branchId, $departmentId, $options);
         } elseif ($strategy === 'executing') {
@@ -435,7 +436,10 @@ final class ExcelTemplateBuilder
 
         // Prefill data rows
         $mode = (string) ($options['mode'] ?? 'prefill');
-        if ($mode !== 'empty') {
+        // Phase 2 (DIR-EXCEL-CATALOG-PHASE2-V1.0): option (1) sets mode=empty, but a catalog
+        // program still needs its name written into column B. prefillRows() returns immediately
+        // after that single write for the blank strategy, so the rest of the behavior is unchanged.
+        if ($mode !== 'empty' || (string) ($options['prefill_strategy'] ?? '') === 'blank') {
             $this->prefillRows($sheet, $layout, $branchId, $departmentId, $dataStart, $dataEnd, $options);
         }
 
@@ -843,6 +847,25 @@ final class ExcelTemplateBuilder
         return $row !== false ? $row : ['full_name' => '', 'position_title' => ''];
     }
 
+    /**
+     * Phase 2 (DIR-EXCEL-CATALOG-PHASE2-V1.0): options (1,2) with a catalog program.
+     * Fill only the program-name column (B); execution context columns stay blank
+     * and are completed by the user before import (which creates the instance).
+     */
+    private function prefillCatalogProgramName(Worksheet $sheet, array $layout, int $start, int $end, array $options): void
+    {
+        if ((string) ($options['program_source'] ?? 'execution') !== 'catalog') {
+            return;
+        }
+        $title = trim((string) ($options['program_title'] ?? ''));
+        if ($title === '' || $this->findColumn($layout, 'program_title') === null) {
+            return;
+        }
+        for ($row = $start; $row <= $end; $row++) {
+            $this->writeRow($sheet, $layout, $row, ['program_title' => $title]);
+        }
+    }
+
     private function prefillRows(Worksheet $sheet, array $layout, ?int $branchId, ?int $departmentId, int $start, int $end, array $options): void
     {
         $strategy = (string) ($options['prefill_strategy'] ?? '');
@@ -855,6 +878,9 @@ final class ExcelTemplateBuilder
             $strategy = 'legacy';
         }
 
+        if (in_array($strategy, ['blank', 'org'], true)) {
+            $this->prefillCatalogProgramName($sheet, $layout, $start, $end, $options);
+        }
         if ($strategy === 'blank') {
             return;
         }
@@ -978,6 +1004,11 @@ final class ExcelTemplateBuilder
         } elseif ($branchId !== null && $branchId > 0) {
             $empWhere .= ' AND e.branch_id = :branch';
             $empParams['branch'] = $branchId;
+        }
+        // A7: server-side user scope — request filters can only narrow this mandatory predicate.
+        $scopeCondition = $this->scopeCondition('e', $empParams, $options);
+        if ($scopeCondition !== '') {
+            $empWhere .= ' AND ' . $scopeCondition;
         }
         $empSql = 'SELECT e.id, e.emp_code, e.full_name, b.name AS branch_name, d.name AS department_name
                    FROM employees e
@@ -1245,6 +1276,10 @@ final class ExcelTemplateBuilder
             $where[] = 'ev.context_id = :pid';
             $params['pid'] = $programId;
         }
+        $scopeCondition = $this->scopeCondition('e', $params, $options);
+        if ($scopeCondition !== '') {
+            $where[] = $scopeCondition;
+        }
 
         $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
                        ev.evaluator_name, ev.evaluator_title, ev.context_id, ev.context_type,
@@ -1305,6 +1340,10 @@ final class ExcelTemplateBuilder
             $where[] = 'tp.executing_department_id = :edid';
             $params['edid'] = $execDept;
         }
+        $scopeCondition = $this->scopeCondition('e', $params, $options);
+        if ($scopeCondition !== '') {
+            $where[] = $scopeCondition;
+        }
 
         $sql = 'SELECT ev.id, ev.evaluated_employee_id, ev.evaluation_date, ev.notes, ev.final_grade_label, ev.final_grade_value,
                        ev.evaluator_name, ev.evaluator_title, ev.context_id, ev.context_type,
@@ -1327,7 +1366,7 @@ final class ExcelTemplateBuilder
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    private function countOrgRows(?int $branchId, ?int $departmentId): int
+    private function countOrgRows(?int $branchId, ?int $departmentId, array $options = []): int
     {
         $pdo = $this->database->getPdo();
         $sql = 'SELECT COUNT(*) FROM employees e WHERE e.is_active = 1';
@@ -1338,6 +1377,10 @@ final class ExcelTemplateBuilder
         } elseif ($branchId !== null && $branchId > 0) {
             $sql .= ' AND e.branch_id = :branch';
             $params['branch'] = $branchId;
+        }
+        $scopeCondition = $this->scopeCondition('e', $params, $options);
+        if ($scopeCondition !== '') {
+            $sql .= ' AND ' . $scopeCondition;
         }
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -1369,6 +1412,10 @@ final class ExcelTemplateBuilder
         if ($isProgram && $programId > 0) {
             $where[] = 'ev.context_id = :pid';
             $params['pid'] = $programId;
+        }
+        $scopeCondition = $this->scopeCondition('e', $params, $options);
+        if ($scopeCondition !== '') {
+            $where[] = $scopeCondition;
         }
 
         $sql = 'SELECT COUNT(*)
@@ -1408,6 +1455,10 @@ final class ExcelTemplateBuilder
             $where[] = 'tp.executing_department_id = :edid';
             $params['edid'] = $execDept;
         }
+        $scopeCondition = $this->scopeCondition('e', $params, $options);
+        if ($scopeCondition !== '') {
+            $where[] = $scopeCondition;
+        }
 
         $sql = 'SELECT COUNT(*)
                 FROM evaluations ev
@@ -1418,6 +1469,48 @@ final class ExcelTemplateBuilder
         $stmt->execute($params);
         return (int) $stmt->fetchColumn();
     }
+    /**
+     * A7: mandatory server-side user scope. The controller resolves the current
+     * user's scope and passes it in $options; request filters may only narrow it.
+     * Returns a SQL condition WITHOUT a leading AND (empty = no restriction).
+     */
+    private function scopeCondition(string $employeeAlias, array &$params, array $options): string
+    {
+        $scope = $options['scope'] ?? null;
+        if (!is_array($scope)) {
+            return '';
+        }
+        $mode = (string) ($scope['mode'] ?? ReportScopeService::MODE_ALL);
+        if ($mode === ReportScopeService::MODE_ALL) {
+            return '';
+        }
+        if ($mode === ReportScopeService::MODE_BRANCH) {
+            $branchId = (int) ($scope['branch_id'] ?? 0);
+            if ($branchId <= 0) {
+                return '1=0';
+            }
+            $params[':scope_branch'] = $branchId;
+            return $employeeAlias . '.branch_id = :scope_branch';
+        }
+        if ($mode === ReportScopeService::MODE_DEPARTMENT) {
+            $departmentId = (int) ($scope['department_id'] ?? 0);
+            if ($departmentId <= 0) {
+                return '1=0';
+            }
+            $params[':scope_department'] = $departmentId;
+            return $employeeAlias . '.department_id = :scope_department';
+        }
+        if ($mode === ReportScopeService::MODE_EMPLOYEE) {
+            $employeeId = (int) ($scope['employee_id'] ?? 0);
+            if ($employeeId <= 0) {
+                return '1=0';
+            }
+            $params[':scope_employee'] = $employeeId;
+            return $employeeAlias . '.id = :scope_employee';
+        }
+        return '1=0';
+    }
+
     private function formatDateForExcel(string $date): string
     {
         $date = trim($date);

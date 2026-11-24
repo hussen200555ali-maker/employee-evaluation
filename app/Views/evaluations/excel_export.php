@@ -229,6 +229,9 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
           'title' => (string)$p['title'],
           'branch_id' => isset($p['executing_branch_id']) ? (int)$p['executing_branch_id'] : 0,
           'dept_id' => isset($p['executing_department_id']) ? (int)$p['executing_department_id'] : 0,
+          'branch_name' => (string)($p['branch_name'] ?? ''),
+          'department_name' => (string)($p['department_name'] ?? ''),
+          'start_date' => (string)($p['start_date'] ?? ''),
       ];
   }, $programs), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
   var CATALOG_PROGRAMS = <?= json_encode(array_map(static function ($c) {
@@ -304,9 +307,13 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     if (radioExec) {
       var input = radioExec.querySelector('input');
       if (!isProgram) {
+        // Option 4 is program-only: hide it AND keep it disabled so a stale
+        // selection can never reach count/download endpoints.
+        radioExec.style.display = 'none';
         radioExec.classList.add('is-disabled');
         if (input) { input.disabled = true; if (input.checked) { var b = document.querySelector('input[name="prefill_strategy"][value="blank"]'); if (b) b.checked = true; } }
       } else {
+        radioExec.style.display = '';
         radioExec.classList.remove('is-disabled');
         if (input) { input.disabled = false; }
       }
@@ -339,14 +346,32 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
       return true;
     });
   }
+  // Phase 2 (DIR-EXCEL-CATALOG-PHASE2-V1.0): option 4 shows the full execution context.
+  // With department:    name — branch (department) — start date
+  // Without department: name — branch — start date
+  // Options (1,2,3) keep the plain catalog name.
+  function executionProgramLabel(p) {
+    var name = String(p.title || '');
+    var branch = String(p.branch_name || '');
+    var dept = String(p.department_name || '');
+    var date = String(p.start_date || '');
+    var hasDept = (Number(p.dept_id) > 0 || dept !== '');
+    var label = name;
+    if (branch !== '') { label += ' — ' + branch; }
+    if (hasDept && dept !== '') { label += ' (' + dept + ')'; }
+    if (date !== '') { label += ' — ' + date; }
+    return label;
+  }
+
   function fillPrograms() {
     if (!program) return;
     var current = program.value;
+    var labelSource = getProgramSource();
     program.innerHTML = '<option value="">— اختر برنامجاً —</option>';
     getFilteredPrograms().forEach(function (p) {
       var o = document.createElement('option');
       o.value = String(p.id);
-      o.textContent = p.title;
+      o.textContent = (labelSource === 'execution') ? executionProgramLabel(p) : p.title;
       program.appendChild(o);
     });
     if (current) { program.value = current; }
@@ -379,8 +404,12 @@ $programTypes = ['employee_in_course', 'employee_in_workshop'];
     params.set('template_id', templateId);
     var strategy = getStrategy();
     params.set('prefill_strategy', strategy);
-    if (branch && branch.value) params.set('branch_id', branch.value);
-    if (dept && dept.value) params.set('department_id', dept.value);
+    // Q1/Q5: option 4 disables employee branch/department filters — do not send them.
+    var option4 = isProgramType() && strategy === 'executing';
+    if (!option4) {
+      if (branch && branch.value) params.set('branch_id', branch.value);
+      if (dept && dept.value) params.set('department_id', dept.value);
+    }
     if (isProgramType()) {
       params.set('program_scope', programScope ? programScope.value : 'all');
       if (programScope && programScope.value === 'single') {

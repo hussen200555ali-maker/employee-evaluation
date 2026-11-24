@@ -1,5 +1,13 @@
 # سجل التغييرات
 
+## 2026-11-24 — CD-043: Smart Prefill Refactor — Phase 1 (قيد المراجعة)
+
+- توحيد مسار العدّ والتنزيل في `EvaluationExcelController::resolveExportRequest()` بحيث تُطبَّق قواعد الاستراتيجية والنطاق والحدود نفسه في `exportCount()` و`downloadExport()`.
+- إخفاء الخيار 4 (الجهة المنفذة) وتعطيله للقوالب غير البرنامجية، وتعطيل فلاتر فرع/قسم الموظف عند تفعيل الخيار 4 مع اعتماد فلاتر البرنامج/المنفذ (Q1/Q5).
+- فرض نطاق المستخدم (A7) في طبقة البيانات: `ReportScopeService` يُحلَّل في المتحكّم ويُمرَّر كـ `options.scope` إلى `ExcelTemplateBuilder::scopeCondition()` كشرط SQL إلزامي لا يمكن توسيعه ببارامترات الطلب؛ سجل التدقيق يسجّل `scope_mode`.
+- الإبقاء على `blank` و`org` و`previous_evals`/`executing` دون تغيير Upsert أو `commitBatch()`؛ مكافحة التكرار E-017 وإصلاحات BUG-001/002/004 محفوظة.
+- التحقق: `php -l` نظيف على الملفات المعدَّلة؛ `ExcelTemplateExportSmoke 12/12` (شامل حدود A2 ونطاق A7)، `ExcelWorkflowSmoke 5/5`، `ExcelImportValidationSmoke 4/4`؛ `runner.php` 123 نجاح / 5 فشل معروف (خط الأساس). UAT: الخيار 4 مخفي/معطل لقالب الموظف، ويظهر ويعمل لقالب الدورة؛ طلب العدّ للخيار 4 لا يرسل `branch_id` ولا `department_id`.
+
 ## 2026-11-24 — CD-043: إغلاق ثغرات استيراد Excel (V2.0 / V2.1 / معاينة التكرار)
 
 - **DIR-BULK-CREATE-FIX-V2.0:** مطابقة الموظف بالاسم عند غياب الكود، وتحديث `employees.emp_code` من `NULL` إلى الكود الحقيقي بدل إنشاء موظف مكرر (لا توليد أكواد `EMP/AUTO`)؛ الاستيراد يخزّن `NULL` عند غياب الكود.

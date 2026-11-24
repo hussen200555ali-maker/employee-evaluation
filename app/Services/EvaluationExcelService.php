@@ -31,8 +31,9 @@ final class EvaluationExcelService
 
     /**
      * CD-043: بناء قالب Excel عبر ExcelTemplateBuilder (مصدر الحقيقة الوحيد).
-     * الخيارات المدعومة: mode=prefill|empty، program_id، program_title،
-     * executing_branch_id، executing_department_id، prefill_ids.
+     * الخيارات المدعومة: mode=prefill|empty، prefill_strategy=blank|org|previous_evals|executing،
+     * program_id، program_title، executing_branch_id، executing_department_id،
+     * scope (A7: نطاق المستخدم المُحلَّل في الخادم)، prefill_ids.
      */
     public function buildTemplate(int $templateId, int $evaluatorEmployeeId, ?int $branchId = null, ?int $departmentId = null, int $maxRows = 100, array $options = []): Spreadsheet
     {

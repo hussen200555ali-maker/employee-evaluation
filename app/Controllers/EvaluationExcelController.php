@@ -11,6 +11,7 @@ use App\Models\Template;
 use App\Models\TrainingCatalog;
 use App\Models\TrainingProgram;
 use App\Services\EvaluationExcelService;
+use App\Services\ReportScopeService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 final class EvaluationExcelController extends Controller
@@ -284,6 +285,9 @@ final class EvaluationExcelController extends Controller
                 'title' => (string) $p->title,
                 'executing_branch_id' => (int) ($p->executing_branch_id ?? 0),
                 'executing_department_id' => (int) ($p->executing_department_id ?? 0),
+                'branch_name' => (string) ($p->branch_name ?? ''),
+                'department_name' => (string) ($p->department_name ?? ''),
+                'start_date' => (string) ($p->start_date ?? ''),
             ];
         }, array_merge(
             (new TrainingProgram())->all('course'),
@@ -323,74 +327,19 @@ final class EvaluationExcelController extends Controller
         Auth::enforce('evaluations.export');
         header('Content-Type: application/json; charset=UTF-8');
         try {
-            $limits = $this->excel->exportLimits();
-            $templateId = (int) ($_GET['template_id'] ?? 0);
-            if ($templateId <= 0) {
-                throw new RuntimeException('يرجى اختيار قالب التقييم.');
-            }
-            $template = (new Template())->findById($templateId);
-            if (!$template || (int) ($template->is_active ?? 0) !== 1) {
-                throw new RuntimeException('القالب المحدد غير موجود أو غير نشط.');
-            }
-            $targetType = (string) ($template->target_type ?? 'employee');
-            if (!in_array($targetType, ['employee', 'employee_in_course', 'employee_in_workshop', 'skill'], true)) {
-                throw new RuntimeException('نوع القالب غير مدعوم في CD-043.');
-            }
-            $branchId = $this->optionalId($_GET['branch_id'] ?? null);
-            $departmentId = $this->optionalId($_GET['department_id'] ?? null);
-            $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
-            $programId = $isProgram ? $this->optionalId($_GET['program_id'] ?? null) : null;
-            $programScope = $isProgram ? (string) ($_GET['program_scope'] ?? 'all') : 'all';
-            if ($programScope !== 'single') { $programId = null; }
-            $maxRows = (int) ($_GET['max_rows'] ?? 100);
-            $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
-
-            $prefillStrategy = trim((string) ($_GET['prefill_strategy'] ?? 'blank'));
-            $allowedStrategies = ['blank', 'org', 'previous_evals', 'executing'];
-            if (!in_array($prefillStrategy, $allowedStrategies, true)) { $prefillStrategy = 'blank'; }
-            if ($prefillStrategy === 'executing' && !$isProgram) { $prefillStrategy = 'blank'; }
-
-            $this->assertScopeExists($branchId, $departmentId);
-            $executingBranchId = $this->optionalId($_GET['executing_branch_id'] ?? null);
-            $executingDeptId = $this->optionalId($_GET['executing_department_id'] ?? null);
-            $this->assertScopeExists($executingBranchId, $executingDeptId);
-
-            $effectiveBranchId = $branchId;
-            $effectiveDeptId = $departmentId;
-            if ($prefillStrategy === 'executing' && $isProgram) {
-                $effectiveBranchId = null;
-                $effectiveDeptId = null;
-            }
-
-            $options = [
-                'prefill_strategy' => $prefillStrategy,
-                'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
-                'program_scope' => $programScope,
-                // Phase 2 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): program list source.
-                // - executing (option 4): execution records (training_programs instances).
-                // - blank/org/previous_evals (options 1,2,3): catalog-based programs (names only; context empty).
-                'program_source' => ($prefillStrategy === 'executing') ? 'execution' : 'catalog',
-                'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
-                'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
-                'user_id' => (int) Auth::id(),
-            ];
-            if ($programId !== null) {
-                if ((string) ($options['program_source'] ?? 'execution') === 'catalog') {
-                    // Catalog-based program selected (options 1,2,3): no execution context yet.
-                    // Context fields must stay empty for the user to fill later; import creates new instance.
-                    $options['program_id'] = 0;
-                } else {
-                    $options['program_id'] = $programId;
-                }
-                $options['program_title'] = (string) ($_GET['program_title'] ?? '');
-            }
-
-            $counts = $this->excel->countExportRows($templateId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
+            $request = $this->resolveExportRequest();
+            $counts = $this->excel->countExportRows(
+                $request['template_id'],
+                $request['effective_branch_id'],
+                $request['effective_department_id'],
+                $request['max_rows'],
+                $request['options']
+            );
             echo json_encode([
                 'ok' => true,
-                'template_id' => $templateId,
-                'prefill_strategy' => $counts['prefill_strategy'] ?? $prefillStrategy,
-                'max_rows' => $maxRows,
+                'template_id' => $request['template_id'],
+                'prefill_strategy' => $counts['prefill_strategy'] ?? $request['options']['prefill_strategy'],
+                'max_rows' => $request['max_rows'],
                 'total_available' => (int) ($counts['total_available'] ?? 0),
                 'exported_rows' => (int) ($counts['exported_rows'] ?? 0),
                 'capped' => (bool) ($counts['capped'] ?? false),
@@ -406,84 +355,133 @@ final class EvaluationExcelController extends Controller
         exit;
     }
 
+    /**
+     * Smart Prefill Phase 1 refactor: single normalization path for count + download.
+     * Keeps strategy validation, Q1/Q5 filter handling and A7 scope identical in both endpoints.
+     *
+     * @return array<string,mixed>
+     */
+    private function resolveExportRequest(): array
+    {
+        $limits = $this->excel->exportLimits();
+        $templateId = (int) ($_GET['template_id'] ?? 0);
+        if ($templateId <= 0) {
+            throw new RuntimeException('يرجى اختيار قالب التقييم.');
+        }
+        $template = (new Template())->findById($templateId);
+        if (!$template || (int) ($template->is_active ?? 0) !== 1) {
+            throw new RuntimeException('القالب المحدد غير موجود أو غير نشط.');
+        }
+        $targetType = (string) ($template->target_type ?? 'employee');
+        if (!in_array($targetType, ['employee', 'employee_in_course', 'employee_in_workshop', 'skill'], true)) {
+            throw new RuntimeException('نوع القالب غير مدعوم في CD-043.');
+        }
+
+        $branchId = $this->optionalId($_GET['branch_id'] ?? null);
+        $departmentId = $this->optionalId($_GET['department_id'] ?? null);
+        $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
+        $programId = $isProgram ? $this->optionalId($_GET['program_id'] ?? null) : null;
+        $programScope = $isProgram ? (string) ($_GET['program_scope'] ?? 'all') : 'all';
+        if ($programScope !== 'single') {
+            $programId = null;
+        }
+        $maxRows = (int) ($_GET['max_rows'] ?? 100);
+        $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
+
+        $prefillStrategy = trim((string) ($_GET['prefill_strategy'] ?? 'blank'));
+        $allowedStrategies = ['blank', 'org', 'previous_evals', 'executing'];
+        if (!in_array($prefillStrategy, $allowedStrategies, true)) {
+            $prefillStrategy = 'blank';
+        }
+        // Option 4 is program-only; never trust the client for this rule.
+        if ($prefillStrategy === 'executing' && !$isProgram) {
+            $prefillStrategy = 'blank';
+        }
+
+        $this->assertScopeExists($branchId, $departmentId);
+        $executingBranchId = $this->optionalId($_GET['executing_branch_id'] ?? null);
+        $executingDeptId = $this->optionalId($_GET['executing_department_id'] ?? null);
+        $this->assertScopeExists($executingBranchId, $executingDeptId);
+
+        // Q1/Q5: option 4 ignores employee branch/department filters; executing/program filters are primary.
+        $effectiveBranchId = $branchId;
+        $effectiveDepartmentId = $departmentId;
+        if ($prefillStrategy === 'executing' && $isProgram) {
+            $effectiveBranchId = null;
+            $effectiveDepartmentId = null;
+        }
+
+        // A7: resolve once in the service layer; the builder applies it as a mandatory SQL predicate.
+        $scope = (new ReportScopeService())->resolve();
+        $options = [
+            'prefill_strategy' => $prefillStrategy,
+            'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
+            'program_scope' => $programScope,
+            // executing: execution records (training_programs instances).
+            // blank/org/previous_evals: catalog-based programs (names only; context empty).
+            'program_source' => ($prefillStrategy === 'executing') ? 'execution' : 'catalog',
+            'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
+            'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
+            'user_id' => (int) Auth::id(),
+            'scope' => [
+                'mode' => (string) ($scope['mode'] ?? ReportScopeService::MODE_NONE),
+                'branch_id' => isset($scope['branch_id']) ? (int) $scope['branch_id'] : null,
+                'department_id' => isset($scope['department_id']) ? (int) $scope['department_id'] : null,
+                'employee_id' => isset($scope['employee_id']) ? (int) $scope['employee_id'] : null,
+            ],
+        ];
+        if ($programId !== null) {
+            if ((string) ($options['program_source'] ?? 'execution') === 'catalog') {
+                // Catalog-based program selected (options 1,2,3): no execution context yet.
+                // Context fields stay empty for the user to fill later; import creates the instance.
+                $options['program_id'] = 0;
+            } else {
+                $options['program_id'] = $programId;
+            }
+            $options['program_title'] = (string) ($_GET['program_title'] ?? '');
+        }
+
+        return [
+            'limits' => $limits,
+            'template_id' => $templateId,
+            'target_type' => $targetType,
+            'is_program' => $isProgram,
+            'branch_id' => $branchId,
+            'department_id' => $departmentId,
+            'effective_branch_id' => $effectiveBranchId,
+            'effective_department_id' => $effectiveDepartmentId,
+            'program_scope' => $programScope,
+            'program_id' => $programId,
+            'max_rows' => $maxRows,
+            'options' => $options,
+        ];
+    }
+
     public function downloadExport(): void
     {
         Auth::enforce('evaluations.export');
         $employeeId = $this->currentEmployeeId();
-        $limits = $this->excel->exportLimits();
         $templateId = (int) ($_GET['template_id'] ?? 0);
         $filename = 'evaluation-template-' . ($templateId > 0 ? $templateId : 'x') . '-' . date('Ymd-His') . '.xlsx';
         $tmpFile = null;
         try {
-            if ($templateId <= 0) {
-                throw new RuntimeException('يرجى اختيار قالب التقييم.');
-            }
-            $template = (new Template())->findById($templateId);
-            if (!$template || (int) ($template->is_active ?? 0) !== 1) {
-                throw new RuntimeException('القالب المحدد غير موجود أو غير نشط.');
-            }
-            $targetType = (string) ($template->target_type ?? 'employee');
-            if (!in_array($targetType, ['employee', 'employee_in_course', 'employee_in_workshop', 'skill'], true)) {
-                throw new RuntimeException('نوع القالب غير مدعوم في CD-043.');
-            }
-            $branchId = $this->optionalId($_GET['branch_id'] ?? null);
-            $departmentId = $this->optionalId($_GET['department_id'] ?? null);
-            $isProgram = in_array($targetType, ['employee_in_course', 'employee_in_workshop'], true);
-            $programId = $isProgram ? $this->optionalId($_GET['program_id'] ?? null) : null;
-            $programScope = $isProgram ? (string) ($_GET['program_scope'] ?? 'all') : 'all';
-            if ($programScope !== 'single') { $programId = null; }
-            $maxRows = (int) ($_GET['max_rows'] ?? 100);
-            $maxRows = max($limits['min_rows'], min($maxRows, $limits['max_rows']));
-
-            // Smart Prefill: blank | org (Phase 1) | previous_evals | executing (Phase 2)
-            $prefillStrategy = trim((string) ($_GET['prefill_strategy'] ?? 'blank'));
-            $allowedStrategies = ['blank', 'org', 'previous_evals', 'executing'];
-            if (!in_array($prefillStrategy, $allowedStrategies, true)) {
-                $prefillStrategy = 'blank';
-            }
-            if ($prefillStrategy === 'executing' && !$isProgram) {
-                $prefillStrategy = 'blank';
-            }
-
-            $this->assertScopeExists($branchId, $departmentId);
-
-            $executingBranchId = $this->optionalId($_GET['executing_branch_id'] ?? null);
-            $executingDeptId = $this->optionalId($_GET['executing_department_id'] ?? null);
-            $this->assertScopeExists($executingBranchId, $executingDeptId);
-
-            // Q1/Q5: option 4 (executing) ignores employee branch/department filters; executing/program filters are primary.
-            $effectiveBranchId = $branchId;
-            $effectiveDeptId = $departmentId;
-            if ($prefillStrategy === 'executing' && $isProgram) {
-                $effectiveBranchId = null;
-                $effectiveDeptId = null;
-            }
-
-            $options = [
-                'prefill_strategy' => $prefillStrategy,
-                'mode' => $prefillStrategy === 'blank' ? 'empty' : 'prefill',
-                'program_scope' => $programScope,
-                // Phase 2 (APPR-EXCEL-EXPORT-REFACTOR-V1.0): program list source.
-                // - executing (option 4): execution records (training_programs instances).
-                // - blank/org/previous_evals (options 1,2,3): catalog-based programs (names only; context empty).
-                'program_source' => ($prefillStrategy === 'executing') ? 'execution' : 'catalog',
-                'executing_branch_id' => $isProgram ? ($executingBranchId ?? $branchId) : $branchId,
-                'executing_department_id' => $isProgram ? ($executingDeptId ?? $departmentId) : $departmentId,
-                'user_id' => (int) Auth::id(),
-            ];
-            if ($programId !== null) {
-                if ((string) ($options['program_source'] ?? 'execution') === 'catalog') {
-                    // Catalog-based program selected (options 1,2,3): no execution context yet.
-                    // Context fields must stay empty for the user to fill later; import creates new instance.
-                    $options['program_id'] = 0;
-                } else {
-                    $options['program_id'] = $programId;
-                }
-                $options['program_title'] = (string) ($_GET['program_title'] ?? '');
-            }
-
-            $counts = $this->excel->countExportRows($templateId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
-            $book = $this->excel->buildTemplate($templateId, $employeeId, $effectiveBranchId, $effectiveDeptId, $maxRows, $options);
+            $request = $this->resolveExportRequest();
+            $options = $request['options'];
+            $counts = $this->excel->countExportRows(
+                $request['template_id'],
+                $request['effective_branch_id'],
+                $request['effective_department_id'],
+                $request['max_rows'],
+                $options
+            );
+            $book = $this->excel->buildTemplate(
+                $request['template_id'],
+                $employeeId,
+                $request['effective_branch_id'],
+                $request['effective_department_id'],
+                $request['max_rows'],
+                $options
+            );
 
             $tmpFile = tempnam(sys_get_temp_dir(), 'cd043_export_');
             if ($tmpFile === false) {
@@ -491,21 +489,22 @@ final class EvaluationExcelController extends Controller
             }
             (new Xlsx($book))->save($tmpFile);
             $size = (int) filesize($tmpFile);
-            $maxBytes = $limits['max_file_size_mb'] * 1024 * 1024;
+            $maxBytes = $request['limits']['max_file_size_mb'] * 1024 * 1024;
             if ($size > $maxBytes) {
-                throw new RuntimeException('حجم الملف الناتج يتجاوز الحد الأقصى (' . $limits['max_file_size_mb'] . ' ميجابايت).');
+                throw new RuntimeException('حجم الملف الناتج يتجاوز الحد الأقصى (' . $request['limits']['max_file_size_mb'] . ' ميجابايت).');
             }
-            Audit::log('EVALUATION_EXCEL_EXPORTED', $templateId, 'form_templates', [
-                'template_id' => $templateId,
-                'target_type' => $targetType,
-                'branch_id' => $branchId,
-                'department_id' => $departmentId,
-                'program_scope' => $programScope,
-                'program_id' => $programId,
-                'prefill_strategy' => $prefillStrategy,
+            Audit::log('EVALUATION_EXCEL_EXPORTED', $request['template_id'], 'form_templates', [
+                'template_id' => $request['template_id'],
+                'target_type' => $request['target_type'],
+                'branch_id' => $request['branch_id'],
+                'department_id' => $request['department_id'],
+                'program_scope' => $request['program_scope'],
+                'program_id' => $request['program_id'],
+                'prefill_strategy' => $options['prefill_strategy'],
                 'executing_branch_id' => $options['executing_branch_id'] ?? null,
                 'executing_department_id' => $options['executing_department_id'] ?? null,
-                'max_rows' => $maxRows,
+                'scope_mode' => $options['scope']['mode'] ?? null,
+                'max_rows' => $request['max_rows'],
                 'total_available' => (int) ($counts['total_available'] ?? 0),
                 'exported_rows' => (int) ($counts['exported_rows'] ?? 0),
                 'capped' => (bool) ($counts['capped'] ?? false),

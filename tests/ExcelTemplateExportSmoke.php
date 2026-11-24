@@ -199,6 +199,33 @@ try {
     echo "  [PASS] smart prefill: org (count/build)\n";
     $passCount++; $extraChecks++;
 
+    // Phase 1 / A2: deterministic "first N" must be capped consistently by count + build limits.
+    $cOrgOne = $svc->countExportRows(1, null, null, 1, ['prefill_strategy' => 'org', 'mode' => 'prefill', 'user_id' => 1]);
+    assertTrue((int) ($cOrgOne['exported_rows'] ?? -1) <= 1, 'org max_rows cap');
+    assertTrue((bool) ($cOrgOne['capped'] ?? false) === ((int) ($cOrgOne['total_available'] ?? 0) > 1), 'org capped flag');
+    echo "  [PASS] smart prefill: org deterministic limit/cap\n";
+    $passCount++; $extraChecks++;
+
+    // Phase 1 / A7: server-side scope is a mandatory SQL predicate, not a UI-only filter.
+    $blockedScope = ['mode' => 'employee', 'employee_id' => -1, 'branch_id' => null, 'department_id' => null];
+    $cScoped = $svc->countExportRows(1, null, null, 50, [
+        'prefill_strategy' => 'org', 'mode' => 'prefill', 'user_id' => 1, 'scope' => $blockedScope,
+    ]);
+    assertTrue((int) ($cScoped['total_available'] ?? -1) === 0, 'A7 scope must narrow org count to zero');
+    $bScoped = $svc->buildTemplate(1, 1, null, null, 50, [
+        'prefill_strategy' => 'org', 'mode' => 'prefill', 'user_id' => 1, 'scope' => $blockedScope,
+    ]);
+    $nameLetter = null;
+    foreach ($svc->templateLayout(1)['columns'] as $col) {
+        if (($col['key'] ?? '') === 'employee_name') { $nameLetter = (string) $col['letter']; break; }
+    }
+    assertTrue($nameLetter !== null, 'employee_name column for scope check');
+    $scopedSheet = $bScoped->getSheetByName(\App\Services\Excel\ExcelTemplateBuilder::MAIN_SHEET);
+    assertTrue($scopedSheet !== null, 'scoped build sheet');
+    assertTrue(trim((string) $scopedSheet->getCell($nameLetter . '5')->getValue()) === '', 'A7 scope must block org row prefill');
+    echo "  [PASS] smart prefill: org server-side scope (A7)\n";
+    $passCount++; $extraChecks++;
+
     $cPrev = $svc->countExportRows(2, null, null, 50, ['prefill_strategy' => 'previous_evals', 'mode' => 'prefill', 'user_id' => 1, 'program_scope' => 'all']);
     assertTrue(($cPrev['prefill_strategy'] ?? '') === 'previous_evals', 'previous_evals count');
     $b3 = $svc->buildTemplate(2, 1, null, null, 50, ['prefill_strategy' => 'previous_evals', 'mode' => 'prefill', 'user_id' => 1, 'program_scope' => 'all']);
